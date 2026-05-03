@@ -38,3 +38,4 @@ See [template.md](template.md).
 
 - [0000 — Record architectural decisions](0000-record-architecture-decisions.md)
 - [0001 — Product posture: doctor / add / coach](0001-product-posture-doctor-add-coach.md)
+- [0002 — Catalog schema](0002-catalog-schema.md)

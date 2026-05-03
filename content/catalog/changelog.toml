@@ -1,0 +1,43 @@
+id = "changelog"
+name = "Changelog fragments"
+description = "Fragment-based changelog under .changes/ — one file per change, generated CHANGELOG.md at release."
+version = "0.1.0"
+
+layers = ["harness", "conventions"]
+
+[[provides]]
+source   = "skills/changelog/skill.md"
+target   = ".claude/skills/changelog/skill.md"
+flavor   = "claude"
+conflict = "prompt"
+
+[[provides]]
+source   = "skills/changelog/command.md"
+target   = ".claude/commands/changelog.md"
+flavor   = "claude"
+conflict = "prompt"
+
+[[provides]]
+source   = "skills/changelog/rules.md"
+target   = ".claude/skills/changelog/rules.md"
+flavor   = "claude"
+conflict = "prompt"
+
+[[provides]]
+source   = "recipes/changelog/changelog-fragments.md"
+target   = ".agentry/recipes/changelog/changelog-fragments.md"
+flavor   = "agnostic"
+conflict = "prompt"
+
+[detect]
+any_of = [
+  ".claude/skills/changelog/skill.md",
+  ".claude/commands/changelog.md",
+  ".changes",
+  ".agentry/recipes/changelog/changelog-fragments.md",
+]
+
+[requires]
+git     = true
+entries = []
+tools   = []
