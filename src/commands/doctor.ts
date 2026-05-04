@@ -2,13 +2,32 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { loadCatalog, type CatalogEntry, type Layer } from "../catalog.js";
 import { CONTENT_DIR } from "../paths.js";
-import { filesIdentical, isToolAvailable } from "../io.js";
+import { isToolAvailable } from "../io.js";
+import {
+  findLockedEntry,
+  findLockedProvide,
+  readLockfile,
+  sha256OfFile,
+  type Lockfile,
+  type LockedEntry,
+} from "../lockfile.js";
 
 export interface DoctorOptions {
   cwd: string;
 }
 
 type Status = "installed" | "missing" | "partial";
+type DriftKind = "user-edit" | "out-of-date";
+
+interface ProvideDrift {
+  target: string;
+  kind: DriftKind;
+}
+
+interface VersionDrift {
+  installed: string;
+  current: string;
+}
 
 interface Report {
   entry: CatalogEntry;
@@ -16,8 +35,9 @@ interface Report {
   detected: string[];
   providedPresent: string[];
   providedMissing: string[];
-  providedDrifted: string[];
+  drift: ProvideDrift[];
   missingTools: string[];
+  versionDrift: VersionDrift | null;
 }
 
 const LAYER_ORDER: Layer[] = [
@@ -44,13 +64,18 @@ export async function runDoctor(options: DoctorOptions): Promise<number> {
     return 0;
   }
 
+  const lockfile = await readLockfile(options.cwd);
+
   const reports = await Promise.all(
     entries
       .filter((e) => !e.deprecated_by)
-      .map((entry) => buildReport(entry, options.cwd)),
+      .map((entry) => buildReport(entry, options.cwd, lockfile)),
   );
 
   console.log(`agentry doctor — auditing ${options.cwd}`);
+  if (lockfile === null) {
+    console.log("(no agentry.lock.toml — drift kind will be approximate)");
+  }
   console.log("");
 
   const grouped = groupByLayer(reports);
@@ -71,16 +96,7 @@ export async function runDoctor(options: DoctorOptions): Promise<number> {
     console.log("");
   }
 
-  const summary = summarise(reports);
-  const tail: string[] = [];
-  if (summary.drifted > 0) tail.push(`${summary.drifted} drifted`);
-  if (summary.toolGaps > 0) {
-    tail.push(`${summary.toolGaps} tool gap${summary.toolGaps === 1 ? "" : "s"}`);
-  }
-  const tailStr = tail.length > 0 ? `; ${tail.join(", ")}` : "";
-  console.log(
-    `summary: ${summary.installed} installed, ${summary.partial} partial, ${summary.missing} missing${tailStr}`,
-  );
+  printSummary(reports);
 
   if (malformed.length > 0) {
     console.warn("");
@@ -102,42 +118,40 @@ export async function runDoctor(options: DoctorOptions): Promise<number> {
 async function buildReport(
   entry: CatalogEntry,
   cwd: string,
+  lockfile: Lockfile | null,
 ): Promise<Report> {
   const detected = entry.detect.any_of.filter((p) =>
     existsSync(resolve(cwd, p)),
   );
 
+  const lockedEntry = findLockedEntry(lockfile, entry.id);
+
   const providedPresent: string[] = [];
   const providedMissing: string[] = [];
-  const driftChecks: Promise<{ target: string; drifted: boolean } | null>[] =
-    [];
+  const driftChecks: Promise<ProvideDrift | null>[] = [];
 
   for (const p of entry.provides) {
     const dest = resolve(cwd, p.target);
     if (existsSync(dest)) {
       providedPresent.push(p.target);
       const src = resolve(CONTENT_DIR, p.source);
-      driftChecks.push(
-        existsSync(src)
-          ? filesIdentical(src, dest).then((same) => ({
-              target: p.target,
-              drifted: !same,
-            }))
-          : Promise.resolve(null),
-      );
+      driftChecks.push(classifyDrift(p.target, src, dest, lockedEntry));
     } else {
       providedMissing.push(p.target);
     }
   }
 
   const driftResults = await Promise.all(driftChecks);
-  const providedDrifted = driftResults
-    .filter((r): r is { target: string; drifted: boolean } =>
-      Boolean(r && r.drifted),
-    )
-    .map((r) => r.target);
+  const drift = driftResults.filter(
+    (d): d is ProvideDrift => d !== null,
+  );
 
   const missingTools = entry.requires.tools.filter((t) => !isToolAvailable(t));
+
+  const versionDrift =
+    lockedEntry && lockedEntry.version !== entry.version
+      ? { installed: lockedEntry.version, current: entry.version }
+      : null;
 
   let status: Status;
   if (detected.length === 0 && providedPresent.length === 0) {
@@ -153,9 +167,32 @@ async function buildReport(
     detected,
     providedPresent,
     providedMissing,
-    providedDrifted,
+    drift,
     missingTools,
+    versionDrift,
   };
+}
+
+async function classifyDrift(
+  target: string,
+  src: string,
+  dest: string,
+  lockedEntry: LockedEntry | undefined,
+): Promise<ProvideDrift | null> {
+  if (!existsSync(src)) return null;
+
+  const [destHash, srcHash] = await Promise.all([
+    sha256OfFile(dest),
+    sha256OfFile(src),
+  ]);
+
+  if (destHash === srcHash) return null;
+
+  const locked = findLockedProvide(lockedEntry, target);
+  if (locked && destHash === locked.checksum) {
+    return { target, kind: "out-of-date" };
+  }
+  return { target, kind: "user-edit" };
 }
 
 function groupByLayer(reports: Report[]): Map<Layer, Report[]> {
@@ -173,19 +210,26 @@ function groupByLayer(reports: Report[]): Map<Layer, Report[]> {
 function printReport(r: Report): void {
   const glyph = STATUS_GLYPH[r.status];
   const flags: string[] = [];
-  if (r.providedDrifted.length > 0) {
-    flags.push(`${r.providedDrifted.length} drifted`);
+
+  const userEdits = r.drift.filter((d) => d.kind === "user-edit").length;
+  const outOfDate = r.drift.filter((d) => d.kind === "out-of-date").length;
+  if (userEdits > 0) flags.push(`${userEdits} user-edit${userEdits === 1 ? "" : "s"}`);
+  if (outOfDate > 0) flags.push(`${outOfDate} out-of-date`);
+  if (r.versionDrift) {
+    flags.push(`v${r.versionDrift.installed}→${r.versionDrift.current}`);
   }
   if (r.missingTools.length > 0) {
     flags.push(`tool gap: ${r.missingTools.join(",")}`);
   }
   const flagStr = flags.length > 0 ? ` (${flags.join("; ")})` : "";
+
   console.log(`  ${glyph} ${r.entry.id.padEnd(16)} ${r.status}${flagStr}`);
   for (const target of r.providedMissing) {
-    console.log(`      missing: ${target}`);
+    console.log(`      missing:     ${target}`);
   }
-  for (const target of r.providedDrifted) {
-    console.log(`      drifted: ${target}`);
+  for (const d of r.drift) {
+    const label = d.kind === "user-edit" ? "user-edit:" : "out-of-date:";
+    console.log(`      ${label.padEnd(12)} ${d.target}`);
   }
 }
 
@@ -193,7 +237,9 @@ interface Summary {
   installed: number;
   partial: number;
   missing: number;
-  drifted: number;
+  userEdits: number;
+  outOfDate: number;
+  staleEntries: number;
   toolGaps: number;
 }
 
@@ -202,13 +248,35 @@ function summarise(reports: Report[]): Summary {
     installed: 0,
     partial: 0,
     missing: 0,
-    drifted: 0,
+    userEdits: 0,
+    outOfDate: 0,
+    staleEntries: 0,
     toolGaps: 0,
   };
   for (const r of reports) {
     out[r.status] += 1;
-    if (r.providedDrifted.length > 0) out.drifted += 1;
+    for (const d of r.drift) {
+      if (d.kind === "user-edit") out.userEdits += 1;
+      else out.outOfDate += 1;
+    }
+    if (r.versionDrift) out.staleEntries += 1;
     if (r.missingTools.length > 0) out.toolGaps += 1;
   }
   return out;
+}
+
+function printSummary(reports: Report[]): void {
+  const s = summarise(reports);
+  const head = `${s.installed} installed, ${s.partial} partial, ${s.missing} missing`;
+  const tail: string[] = [];
+  if (s.userEdits > 0) tail.push(`${s.userEdits} user-edit${s.userEdits === 1 ? "" : "s"}`);
+  if (s.outOfDate > 0) tail.push(`${s.outOfDate} out-of-date`);
+  if (s.staleEntries > 0) {
+    tail.push(`${s.staleEntries} stale entr${s.staleEntries === 1 ? "y" : "ies"}`);
+  }
+  if (s.toolGaps > 0) {
+    tail.push(`${s.toolGaps} tool gap${s.toolGaps === 1 ? "" : "s"}`);
+  }
+  const tailStr = tail.length > 0 ? `; ${tail.join(", ")}` : "";
+  console.log(`summary: ${head}${tailStr}`);
 }

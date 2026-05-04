@@ -9,6 +9,17 @@ import {
   isGitRepo,
   isToolAvailable,
 } from "../io.js";
+import {
+  emptyLockfile,
+  findLockedEntry,
+  mergeLockedProvides,
+  readLockfile,
+  sha256OfFile,
+  upsertLockedEntry,
+  writeLockfile,
+  type LockedProvide,
+  type Lockfile,
+} from "../lockfile.js";
 import { chooseConflictAction, confirm, isInteractive } from "../prompt.js";
 
 export interface AddOptions {
@@ -99,7 +110,52 @@ export async function runAdd(opts: AddOptions): Promise<number> {
       }
     }
   }
+
+  if (!opts.dryRun) {
+    await recordInstalls(opts.cwd, allResults);
+  }
   return 0;
+}
+
+const RECORDABLE: ReadonlySet<Outcome> = new Set<Outcome>([
+  "written",
+  "overwritten",
+  "unchanged",
+]);
+
+async function recordInstalls(
+  cwd: string,
+  allResults: { entry: CatalogEntry; results: ProvideResult[] }[],
+): Promise<void> {
+  let lf: Lockfile = (await readLockfile(cwd)) ?? emptyLockfile();
+  let touched = false;
+
+  for (const { entry, results } of allResults) {
+    const recordable = results.filter((r) => RECORDABLE.has(r.outcome));
+    if (recordable.length === 0) continue;
+
+    const fresh: LockedProvide[] = await Promise.all(
+      recordable.map(async (r) => ({
+        target: r.provide.target,
+        source: r.provide.source,
+        flavor: r.provide.flavor,
+        checksum: await sha256OfFile(resolve(CONTENT_DIR, r.provide.source)),
+      })),
+    );
+
+    const prior = findLockedEntry(lf, entry.id);
+    const merged = mergeLockedProvides(prior?.provides, fresh);
+
+    lf = upsertLockedEntry(lf, {
+      id: entry.id,
+      version: entry.version,
+      installed_at: new Date().toISOString(),
+      provides: merged,
+    });
+    touched = true;
+  }
+
+  if (touched) await writeLockfile(cwd, lf);
 }
 
 async function resolvePlan(
