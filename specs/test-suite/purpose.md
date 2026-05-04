@@ -1,6 +1,6 @@
 # Test suite — Purpose
 
-**Status:** Draft
+**Status:** Active
 **Date:** 2026-05-04
 
 ## Problem

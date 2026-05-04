@@ -1,6 +1,6 @@
 # agentry — status
 
-*Last updated: 2026-05-04 — after specs scaffold (`c8e424e`) + dogfood (`0715a1e`) + first spec drafted.*
+*Last updated: 2026-05-04 — test suite landed (vitest, 37 tests, ~650ms).*
 
 Current snapshot of where the build is against the original 7-phase plan
 (`~/.claude/plans/lets-brainstorm-the-idea-cheerful-pelican.md`). Update as
@@ -44,28 +44,26 @@ phases close.
 - **`PRACTICES.md` template** ships at `content/templates/PRACTICES.template.md`, scaffolded via `coach practices`.
 - **Spec templates** ship at `content/templates/spec/` (`README` + `_template/{purpose,design,acceptance}.md` + `briefs/README.md`), scaffolded via `coach spec-init` then `coach spec <slug>`. Slug-named, not numbered (specs are features, not point-in-time decisions).
 - **`specs/` bootstrapped on agentry itself** via `coach spec-init` — the repo now ships its own `specs/README.md` and `specs/_template/`.
-- **First per-feature spec drafted:** `specs/test-suite/` (Status: Draft) lays out the vitest adoption plan — purpose, design (with decisions made on `pretest` build + fixture catalog; one open question on snapshot directory), and a checklist-shaped acceptance section. Implementation is the next loop.
+- **First per-feature spec implemented:** `specs/test-suite/` (Status: Active). vitest wired (`pretest` builds dist; `npm test` runs the suite). 37 tests at ~650ms — verb contract tests for list/doctor/add/upgrade/remove/coach, unit tests for drift/lockfile/catalog (real bundled catalog + fixture catalogs for cycles & malformed entries). Helpers at `tests/helpers/{cli,fixtures}.ts`.
 
 ## Next likely work
 
 Pick one:
-1. **Implement `specs/test-suite/`** — promote the spec from Draft to
-   Active, then execute the brief: add vitest, write
-   `tests/helpers/{cli,fixtures}.ts`, drop in unit tests for `drift` /
-   `lockfile` / `catalog`, then per-verb contract tests. The remaining
-   open question (snapshot directory layout) can be resolved when the
-   first snapshot lands.
-2. **Phase 5 dogfood** — round-trip TeamPlanner now to surface kernel
-   gaps before plugin work locks in assumptions. Needs TeamPlanner
-   access.
-3. **Start Phase 3 plugin model** — manifest schema, capability
+1. **Phase 5 dogfood** — round-trip TeamPlanner now that we have a
+   green test suite to catch regressions. Surfaces kernel gaps before
+   Phase 3 locks assumptions. Needs TeamPlanner access.
+2. **Start Phase 3 plugin model** — manifest schema, capability
    scoping, `add` resolves an external catalog source. Highest-risk
    phase. Note: ADR-0001 lists "no plugin runtime" as a v1 non-goal,
    so Phase 3 requires either an amending ADR or a deliberate scope
    shift.
+3. **CI workflow** — wire `npm test` into GitHub Actions on push/PR.
+   Acceptance section in `specs/test-suite/` flags this as out of
+   scope for the spec — it's a small follow-up brief.
 
-Default recommendation: **(1)**. The spec is already drafted; finishing
-the harness unblocks safer iteration on every other phase.
+Default recommendation: **(1)**. The harness is now safe enough to
+risk the round-trip; doing it before Phase 3 keeps plugin design
+honest.
 
 ## Persistence note
 
