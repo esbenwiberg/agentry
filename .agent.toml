@@ -1,0 +1,34 @@
+# .agent.toml — Declarative project profile for AI coding agents.
+#
+# Tool-agnostic. Any agent (Claude Code, Cursor, Aider, Continue, autopod, ...)
+# can read this to learn how to build, test, run, and reason about the project.
+# Spec: docs/adr/0003-agent-profile-schema.md.
+
+schema_version = "1"
+name           = "agentry"
+description    = "CLI for auditing and installing agent-readiness infrastructure into any repo."
+
+[stack]
+languages  = ["typescript"]
+frameworks = []
+
+[commands]
+install = "npm ci"
+build   = "npm run build"
+test    = "npm test"
+lint    = "npm run lint"
+format  = ""
+dev     = "npm run dev"
+start   = "npm start"
+
+[paths]
+src   = ["src"]
+tests = []                     # filled in when test suite arrives
+docs  = ["docs", "content"]
+
+[health]
+url = ""
+
+[agents]
+context_files = ["CLAUDE.md"]
+adr_dir       = "docs/adr"

@@ -12,7 +12,12 @@ import {
   isInteractive,
 } from "../prompt.js";
 
-export type CoachKind = "claude-md" | "practices" | "adr-init" | "adr";
+export type CoachKind =
+  | "claude-md"
+  | "practices"
+  | "agent-profile"
+  | "adr-init"
+  | "adr";
 
 export interface CoachOptions {
   cwd: string;
@@ -60,6 +65,8 @@ export async function runCoach(opts: CoachOptions): Promise<number> {
       return coachClaudeMd(opts, interactive);
     case "practices":
       return coachPractices(opts, interactive);
+    case "agent-profile":
+      return coachAgentProfile(opts, interactive);
     case "adr-init":
       return coachAdrInit(opts, interactive);
     case "adr":
@@ -117,6 +124,21 @@ async function coachPractices(
   const dest = resolve(opts.cwd, "PRACTICES.md");
   const result = await writeWithPrompt(rendered, dest, opts, interactive);
   printSummary("PRACTICES.md", [{ rel: "PRACTICES.md", result }]);
+  return 0;
+}
+
+async function coachAgentProfile(
+  opts: CoachOptions,
+  interactive: boolean,
+): Promise<number> {
+  const projectName = await resolveProjectName(opts, interactive);
+  const tpl = await readText(
+    resolve(CONTENT_DIR, "templates", "agent.template.toml"),
+  );
+  const rendered = tpl.replaceAll("<PROJECT_NAME>", projectName);
+  const dest = resolve(opts.cwd, ".agent.toml");
+  const result = await writeWithPrompt(rendered, dest, opts, interactive);
+  printSummary(".agent.toml", [{ rel: ".agent.toml", result }]);
   return 0;
 }
 

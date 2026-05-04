@@ -11,9 +11,10 @@ agentry's own repo. The eventual installer (`agentry add` /
 `agentry coach`) renames on copy:
 
 ```
-content/templates/CLAUDE.template.md     →   <target>/CLAUDE.md
-content/templates/PRACTICES.template.md  →   <target>/PRACTICES.md
-content/templates/CLAUDE.nested.template.md → <target>/<subdir>/CLAUDE.md
+content/templates/CLAUDE.template.md        →  <target>/CLAUDE.md
+content/templates/CLAUDE.nested.template.md →  <target>/<subdir>/CLAUDE.md
+content/templates/PRACTICES.template.md     →  <target>/PRACTICES.md
+content/templates/agent.template.toml       →  <target>/.agent.toml
 ```
 
 ## Layout
@@ -23,6 +24,7 @@ content/templates/
   CLAUDE.template.md           ← root context skeleton
   CLAUDE.nested.template.md    ← per-subdir context skeleton
   PRACTICES.template.md        ← contributor conventions skeleton
+  agent.template.toml          ← tool-agnostic project profile (.agent.toml)
   adr/
     README.template.md         ← ADR index
     template.md                ← ADR file template

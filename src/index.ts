@@ -23,6 +23,7 @@ Usage:
 Coach kinds:
   agentry coach claude-md [--nested <subdir>]
   agentry coach practices
+  agentry coach agent-profile        Scaffold .agent.toml (tool-agnostic)
   agentry coach adr-init             Bootstrap docs/adr/ (template + README + ADR-0)
   agentry coach adr <slug>           Auto-numbered new ADR
 
@@ -100,6 +101,7 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
 const COACH_KINDS = new Set<CoachKind>([
   "claude-md",
   "practices",
+  "agent-profile",
   "adr-init",
   "adr",
 ]);
