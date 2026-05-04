@@ -87,10 +87,11 @@ export async function runAdd(opts: AddOptions): Promise<number> {
   }
 
   const interactive = !opts.nonInteractive && isInteractive();
+  const lockfile = await readLockfile(opts.cwd);
   if (target.requires.entries.length > 0) {
     console.log(`agentry add: resolving plan for '${opts.id}'…`);
   }
-  const order = await resolvePlan(target, entries, opts, interactive);
+  const order = await resolvePlan(target, entries, opts, interactive, lockfile);
   if (order === null) {
     console.error("agentry add: aborted");
     return 1;
@@ -175,6 +176,7 @@ async function resolvePlan(
   all: CatalogEntry[],
   opts: AddOptions,
   interactive: boolean,
+  lockfile: Lockfile | null,
 ): Promise<CatalogEntry[] | null> {
   const byId = new Map(all.map((e) => [e.id, e]));
   const order: CatalogEntry[] = [];
@@ -187,7 +189,7 @@ async function resolvePlan(
     for (const depId of entry.requires.entries) {
       const dep = byId.get(depId);
       if (!dep) continue;
-      if (isAlreadyInstalled(dep, opts.cwd)) continue;
+      if (isAlreadyInstalled(dep, opts.cwd, lockfile)) continue;
       if (seen.has(depId)) continue;
 
       // Non-interactive picks the safe default for each prompt:
@@ -224,7 +226,12 @@ async function resolvePlan(
   return ok ? order : null;
 }
 
-function isAlreadyInstalled(entry: CatalogEntry, cwd: string): boolean {
+function isAlreadyInstalled(
+  entry: CatalogEntry,
+  cwd: string,
+  lockfile: Lockfile | null,
+): boolean {
+  if (findLockedEntry(lockfile, entry.id)) return true;
   return entry.detect.any_of.some((p) => existsSync(resolve(cwd, p)));
 }
 
