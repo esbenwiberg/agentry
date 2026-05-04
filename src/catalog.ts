@@ -43,17 +43,25 @@ export interface CatalogEntry {
   requires: Requires;
   deprecated_by?: string;
   sourceFile: string;
+  overlay?: string;
 }
 
 export interface MalformedEntry {
   sourceFile: string;
   id?: string;
+  overlay?: string;
   errors: string[];
 }
 
 export interface CatalogLoadResult {
   entries: CatalogEntry[];
   malformed: MalformedEntry[];
+}
+
+export interface CatalogSource {
+  catalogDir: string;
+  sourceRoot: string;
+  overlayId?: string;
 }
 
 const VALID_LAYERS: ReadonlySet<Layer> = new Set<Layer>([
@@ -96,35 +104,38 @@ export function activeEntries(entries: CatalogEntry[]): CatalogEntry[] {
 }
 
 export function loadCatalog(catalogDir: string = CATALOG_DIR): CatalogLoadResult {
+  const source = loadCatalogSource({ catalogDir, sourceRoot: CONTENT_DIR });
+  return validateCrossReferences(source.entries, source.malformed);
+}
+
+export function loadCatalogSource(src: CatalogSource): CatalogLoadResult {
   const entries: CatalogEntry[] = [];
   const malformed: MalformedEntry[] = [];
 
-  if (!existsSync(catalogDir)) {
+  if (!existsSync(src.catalogDir)) {
     return { entries, malformed };
   }
 
-  const files = readdirSync(catalogDir)
+  const files = readdirSync(src.catalogDir)
     .filter((f) => f.endsWith(".toml"))
     .sort();
 
   for (const file of files) {
-    const filePath = resolve(catalogDir, file);
+    const filePath = resolve(src.catalogDir, file);
     const stem = basename(file, extname(file));
-    const result = parseEntry(filePath, stem);
-    if ("errors" in result) {
-      malformed.push(result);
-    } else {
-      entries.push(result);
-    }
+    const result = parseEntry(filePath, stem, src.sourceRoot, src.overlayId);
+    if ("errors" in result) malformed.push(result);
+    else entries.push(result);
   }
 
-  validateCrossReferences(entries, malformed);
   return { entries, malformed };
 }
 
 function parseEntry(
   filePath: string,
   stem: string,
+  sourceRoot: string,
+  overlayId: string | undefined,
 ): CatalogEntry | MalformedEntry {
   const errors: string[] = [];
   let raw: Record<string, unknown>;
@@ -181,8 +192,8 @@ function parseEntry(
 
       if (!isString(source) || !isRepoRelative(source)) {
         errors.push(`${prefix}.source must be a repo-relative path`);
-      } else if (!existsSync(resolve(CONTENT_DIR, source))) {
-        errors.push(`${prefix}.source not found: content/${source}`);
+      } else if (!existsSync(resolve(sourceRoot, source))) {
+        errors.push(`${prefix}.source not found: ${source}`);
       }
 
       if (!isString(target) || !isRepoRelative(target)) {
@@ -262,6 +273,7 @@ function parseEntry(
     return {
       sourceFile: filePath,
       ...(isString(id) ? { id } : {}),
+      ...(overlayId ? { overlay: overlayId } : {}),
       errors,
     };
   }
@@ -277,15 +289,17 @@ function parseEntry(
     requires,
     sourceFile: filePath,
     ...(deprecated_by ? { deprecated_by } : {}),
+    ...(overlayId ? { overlay: overlayId } : {}),
   };
   return entry;
 }
 
-function validateCrossReferences(
+export function validateCrossReferences(
   entries: CatalogEntry[],
-  malformed: MalformedEntry[],
-): void {
+  priorMalformed: MalformedEntry[],
+): CatalogLoadResult {
   const ids = new Set(entries.map((e) => e.id));
+  const malformed: MalformedEntry[] = [...priorMalformed];
   const stillValid: CatalogEntry[] = [];
   for (const entry of entries) {
     const errors: string[] = [];
@@ -301,6 +315,7 @@ function validateCrossReferences(
       malformed.push({
         sourceFile: entry.sourceFile,
         id: entry.id,
+        ...(entry.overlay ? { overlay: entry.overlay } : {}),
         errors,
       });
     } else {
@@ -316,6 +331,7 @@ function validateCrossReferences(
       malformed.push({
         sourceFile: entry.sourceFile,
         id: entry.id,
+        ...(entry.overlay ? { overlay: entry.overlay } : {}),
         errors: [`requires.entries forms a cycle: ${path.join(" → ")}`],
       });
     } else {
@@ -323,8 +339,7 @@ function validateCrossReferences(
     }
   }
 
-  entries.length = 0;
-  entries.push(...acyclic);
+  return { entries: acyclic, malformed };
 }
 
 function detectCycles(entries: CatalogEntry[]): Map<string, string[]> {

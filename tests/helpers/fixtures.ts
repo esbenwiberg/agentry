@@ -34,3 +34,24 @@ export async function makeGitRepoFixture(
   await mkdir(resolve(root, ".git"), { recursive: true });
   return root;
 }
+
+export function overlayManifestToml(
+  id: string,
+  opts: { version?: string; description?: string } = {},
+): string {
+  return [
+    `id = "${id}"`,
+    `version = "${opts.version ?? "0.1.0"}"`,
+    `description = "${opts.description ?? "demo overlay"}"`,
+  ].join("\n");
+}
+
+export function overlayRegistrationToml(
+  entries: Array<{ id: string; path: string }>,
+): string {
+  return entries
+    .map((e) =>
+      [`[[overlay]]`, `id = "${e.id}"`, `path = "${e.path}"`].join("\n"),
+    )
+    .join("\n\n");
+}

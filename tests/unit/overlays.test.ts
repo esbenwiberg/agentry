@@ -1,23 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { loadOverlays } from "../../src/overlays.js";
-import { makeRepoFixture } from "../helpers/fixtures.js";
-
-function manifest(
-  id: string,
-  opts: { version?: string; description?: string } = {},
-): string {
-  return [
-    `id = "${id}"`,
-    `version = "${opts.version ?? "0.1.0"}"`,
-    `description = "${opts.description ?? "demo overlay"}"`,
-  ].join("\n");
-}
-
-function registration(entries: Array<{ id: string; path: string }>): string {
-  return entries
-    .map((e) => [`[[overlay]]`, `id = "${e.id}"`, `path = "${e.path}"`].join("\n"))
-    .join("\n\n");
-}
+import {
+  makeRepoFixture,
+  overlayManifestToml as manifest,
+  overlayRegistrationToml as registration,
+} from "../helpers/fixtures.js";
 
 function singleOverlayFixture(
   id: string,
