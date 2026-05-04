@@ -22,6 +22,11 @@ verbs:
 No `init`, no plugins-as-runtime, no daemon, no marketplace. Just three verbs
 and a content tree you can read.
 
+Stack-specific or org-private content lives in **overlays** — local
+directories registered via `agentry.overlays.toml` that ride the same
+verbs as the bundled catalog. See [docs/overlays.md](docs/overlays.md)
+for the author guide.
+
 ## Status
 
 🚧 Phase 0 — repo scaffold. Not usable yet. Watch

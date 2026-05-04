@@ -1,6 +1,6 @@
 # agentry — status
 
-*Last updated: 2026-05-04 — Phase 3 chunks 1–4 shipped (manifest loader, merged catalog, lockfile overlay + orphaned drift, e2e overlay fixture); 119 tests, ~1.4s.*
+*Last updated: 2026-05-04 — Phase 3 chunks 1–5 shipped (manifest loader, merged catalog, lockfile overlay + orphaned drift, e2e overlay fixture, overlay author guide); 119 tests, ~1.4s.*
 
 Current snapshot of where the build is against the original 7-phase plan
 (`~/.claude/plans/lets-brainstorm-the-idea-cheerful-pelican.md`). Update as
@@ -13,7 +13,7 @@ phases close.
 | 0. Bootstrap | New repo, package layout, dogfood | ✅ done — flat `src/` + `content/` layout, not the planned `packages/{cli,kernel,stack-dotnet}` monorepo. Has own `CLAUDE.md`, `docs/adr/`, `.changes/` |
 | 1. Kernel extraction | 7-layer template hand-extracted from TeamPlanner | ✅ done — `content/skills/` + `content/recipes/` exist; 6 catalog entries (commits, changelog, code-review, pull-requests, git-hooks, ship). Templates: `CLAUDE.md`, nested `CLAUDE.md`, `PRACTICES.md`, `.agent.toml` (ADR-0003), specs (`coach spec-init` + `coach spec`) |
 | 2. CLI MVP | `agentry init` + `agentry doctor` | ⚠️ pivoted — no monolithic `init`. Composable verbs instead: `list`, `doctor`, `add`, `upgrade`, `remove`, `coach`. Better separation of concerns; revisit if first-run UX needs a one-shot |
-| 3. Plugin model + first overlay | Manifest, capability sandbox, `@stack/dotnet` | 🟢 functionally complete — chunks 1–4 shipped: `agentry.overlays.toml` parser (`src/overlays.ts`), merged catalog with last-wins (`src/merged-catalog.ts`), lockfile `overlay` field + `orphaned` DriftKind + doctor reporting + verbs wired to merged loader, e2e fixture at `tests/fixtures/overlays/acme/` driving add/doctor/upgrade/remove. Overlay author docs still TODO. ADR-0004 |
+| 3. Plugin model + first overlay | Manifest, capability sandbox, `@stack/dotnet` | ✅ done — chunks 1–5 shipped: `agentry.overlays.toml` parser (`src/overlays.ts`), merged catalog with last-wins (`src/merged-catalog.ts`), lockfile `overlay` field + `orphaned` DriftKind + doctor reporting + verbs wired to merged loader, e2e fixture at `tests/fixtures/overlays/acme/` driving add/doctor/upgrade/remove, author guide at `docs/overlays.md`. ADR-0004 |
 | 4. `agentry upgrade` | Re-render + 3-way merge | ✅ done — lockfile-as-truth model, `--force` to overwrite user-edits, `--dry-run`, `--non-interactive` |
 | 5. TeamPlanner round-trip | Rip out hand-built `.claude/`, re-init via agentry | ❌ not started. TeamPlanner intentionally untouched until kernel + plugin model prove out |
 | 6. Helpers + community overlays | `spec new`, `adr new`, third-party stacks | 🟡 partial — helpers ✅ (`coach adr-init`/`adr`, `coach spec-init`/`spec`); community overlay surface ❌ not started |
@@ -56,10 +56,10 @@ Phase 3 remaining:
 2. ✅ Overlay catalog loader — merged bundled + overlays with last-wins (`src/merged-catalog.ts`); per-entry `sourceRoot` so commands resolve overlay sources against the overlay's own root.
 3. ✅ `overlay` field in lockfile + `orphaned` `DriftKind`. Lockfile round-trips the field; `doctor` reports orphaned with reason (`overlay '<x>' is not registered` / `overlay '<x>' no longer ships entry` / `no longer in bundled catalog`).
 4. ✅ End-to-end overlay fixture at `tests/fixtures/overlays/acme/` — `tests/overlay-e2e.test.ts` covers list attribution, add → lockfile overlay field, doctor (installed and orphaned-after-deregistration), upgrade user-edit detection, upgrade --force restoring from overlay-rooted source, remove cleanup.
-5. **Overlay author docs.** A short README in `docs/` (or alongside ADR-0004) showing the file layout + the manifest contract.
+5. ✅ Overlay author docs at `docs/overlays.md` — file layout, manifest contract, registration, lifecycle through list/add/doctor/upgrade/remove, orphaned-reason matrix, common pitfalls, codebase pointers.
 6. **Phase 5 dogfood** — round-trip TeamPlanner once overlays work. Still needs TeamPlanner access.
 
-Default next: **(5)**. The fixture proves the contract; docs let an overlay author reproduce it.
+Default next: **(6)** — Phase 5 dogfood (TeamPlanner round-trip), or move to a non-Phase-3 follow-up (community overlay surface for Phase 6, or `init` thin wrapper if first-run UX needs it).
 
 ## Persistence note
 
