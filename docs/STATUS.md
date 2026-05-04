@@ -1,5 +1,7 @@
 # agentry — status
 
+*Last updated: 2026-05-04 — at commit `cc19069`.*
+
 Current snapshot of where the build is against the original 7-phase plan
 (`~/.claude/plans/lets-brainstorm-the-idea-cheerful-pelican.md`). Update as
 phases close.
