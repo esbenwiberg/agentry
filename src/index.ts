@@ -26,6 +26,8 @@ Coach kinds:
   agentry coach agent-profile        Scaffold .agent.toml (tool-agnostic)
   agentry coach adr-init             Bootstrap docs/adr/ (template + README + ADR-0)
   agentry coach adr <slug>           Auto-numbered new ADR
+  agentry coach spec-init            Bootstrap specs/ (template dir + README)
+  agentry coach spec <slug>          New spec folder under specs/<slug>/
 
 Flags (list):
   --show-deprecated                  Include deprecated entries
@@ -51,7 +53,7 @@ Flags (remove):
 Flags (coach):
   --nested <subdir>                  (claude-md) write nested CLAUDE.md
   --name <project-name>              Override project name (default: cwd basename)
-  --title <title>                    (adr) ADR title (skip prompt)
+  --title <title>                    (adr, spec) title (skip prompt)
   --non-interactive                  No prompts; use defaults
   --dry-run                          Show what would happen, don't write
 
@@ -104,6 +106,8 @@ const COACH_KINDS = new Set<CoachKind>([
   "agent-profile",
   "adr-init",
   "adr",
+  "spec-init",
+  "spec",
 ]);
 
 async function main(argv: readonly string[]): Promise<number> {
@@ -188,8 +192,8 @@ async function main(argv: readonly string[]): Promise<number> {
       const rest = positional.slice(1);
       let subPositional: string[];
       let cwd: string;
-      if (kind === "adr") {
-        // coach adr <slug> [path]
+      if (kind === "adr" || kind === "spec") {
+        // coach (adr|spec) <slug> [path]
         subPositional = rest.length > 0 ? [rest[0]!] : [];
         cwd = rest[1] ?? process.cwd();
       } else {

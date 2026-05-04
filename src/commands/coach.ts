@@ -17,7 +17,9 @@ export type CoachKind =
   | "practices"
   | "agent-profile"
   | "adr-init"
-  | "adr";
+  | "adr"
+  | "spec-init"
+  | "spec";
 
 export interface CoachOptions {
   cwd: string;
@@ -71,6 +73,10 @@ export async function runCoach(opts: CoachOptions): Promise<number> {
       return coachAdrInit(opts, interactive);
     case "adr":
       return coachAdr(opts, interactive);
+    case "spec-init":
+      return coachSpecInit(opts);
+    case "spec":
+      return coachSpec(opts, interactive);
   }
 }
 
@@ -182,7 +188,6 @@ async function coachAdrInit(
     const tpl = await readText(resolve(CONTENT_DIR, f.tpl));
     const rendered = f.transform(tpl);
     const dest = resolve(opts.cwd, f.out);
-    // adr-init uses skip-if-exists semantics — never overwrite existing ADR setup
     const result = await writeSkipIfExists(rendered, dest, opts);
     summary.push({ rel: f.out, result });
   }
@@ -201,10 +206,8 @@ async function coachAdr(
     console.error(`Usage: agentry coach adr <slug> [path]`);
     return 1;
   }
-  if (!SLUG_RE.test(slug) || slug.length > 60) {
-    console.error(
-      `coach adr: slug must be kebab-case [a-z][a-z0-9-]*, ≤60 chars (got '${slug}')`,
-    );
+  if (!isValidSlug(slug)) {
+    printSlugError("adr", slug);
     return 1;
   }
 
@@ -223,17 +226,10 @@ async function coachAdr(
     return 1;
   }
 
-  let title = opts.title;
-  if (!title) {
-    if (interactive) {
-      title = await ask(`ADR ${numStr} title: `);
-      if (!title) {
-        console.error(`coach adr: title is required.`);
-        return 1;
-      }
-    } else {
-      title = humanizeSlug(slug);
-    }
+  const title = await resolveTitle(opts, interactive, slug, `ADR ${numStr} title: `);
+  if (title === null) {
+    console.error(`coach adr: title is required.`);
+    return 1;
   }
 
   const tpl = await readText(
@@ -257,6 +253,95 @@ async function coachAdr(
     `\nagentry coach adr\n  ${GLYPH.written} ${relative(opts.cwd, dest)} written`,
   );
   console.log(`\nNext: fill in Context / Decision / Consequences / Alternatives.`);
+  return 0;
+}
+
+const SPEC_TEMPLATE_FILES: { tpl: string; out: string }[] = [
+  { tpl: "purpose.template.md", out: "purpose.md" },
+  { tpl: "design.template.md", out: "design.md" },
+  { tpl: "acceptance.template.md", out: "acceptance.md" },
+  { tpl: "briefs/README.template.md", out: "briefs/README.md" },
+];
+
+async function coachSpecInit(opts: CoachOptions): Promise<number> {
+  const specsDir = resolve(opts.cwd, "specs");
+  const tplBase = resolve(CONTENT_DIR, "templates", "spec");
+  const files: { tpl: string; out: string }[] = [
+    { tpl: resolve(tplBase, "README.template.md"), out: "specs/README.md" },
+    ...SPEC_TEMPLATE_FILES.map((f) => ({
+      tpl: resolve(tplBase, "_template", f.tpl),
+      out: `specs/_template/${f.out}`,
+    })),
+  ];
+
+  const summary: { rel: string; result: WriteResult }[] = [];
+  for (const f of files) {
+    const tpl = await readText(f.tpl);
+    const dest = resolve(opts.cwd, f.out);
+    const result = await writeSkipIfExists(tpl, dest, opts);
+    summary.push({ rel: f.out, result });
+  }
+
+  printSummary(`spec setup at ${relative(opts.cwd, specsDir)}/`, summary);
+  return 0;
+}
+
+async function coachSpec(
+  opts: CoachOptions,
+  interactive: boolean,
+): Promise<number> {
+  const slug = opts.positional[0];
+  if (!slug) {
+    console.error(`coach spec: missing slug`);
+    console.error(`Usage: agentry coach spec <slug> [path]`);
+    return 1;
+  }
+  if (!isValidSlug(slug)) {
+    printSlugError("spec", slug);
+    return 1;
+  }
+
+  const specsDir = resolve(opts.cwd, "specs");
+  if (!existsSync(specsDir)) {
+    console.error(`coach spec: specs/ does not exist.`);
+    console.error(`  Run 'agentry coach spec-init' first.`);
+    return 1;
+  }
+
+  const destDir = resolve(specsDir, slug);
+  if (existsSync(destDir)) {
+    console.error(`coach spec: ${relative(opts.cwd, destDir)} already exists.`);
+    return 1;
+  }
+
+  const title = await resolveTitle(opts, interactive, slug, `Spec title for '${slug}': `);
+  if (title === null) {
+    console.error(`coach spec: title is required.`);
+    return 1;
+  }
+
+  const date = todayIso();
+  const tplBase = resolve(CONTENT_DIR, "templates", "spec", "_template");
+  const summary: { rel: string; result: WriteResult }[] = [];
+  for (const f of SPEC_TEMPLATE_FILES) {
+    const tpl = await readText(resolve(tplBase, f.tpl));
+    const rendered = tpl
+      .replaceAll("<TITLE>", title)
+      .replaceAll("<YYYY-MM-DD>", date);
+    const dest = resolve(destDir, f.out);
+    const outRel = `specs/${slug}/${f.out}`;
+    if (opts.dryRun) {
+      summary.push({ rel: outRel, result: { outcome: "would-write" } });
+      continue;
+    }
+    await ensureDirAndWrite(dest, rendered);
+    summary.push({ rel: outRel, result: { outcome: "written" } });
+  }
+
+  printSummary(`spec '${slug}'`, summary);
+  if (!opts.dryRun) {
+    console.log(`\nNext: fill in purpose / design / acceptance, then start work.`);
+  }
   return 0;
 }
 
@@ -324,6 +409,28 @@ async function resolveProjectName(
   if (!interactive) return fallback;
   const ans = await ask(`Project name? [${fallback}] `, fallback);
   return ans;
+}
+
+function isValidSlug(slug: string): boolean {
+  return SLUG_RE.test(slug) && slug.length <= 60;
+}
+
+function printSlugError(kind: "adr" | "spec", slug: string): void {
+  console.error(
+    `coach ${kind}: slug must be kebab-case [a-z][a-z0-9-]*, ≤60 chars (got '${slug}')`,
+  );
+}
+
+async function resolveTitle(
+  opts: CoachOptions,
+  interactive: boolean,
+  slug: string,
+  promptText: string,
+): Promise<string | null> {
+  if (opts.title) return opts.title;
+  if (!interactive) return humanizeSlug(slug);
+  const answer = await ask(promptText);
+  return answer || null;
 }
 
 function nextAdrNumber(adrDir: string): number {
