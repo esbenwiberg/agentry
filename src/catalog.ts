@@ -95,20 +95,20 @@ export function activeEntries(entries: CatalogEntry[]): CatalogEntry[] {
   return entries.filter((e) => !e.deprecated_by);
 }
 
-export function loadCatalog(): CatalogLoadResult {
+export function loadCatalog(catalogDir: string = CATALOG_DIR): CatalogLoadResult {
   const entries: CatalogEntry[] = [];
   const malformed: MalformedEntry[] = [];
 
-  if (!existsSync(CATALOG_DIR)) {
+  if (!existsSync(catalogDir)) {
     return { entries, malformed };
   }
 
-  const files = readdirSync(CATALOG_DIR)
+  const files = readdirSync(catalogDir)
     .filter((f) => f.endsWith(".toml"))
     .sort();
 
   for (const file of files) {
-    const filePath = resolve(CATALOG_DIR, file);
+    const filePath = resolve(catalogDir, file);
     const stem = basename(file, extname(file));
     const result = parseEntry(filePath, stem);
     if ("errors" in result) {

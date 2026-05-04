@@ -1,4 +1,4 @@
-import { activeEntries, loadCatalog, type CatalogEntry } from "../catalog.js";
+import { activeEntries, loadCatalog } from "../catalog.js";
 
 export interface ListOptions {
   showDeprecated: boolean;
@@ -55,8 +55,4 @@ export function runList(options: ListOptions): number {
   }
 
   return 0;
-}
-
-export function _printForTest(entries: CatalogEntry[]): void {
-  for (const e of entries) console.log(e.id);
 }
