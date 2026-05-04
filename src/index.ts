@@ -3,6 +3,7 @@ import { runList } from "./commands/list.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runAdd } from "./commands/add.js";
 import { runUpgrade } from "./commands/upgrade.js";
+import { runRemove } from "./commands/remove.js";
 import { runCoach, type CoachKind } from "./commands/coach.js";
 
 const VERSION = "0.0.0";
@@ -16,6 +17,7 @@ Usage:
   agentry doctor [path]              Audit a repo's agent-readiness (default: cwd)
   agentry add <id> [path]            Install a catalog entry into a repo
   agentry upgrade [id] [path]        Refresh installed entries from the catalog
+  agentry remove <id> [path]         Uninstall an entry and prune the lockfile
   agentry coach <kind> [args] [path] Author un-installable scaffolding
 
 Coach kinds:
@@ -38,6 +40,11 @@ Flags (upgrade):
   --non-interactive                  Don't prompt; auto-accept the plan
   --dry-run                          Show the plan, don't write
 
+Flags (remove):
+  --force                            Also delete user-edited files
+  --non-interactive                  Don't prompt; auto-accept removal
+  --dry-run                          Show the plan, don't delete
+
 Flags (coach):
   --nested <subdir>                  (claude-md) write nested CLAUDE.md
   --name <project-name>              Override project name (default: cwd basename)
@@ -48,7 +55,7 @@ Flags (coach):
   agentry --help                     Show this message
   agentry --version                  Show version
 
-Status: Phase 2.5 — list, doctor, add, upgrade, coach implemented.
+Status: Phase 2.6 — list, doctor, add, upgrade, remove, coach implemented.
 See https://github.com/esbenwiberg/agentry`;
 
 const VALUE_FLAGS = new Set(["--nested", "--title", "--name"]);
@@ -130,6 +137,22 @@ async function main(argv: readonly string[]): Promise<number> {
         noRecipe: flags.has("--no-recipe"),
         nonInteractive: flags.has("--non-interactive"),
         dryRun: flags.has("--dry-run"),
+      });
+    }
+    case "remove": {
+      const id = positional[0];
+      if (!id) {
+        console.error(`agentry remove: missing entry id`);
+        console.error(`Usage: agentry remove <id> [path]`);
+        return 1;
+      }
+      const cwd = positional[1] ?? process.cwd();
+      return runRemove({
+        cwd,
+        id,
+        dryRun: flags.has("--dry-run"),
+        force: flags.has("--force"),
+        nonInteractive: flags.has("--non-interactive"),
       });
     }
     case "upgrade": {

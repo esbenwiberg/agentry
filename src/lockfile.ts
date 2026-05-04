@@ -115,6 +115,10 @@ export function upsertLockedEntry(lf: Lockfile, entry: LockedEntry): Lockfile {
   return { installed };
 }
 
+export function removeLockedEntry(lf: Lockfile, id: string): Lockfile {
+  return { installed: lf.installed.filter((e) => e.id !== id) };
+}
+
 export function mergeLockedProvides(
   prior: LockedProvide[] | undefined,
   fresh: LockedProvide[],
