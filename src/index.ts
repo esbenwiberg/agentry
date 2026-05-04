@@ -5,10 +5,9 @@ import { runAdd } from "./commands/add.js";
 import { runUpgrade } from "./commands/upgrade.js";
 import { runRemove } from "./commands/remove.js";
 import { runCoach, type CoachKind } from "./commands/coach.js";
+import { AGENTRY_VERSION } from "./version.js";
 
-const VERSION = "0.0.0";
-
-const HELP = `agentry ${VERSION}
+const HELP = `agentry ${AGENTRY_VERSION}
 
 Form your agentic readiness.
 
@@ -119,7 +118,7 @@ async function main(argv: readonly string[]): Promise<number> {
     return 0;
   }
   if (flags.has("--version") || verb === "--version" || verb === "-v") {
-    console.log(VERSION);
+    console.log(AGENTRY_VERSION);
     return 0;
   }
   if (!verb) {
