@@ -1,6 +1,6 @@
 # agentry — status
 
-*Last updated: 2026-05-04 — after specs scaffold (`c8e424e`) + dogfood (`0715a1e`).*
+*Last updated: 2026-05-04 — after specs scaffold (`c8e424e`) + dogfood (`0715a1e`) + first spec drafted.*
 
 Current snapshot of where the build is against the original 7-phase plan
 (`~/.claude/plans/lets-brainstorm-the-idea-cheerful-pelican.md`). Update as
@@ -43,24 +43,29 @@ phases close.
 - **`.agent.toml` schema locked in ADR-0003.** Template ships at `content/templates/agent.template.toml`, scaffolded via `coach agent-profile`. Cross-tool adoption is still the open risk — revisit at Phase 5.
 - **`PRACTICES.md` template** ships at `content/templates/PRACTICES.template.md`, scaffolded via `coach practices`.
 - **Spec templates** ship at `content/templates/spec/` (`README` + `_template/{purpose,design,acceptance}.md` + `briefs/README.md`), scaffolded via `coach spec-init` then `coach spec <slug>`. Slug-named, not numbered (specs are features, not point-in-time decisions).
-- **`specs/` bootstrapped on agentry itself** via `coach spec-init` — the repo now ships its own `specs/README.md` and `specs/_template/`. First per-feature spec to be authored next loop.
+- **`specs/` bootstrapped on agentry itself** via `coach spec-init` — the repo now ships its own `specs/README.md` and `specs/_template/`.
+- **First per-feature spec drafted:** `specs/test-suite/` (Status: Draft) lays out the vitest adoption plan — purpose, design (with decisions made on `pretest` build + fixture catalog; one open question on snapshot directory), and a checklist-shaped acceptance section. Implementation is the next loop.
 
 ## Next likely work
 
 Pick one:
-1. **First real spec** — author `specs/test-suite/` (or similar) for adding
-   vitest. PRACTICES.md flags this as overdue ("when src/ grows beyond a
-   stub, add vitest"); src/ is now 10+ files. Doubles as the first
-   non-template spec on this repo, surfacing template gaps.
-2. **Phase 5 dogfood** — round-trip TeamPlanner now to surface kernel gaps
-   before plugin work locks in assumptions. Needs TeamPlanner access.
-3. **Start Phase 3 plugin model** — manifest schema, capability scoping,
-   `add` resolves an external catalog source. Highest-risk phase. Note:
-   ADR-0001 lists "no plugin runtime" as a v1 non-goal, so Phase 3
-   requires either an amending ADR or a deliberate scope shift.
+1. **Implement `specs/test-suite/`** — promote the spec from Draft to
+   Active, then execute the brief: add vitest, write
+   `tests/helpers/{cli,fixtures}.ts`, drop in unit tests for `drift` /
+   `lockfile` / `catalog`, then per-verb contract tests. The remaining
+   open question (snapshot directory layout) can be resolved when the
+   first snapshot lands.
+2. **Phase 5 dogfood** — round-trip TeamPlanner now to surface kernel
+   gaps before plugin work locks in assumptions. Needs TeamPlanner
+   access.
+3. **Start Phase 3 plugin model** — manifest schema, capability
+   scoping, `add` resolves an external catalog source. Highest-risk
+   phase. Note: ADR-0001 lists "no plugin runtime" as a v1 non-goal,
+   so Phase 3 requires either an amending ADR or a deliberate scope
+   shift.
 
-Default recommendation: **(1)**. Concrete, on-repo, doesn't require
-external context, and delivers tests the project genuinely needs.
+Default recommendation: **(1)**. The spec is already drafted; finishing
+the harness unblocks safer iteration on every other phase.
 
 ## Persistence note
 
