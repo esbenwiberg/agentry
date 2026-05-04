@@ -1,6 +1,6 @@
 # agentry — status
 
-*Last updated: 2026-05-04 — lockfile branch coverage filled (83 tests, ~1.2s).*
+*Last updated: 2026-05-04 — Phase 3 design locked (ADR-0004 overlay plugin model); 83 tests, ~1.2s.*
 
 Current snapshot of where the build is against the original 7-phase plan
 (`~/.claude/plans/lets-brainstorm-the-idea-cheerful-pelican.md`). Update as
@@ -13,7 +13,7 @@ phases close.
 | 0. Bootstrap | New repo, package layout, dogfood | ✅ done — flat `src/` + `content/` layout, not the planned `packages/{cli,kernel,stack-dotnet}` monorepo. Has own `CLAUDE.md`, `docs/adr/`, `.changes/` |
 | 1. Kernel extraction | 7-layer template hand-extracted from TeamPlanner | ✅ done — `content/skills/` + `content/recipes/` exist; 6 catalog entries (commits, changelog, code-review, pull-requests, git-hooks, ship). Templates: `CLAUDE.md`, nested `CLAUDE.md`, `PRACTICES.md`, `.agent.toml` (ADR-0003), specs (`coach spec-init` + `coach spec`) |
 | 2. CLI MVP | `agentry init` + `agentry doctor` | ⚠️ pivoted — no monolithic `init`. Composable verbs instead: `list`, `doctor`, `add`, `upgrade`, `remove`, `coach`. Better separation of concerns; revisit if first-run UX needs a one-shot |
-| 3. Plugin model + first overlay | Manifest, capability sandbox, `@stack/dotnet` | ❌ not started. Catalog is currently bundled-only — no external plugin loading |
+| 3. Plugin model + first overlay | Manifest, capability sandbox, `@stack/dotnet` | 🟡 design locked (ADR-0004) — local overlay paths only, catalog as trust surface, no daemon/marketplace/remote fetch. Loader + `agentry.overlays.toml` registration + orphaned `DriftKind` are next |
 | 4. `agentry upgrade` | Re-render + 3-way merge | ✅ done — lockfile-as-truth model, `--force` to overwrite user-edits, `--dry-run`, `--non-interactive` |
 | 5. TeamPlanner round-trip | Rip out hand-built `.claude/`, re-init via agentry | ❌ not started. TeamPlanner intentionally untouched until kernel + plugin model prove out |
 | 6. Helpers + community overlays | `spec new`, `adr new`, third-party stacks | 🟡 partial — helpers ✅ (`coach adr-init`/`adr`, `coach spec-init`/`spec`); community overlay surface ❌ not started |
@@ -49,23 +49,26 @@ phases close.
 
 ## Next likely work
 
-Pick one:
-1. **Phase 5 dogfood** — round-trip TeamPlanner now that the test
-   suite + CI catch regressions. Surfaces kernel gaps before Phase 3
-   locks assumptions. Needs TeamPlanner access.
-2. **Start Phase 3 plugin model** — manifest schema, capability
-   scoping, `add` resolves an external catalog source. Highest-risk
-   phase. Note: ADR-0001 lists "no plugin runtime" as a v1 non-goal,
-   so Phase 3 requires either an amending ADR or a deliberate scope
-   shift.
-3. **`bin` link / `npx agentry`** — currently the CLI runs via `node
-   dist/index.js`. Add a `package.json` `bin` entry (already declared)
-   to a smoke test once the package is locally linked, or document
-   the `npm link` flow.
+Phase 3 implementation, in chunks:
 
-Default recommendation: **(1)**. The harness + CI together are safe
-enough to risk the round-trip; doing it before Phase 3 keeps plugin
-design honest.
+1. **`agentry.overlays.toml` parser + registration validation.** Read
+   the file, validate manifest fields, surface malformed entries the
+   same way the catalog loader does. No catalog wiring yet.
+2. **Overlay catalog loader.** Extend `loadCatalog` to merge bundled
+   + registered overlays with last-wins semantics. Update source
+   resolution to root each overlay's `[[provides]].source` against
+   its own root, not `CONTENT_DIR`.
+3. **`overlay` field in lockfile + orphaned `DriftKind`.** Lockfile
+   round-trip preserves the field; `doctor` reports orphaned when
+   the registered overlay is gone.
+4. **First overlay fixture in `tests/fixtures/`.** Drives
+   end-to-end add → doctor → upgrade → remove against an overlay
+   that ships one synthetic catalog entry. No external repo yet.
+5. **Phase 5 dogfood** — round-trip TeamPlanner once overlays work.
+   Still needs TeamPlanner access.
+
+Default next: **(1)**. Smallest contained change that proves the
+manifest schema before any catalog code touches it.
 
 ## Persistence note
 

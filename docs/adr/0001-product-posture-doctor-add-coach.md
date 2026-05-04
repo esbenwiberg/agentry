@@ -1,6 +1,6 @@
 # 0001 — Product posture: doctor / add / coach
 
-**Status:** Accepted
+**Status:** Accepted (amended by ADR-0004 for plugin model — local overlay paths only)
 **Date:** 2026-05-03
 
 ## Context
@@ -47,6 +47,9 @@ declare which one(s) a given installable provides.
 - No `agentry init` (lazy install instead).
 - No `agentry upgrade` v1 (defer until at least one round-trip dogfood proves what needs upgrading).
 - No plugin runtime, no manifest-with-capabilities enforcement, no marketplace.
+  *(Amended by ADR-0004: local overlay directories registered explicitly are
+  permitted; runtime daemon, marketplace, capability-enforcement engine, and
+  remote fetching all remain out of scope.)*
 - No daemon, no MCP server, no remote plugin fetching.
 - No memory stores, approval gates, or correction loops (those are runtime concerns of agents, not of the readiness CLI).
 
