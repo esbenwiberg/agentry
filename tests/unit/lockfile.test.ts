@@ -1,11 +1,15 @@
+import { writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   emptyLockfile,
   findLockedEntry,
   findLockedProvide,
+  lockfilePath,
   mergeLockedProvides,
   readLockfile,
   removeLockedEntry,
+  sha256OfFile,
   upsertLockedEntry,
   writeLockfile,
   type LockedEntry,
@@ -66,6 +70,68 @@ describe("lockfile read/write", () => {
   });
 });
 
+describe("sha256OfFile", () => {
+  it("returns a sha256:<hex> digest matching the file bytes", async () => {
+    const cwd = await makeRepoFixture({ "a.txt": "hello" });
+    const digest = await sha256OfFile(resolve(cwd, "a.txt"));
+    expect(digest).toBe(
+      "sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+    );
+  });
+
+  it("differs when bytes differ", async () => {
+    const cwd = await makeRepoFixture({ "a.txt": "one", "b.txt": "two" });
+    const a = await sha256OfFile(resolve(cwd, "a.txt"));
+    const b = await sha256OfFile(resolve(cwd, "b.txt"));
+    expect(a).not.toBe(b);
+  });
+});
+
+describe("writeLockfile", () => {
+  it("sorts installed entries alphabetically by id", async () => {
+    const cwd = await makeRepoFixture();
+    let lf = upsertLockedEntry(emptyLockfile(), { ...sampleEntry, id: "zebra" });
+    lf = upsertLockedEntry(lf, { ...sampleEntry, id: "alpha" });
+    lf = upsertLockedEntry(lf, { ...sampleEntry, id: "mango" });
+    await writeLockfile(cwd, lf);
+    const restored = await readLockfile(cwd);
+    expect(restored!.installed.map((e) => e.id)).toEqual([
+      "alpha",
+      "mango",
+      "zebra",
+    ]);
+  });
+
+  it("readLockfile drops provides whose target is missing", async () => {
+    const cwd = await makeRepoFixture();
+    const path = lockfilePath(cwd);
+    await writeFile(
+      path,
+      [
+        `[[installed]]`,
+        `id = "x"`,
+        `version = "0.1.0"`,
+        `installed_at = "2026-01-01T00:00:00Z"`,
+        ``,
+        `[[installed.provides]]`,
+        `target = ".claude/skills/x.md"`,
+        `source = "skills/x.md"`,
+        `flavor = "claude"`,
+        `checksum = "sha256:abc"`,
+        ``,
+        `[[installed.provides]]`,
+        `# missing target on purpose`,
+        `source = "skills/lost.md"`,
+        `flavor = "claude"`,
+        `checksum = "sha256:def"`,
+      ].join("\n"),
+    );
+    const lf = await readLockfile(cwd);
+    expect(lf!.installed[0]!.provides).toHaveLength(1);
+    expect(lf!.installed[0]!.provides[0]!.target).toBe(".claude/skills/x.md");
+  });
+});
+
 describe("lockfile mutation helpers", () => {
   it("upsert replaces an existing entry by id", () => {
     const lf = upsertLockedEntry(emptyLockfile(), sampleEntry);
@@ -87,9 +153,28 @@ describe("lockfile mutation helpers", () => {
     expect(findLockedEntry(null, "commits")).toBeUndefined();
   });
 
+  it("findLockedEntry returns the entry by id", () => {
+    const lf = upsertLockedEntry(emptyLockfile(), sampleEntry);
+    expect(findLockedEntry(lf, "commits")?.version).toBe("0.2.0");
+    expect(findLockedEntry(lf, "missing")).toBeUndefined();
+  });
+
   it("findLockedProvide returns the provide by target", () => {
     const provide = findLockedProvide(sampleEntry, ".githooks/commit-msg");
     expect(provide?.checksum).toBe("sha256:def");
+  });
+
+  it("findLockedProvide returns undefined for a missing entry", () => {
+    expect(findLockedProvide(undefined, ".any/path")).toBeUndefined();
+  });
+
+  it("mergeLockedProvides accepts undefined prior", () => {
+    const fresh = sampleEntry.provides;
+    const merged = mergeLockedProvides(undefined, fresh);
+    expect(merged).toHaveLength(fresh.length);
+    expect(merged.map((p) => p.target)).toEqual(
+      [...fresh.map((p) => p.target)].sort(),
+    );
   });
 
   it("mergeLockedProvides keeps fresh values and drops nothing from prior", () => {
