@@ -1,7 +1,7 @@
 id = "commits"
 name = "Commit workflow"
 description = "Conventional commits with changelog fragments and a structured group/classify/commit workflow."
-version = "0.1.0"
+version = "0.2.0"
 
 layers = ["harness", "conventions"]
 
@@ -26,6 +26,12 @@ conflict = "prompt"
 [[provides]]
 source   = "recipes/commits/conventional-commits.md"
 target   = ".agentry/recipes/commits/conventional-commits.md"
+flavor   = "agnostic"
+conflict = "prompt"
+
+[[provides]]
+source   = "hooks/commit-msg"
+target   = ".githooks/commit-msg"
 flavor   = "agnostic"
 conflict = "prompt"
 

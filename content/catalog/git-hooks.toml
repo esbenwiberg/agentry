@@ -1,0 +1,42 @@
+id = "git-hooks"
+name = "Git hooks scaffolding"
+description = "Repo-tracked git hooks via core.hooksPath — pre-commit secret scan plus an installer script. Run install-hooks.sh once after add."
+version = "0.1.0"
+
+layers = ["harness", "validation"]
+
+[[provides]]
+source   = "hooks/pre-commit"
+target   = ".githooks/pre-commit"
+flavor   = "agnostic"
+conflict = "prompt"
+
+[[provides]]
+source   = "hooks/lib/secret-checks.sh"
+target   = ".githooks/lib/secret-checks.sh"
+flavor   = "agnostic"
+conflict = "prompt"
+
+[[provides]]
+source   = "hooks/install-hooks.sh"
+target   = ".githooks/install-hooks.sh"
+flavor   = "agnostic"
+conflict = "prompt"
+
+[[provides]]
+source   = "recipes/git-hooks/install.md"
+target   = ".agentry/recipes/git-hooks/install.md"
+flavor   = "agnostic"
+conflict = "prompt"
+
+[detect]
+any_of = [
+  ".githooks/pre-commit",
+  ".githooks/install-hooks.sh",
+  ".agentry/recipes/git-hooks/install.md",
+]
+
+[requires]
+git     = true
+entries = []
+tools   = []

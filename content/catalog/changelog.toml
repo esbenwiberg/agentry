@@ -1,7 +1,7 @@
 id = "changelog"
 name = "Changelog fragments"
 description = "Fragment-based changelog under .changes/ — one file per change, generated CHANGELOG.md at release."
-version = "0.1.0"
+version = "0.2.0"
 
 layers = ["harness", "conventions"]
 
@@ -26,6 +26,24 @@ conflict = "prompt"
 [[provides]]
 source   = "recipes/changelog/changelog-fragments.md"
 target   = ".agentry/recipes/changelog/changelog-fragments.md"
+flavor   = "agnostic"
+conflict = "prompt"
+
+[[provides]]
+source   = "scripts/changelog/create-fragment.sh"
+target   = "_scripts/changelog/create-fragment.sh"
+flavor   = "agnostic"
+conflict = "prompt"
+
+[[provides]]
+source   = "scripts/changelog/README.md"
+target   = "_scripts/changelog/README.md"
+flavor   = "agnostic"
+conflict = "prompt"
+
+[[provides]]
+source   = "scripts/changelog/changes-format.md"
+target   = ".changes/README.md"
 flavor   = "agnostic"
 conflict = "prompt"
 

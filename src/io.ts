@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "node:fs";
-import { mkdir, copyFile, readFile, writeFile } from "node:fs/promises";
+import { mkdir, copyFile, readFile, writeFile, stat, chmod } from "node:fs/promises";
 import { dirname, delimiter, join, resolve } from "node:path";
 
 export function isGitRepo(cwd: string): boolean {
@@ -36,6 +36,8 @@ export async function filesIdentical(a: string, b: string): Promise<boolean> {
 export async function ensureDirAndCopy(src: string, dest: string): Promise<void> {
   await mkdir(dirname(dest), { recursive: true });
   await copyFile(src, dest);
+  const srcStat = await stat(src);
+  await chmod(dest, srcStat.mode & 0o777);
 }
 
 export async function ensureDirAndWrite(
