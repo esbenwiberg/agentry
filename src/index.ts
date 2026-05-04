@@ -2,6 +2,7 @@
 import { runList } from "./commands/list.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runAdd } from "./commands/add.js";
+import { runUpgrade } from "./commands/upgrade.js";
 import { runCoach, type CoachKind } from "./commands/coach.js";
 
 const VERSION = "0.0.0";
@@ -14,6 +15,7 @@ Usage:
   agentry list                       List catalog entries
   agentry doctor [path]              Audit a repo's agent-readiness (default: cwd)
   agentry add <id> [path]            Install a catalog entry into a repo
+  agentry upgrade [id] [path]        Refresh installed entries from the catalog
   agentry coach <kind> [args] [path] Author un-installable scaffolding
 
 Coach kinds:
@@ -31,6 +33,11 @@ Flags (add):
   --non-interactive                  Don't prompt; defaults to keep-existing
   --dry-run                          Show what would happen, don't write
 
+Flags (upgrade):
+  --force                            Overwrite user-edited files
+  --non-interactive                  Don't prompt; auto-accept the plan
+  --dry-run                          Show the plan, don't write
+
 Flags (coach):
   --nested <subdir>                  (claude-md) write nested CLAUDE.md
   --name <project-name>              Override project name (default: cwd basename)
@@ -41,7 +48,7 @@ Flags (coach):
   agentry --help                     Show this message
   agentry --version                  Show version
 
-Status: Phase 2.2 — list, doctor, add, coach implemented.
+Status: Phase 2.5 — list, doctor, add, upgrade, coach implemented.
 See https://github.com/esbenwiberg/agentry`;
 
 const VALUE_FLAGS = new Set(["--nested", "--title", "--name"]);
@@ -123,6 +130,25 @@ async function main(argv: readonly string[]): Promise<number> {
         noRecipe: flags.has("--no-recipe"),
         nonInteractive: flags.has("--non-interactive"),
         dryRun: flags.has("--dry-run"),
+      });
+    }
+    case "upgrade": {
+      // Heuristic: a path-looking positional[0] (./, ../, /, ~) is the cwd, not an id.
+      const first = positional[0];
+      const looksLikePath =
+        first !== undefined &&
+        (first.startsWith("/") ||
+          first.startsWith("./") ||
+          first.startsWith("../") ||
+          first.startsWith("~"));
+      const id = looksLikePath ? undefined : first;
+      const cwd = looksLikePath ? first : (positional[1] ?? process.cwd());
+      return runUpgrade({
+        cwd,
+        id,
+        dryRun: flags.has("--dry-run"),
+        force: flags.has("--force"),
+        nonInteractive: flags.has("--non-interactive"),
       });
     }
     case "coach": {
