@@ -29,4 +29,4 @@ coverage/
 .nyc_output/
 
 # Local agent state
-.claude/settings.local.json
+.claude/
