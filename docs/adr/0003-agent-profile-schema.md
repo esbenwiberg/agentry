@@ -117,7 +117,8 @@ Locked choices:
 
 - Schema changes bump `schema_version` and ship an amending ADR.
 - The `coach agent-profile` writer always emits the full v1 shape with
-  placeholders, so adopters never end up with a partial file.
+  every key declared (empty strings for unconfigured commands and
+  health URL), so adopters never end up with a partial file.
 - Tools reading `.agent.toml` should be tolerant of unknown keys
   (forwards-compat) and treat missing keys as empty.
 

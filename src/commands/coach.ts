@@ -101,44 +101,50 @@ async function coachClaudeMd(
     return 0;
   }
 
-  const projectName = await resolveProjectName(opts, interactive);
-  const tpl = await readText(
-    resolve(CONTENT_DIR, "templates", "CLAUDE.template.md"),
+  return renderProjectTemplate(
+    opts,
+    interactive,
+    "CLAUDE.template.md",
+    "CLAUDE.md",
   );
-  const rendered = tpl.replaceAll("<PROJECT_NAME>", projectName);
-  const dest = resolve(opts.cwd, "CLAUDE.md");
-  const result = await writeWithPrompt(rendered, dest, opts, interactive);
-  printSummary("CLAUDE.md", [{ rel: "CLAUDE.md", result }]);
-  return 0;
 }
 
 async function coachPractices(
   opts: CoachOptions,
   interactive: boolean,
 ): Promise<number> {
-  const projectName = await resolveProjectName(opts, interactive);
-  const tpl = await readText(
-    resolve(CONTENT_DIR, "templates", "PRACTICES.template.md"),
+  return renderProjectTemplate(
+    opts,
+    interactive,
+    "PRACTICES.template.md",
+    "PRACTICES.md",
   );
-  const rendered = tpl.replaceAll("<PROJECT_NAME>", projectName);
-  const dest = resolve(opts.cwd, "PRACTICES.md");
-  const result = await writeWithPrompt(rendered, dest, opts, interactive);
-  printSummary("PRACTICES.md", [{ rel: "PRACTICES.md", result }]);
-  return 0;
 }
 
 async function coachAgentProfile(
   opts: CoachOptions,
   interactive: boolean,
 ): Promise<number> {
-  const projectName = await resolveProjectName(opts, interactive);
-  const tpl = await readText(
-    resolve(CONTENT_DIR, "templates", "agent.template.toml"),
+  return renderProjectTemplate(
+    opts,
+    interactive,
+    "agent.template.toml",
+    ".agent.toml",
   );
+}
+
+async function renderProjectTemplate(
+  opts: CoachOptions,
+  interactive: boolean,
+  templateName: string,
+  destRel: string,
+): Promise<number> {
+  const projectName = await resolveProjectName(opts, interactive);
+  const tpl = await readText(resolve(CONTENT_DIR, "templates", templateName));
   const rendered = tpl.replaceAll("<PROJECT_NAME>", projectName);
-  const dest = resolve(opts.cwd, ".agent.toml");
+  const dest = resolve(opts.cwd, destRel);
   const result = await writeWithPrompt(rendered, dest, opts, interactive);
-  printSummary(".agent.toml", [{ rel: ".agent.toml", result }]);
+  printSummary(destRel, [{ rel: destRel, result }]);
   return 0;
 }
 
