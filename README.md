@@ -26,6 +26,17 @@ and a content tree you can read.
 [ADR-0001](docs/adr/0001-product-posture-doctor-add-coach.md) for the
 locked design.
 
+## Development
+
+```bash
+npm install
+npm run typecheck
+npm run build
+npm test           # builds via pretest + runs vitest suite
+```
+
+Test conventions live in [`specs/test-suite/`](specs/test-suite/).
+
 ## Why
 
 Over the last few weeks of building TeamPlanner, the highest-leverage

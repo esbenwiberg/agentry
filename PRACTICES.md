@@ -73,9 +73,11 @@ Status field on every ADR: `Proposed | Accepted | Deprecated | Superseded by ADR
 
 ## Testing
 
-When `src/` grows beyond a stub, add `vitest`. Test the *contract* of each
-verb: given a fixture repo, what gets written, what gets reported.
-Snapshots are fine for `doctor` output.
+`vitest` is the runner. `npm test` builds via `pretest` and runs the
+suite against `dist/`. Tests live under `tests/` — verb contract tests
+at the top level (each verb is one file) and unit tests under
+`tests/unit/`. Real tmpdirs, no `fs` mocks. Conventions and design
+choices live in [`specs/test-suite/`](specs/test-suite/).
 
 ## Don't
 
