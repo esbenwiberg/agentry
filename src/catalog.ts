@@ -77,8 +77,8 @@ const VALID_CONFLICTS: ReadonlySet<Conflict> = new Set<Conflict>([
   "skip-if-exists",
 ]);
 
-const ID_RE = /^[a-z][a-z0-9-]*$/;
-const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+export const ID_RE = /^[a-z][a-z0-9-]*$/;
+export const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
 function isRepoRelative(p: string): boolean {
   if (!isString(p)) return false;

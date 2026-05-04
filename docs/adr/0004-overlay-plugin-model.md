@@ -91,7 +91,7 @@ root:
 
 ```toml
 [[overlay]]
-id = "@stack/dotnet"
+id = "stack-dotnet"
 path = "../my-stack-overlay"     # relative to the repo root
 ```
 
@@ -173,7 +173,7 @@ field per `[[installed]]` entry:
 [[installed]]
 id = "lint"
 version = "0.1.0"
-overlay = "@stack/dotnet"     # NEW — omitted means bundled
+overlay = "stack-dotnet"      # NEW — omitted means bundled
 installed_at = "..."
 provides = [...]
 ```

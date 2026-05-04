@@ -27,6 +27,14 @@ export function fileExists(p: string): boolean {
   }
 }
 
+export function dirExists(p: string): boolean {
+  try {
+    return statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 export async function filesIdentical(a: string, b: string): Promise<boolean> {
   if (!fileExists(a) || !fileExists(b)) return false;
   const [ba, bb] = await Promise.all([readFile(a), readFile(b)]);
