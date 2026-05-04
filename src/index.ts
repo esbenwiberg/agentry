@@ -32,7 +32,8 @@ Flags (list):
 Flags (add):
   --no-claude                        Skip files with flavor=claude
   --no-recipe                        Skip files with flavor=agnostic
-  --non-interactive                  Don't prompt; defaults to keep-existing
+  --no-deps                          Skip auto-install of requires.entries
+  --non-interactive                  Don't prompt; auto-install deps, keep existing
   --dry-run                          Show what would happen, don't write
 
 Flags (upgrade):
@@ -135,6 +136,7 @@ async function main(argv: readonly string[]): Promise<number> {
         id,
         noClaude: flags.has("--no-claude"),
         noRecipe: flags.has("--no-recipe"),
+        noDeps: flags.has("--no-deps"),
         nonInteractive: flags.has("--non-interactive"),
         dryRun: flags.has("--dry-run"),
       });

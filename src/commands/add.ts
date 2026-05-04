@@ -27,6 +27,7 @@ export interface AddOptions {
   id: string;
   noClaude: boolean;
   noRecipe: boolean;
+  noDeps: boolean;
   nonInteractive: boolean;
   dryRun: boolean;
 }
@@ -178,18 +179,25 @@ async function resolvePlan(
       if (isAlreadyInstalled(dep, opts.cwd)) continue;
       if (seen.has(depId)) continue;
 
+      if (opts.noDeps) {
+        console.warn(
+          `  warning: '${entry.id}' depends on '${depId}' (skipped via --no-deps). Run 'agentry add ${depId}' separately.`,
+        );
+        continue;
+      }
+
       const proceed = interactive
         ? await confirm(
             `'${entry.id}' depends on '${depId}' (not installed). Install '${depId}' too?`,
             true,
           )
-        : false;
+        : true;
       if (proceed) {
         const ok = await visit(dep);
         if (!ok) return false;
       } else {
         console.warn(
-          `  warning: '${entry.id}' depends on '${depId}' (not installed). Run 'agentry add ${depId}' separately.`,
+          `  warning: '${entry.id}' depends on '${depId}' (declined). Run 'agentry add ${depId}' separately.`,
         );
       }
     }
