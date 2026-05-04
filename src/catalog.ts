@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { basename, extname, resolve, isAbsolute, normalize } from "node:path";
 import { parse as parseToml } from "smol-toml";
 import { CATALOG_DIR, CONTENT_DIR } from "./paths.js";
+import { isString, isStringArray } from "./typeguards.js";
 
 export type Flavor = "claude" | "agnostic";
 export type Conflict = "prompt" | "overwrite" | "skip-if-exists";
@@ -78,14 +79,6 @@ const VALID_CONFLICTS: ReadonlySet<Conflict> = new Set<Conflict>([
 
 const ID_RE = /^[a-z][a-z0-9-]*$/;
 const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
-
-function isString(v: unknown): v is string {
-  return typeof v === "string";
-}
-
-function isStringArray(v: unknown): v is string[] {
-  return Array.isArray(v) && v.every(isString);
-}
 
 function isRepoRelative(p: string): boolean {
   if (!isString(p)) return false;

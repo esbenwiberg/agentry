@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { loadCatalog, type CatalogEntry, type Layer } from "../catalog.js";
 import { CONTENT_DIR } from "../paths.js";
-import { isToolAvailable } from "../io.js";
+import { filesIdentical, isToolAvailable } from "../io.js";
 import {
   findLockedEntry,
   findLockedProvide,
@@ -180,17 +180,14 @@ async function classifyDrift(
   lockedEntry: LockedEntry | undefined,
 ): Promise<ProvideDrift | null> {
   if (!existsSync(src)) return null;
-
-  const [destHash, srcHash] = await Promise.all([
-    sha256OfFile(dest),
-    sha256OfFile(src),
-  ]);
-
-  if (destHash === srcHash) return null;
+  if (await filesIdentical(src, dest)) return null;
 
   const locked = findLockedProvide(lockedEntry, target);
-  if (locked && destHash === locked.checksum) {
-    return { target, kind: "out-of-date" };
+  if (locked) {
+    const destHash = await sha256OfFile(dest);
+    if (destHash === locked.checksum) {
+      return { target, kind: "out-of-date" };
+    }
   }
   return { target, kind: "user-edit" };
 }

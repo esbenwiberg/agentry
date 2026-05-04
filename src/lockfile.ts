@@ -5,6 +5,8 @@ import { createHash } from "node:crypto";
 import { parse as parseToml, stringify as stringifyToml } from "smol-toml";
 import { ensureDirAndWrite } from "./io.js";
 import { AGENTRY_VERSION } from "./version.js";
+import { pickString } from "./typeguards.js";
+import type { Flavor } from "./catalog.js";
 
 const LOCKFILE_NAME = "agentry.lock.toml";
 const LOCKFILE_HEADER = `# agentry.lock.toml — managed by 'agentry'. Don't edit by hand.
@@ -13,8 +15,6 @@ const LOCKFILE_HEADER = `# agentry.lock.toml — managed by 'agentry'. Don't edi
 # from source-of-truth updates.
 
 `;
-
-export type Flavor = "claude" | "agnostic";
 
 export interface LockedProvide {
   target: string;
@@ -31,8 +31,6 @@ export interface LockedEntry {
 }
 
 export interface Lockfile {
-  agentry_version: string;
-  generated_at: string;
   installed: LockedEntry[];
 }
 
@@ -41,7 +39,7 @@ export function lockfilePath(cwd: string): string {
 }
 
 export function emptyLockfile(): Lockfile {
-  return { agentry_version: AGENTRY_VERSION, generated_at: "", installed: [] };
+  return { installed: [] };
 }
 
 export async function readLockfile(cwd: string): Promise<Lockfile | null> {
@@ -63,30 +61,26 @@ export async function readLockfile(cwd: string): Promise<Lockfile | null> {
         typeof e === "object" && e !== null && typeof (e as { id?: unknown }).id === "string",
     )
     .map<LockedEntry>((e) => ({
-      id: String(e.id),
-      version: typeof e.version === "string" ? e.version : "",
-      installed_at: typeof e.installed_at === "string" ? e.installed_at : "",
+      id: pickString(e, "id"),
+      version: pickString(e, "version"),
+      installed_at: pickString(e, "installed_at"),
       provides: Array.isArray(e.provides)
         ? (e.provides as Record<string, unknown>[])
             .filter((p) => typeof p === "object" && p !== null)
             .map<LockedProvide>((p) => ({
-              target: typeof p.target === "string" ? p.target : "",
-              source: typeof p.source === "string" ? p.source : "",
+              target: pickString(p, "target"),
+              source: pickString(p, "source"),
               flavor: p.flavor === "claude" ? "claude" : "agnostic",
-              checksum: typeof p.checksum === "string" ? p.checksum : "",
+              checksum: pickString(p, "checksum"),
             }))
             .filter((p) => p.target !== "")
         : [],
     }));
-  return {
-    agentry_version: typeof r.agentry_version === "string" ? r.agentry_version : "",
-    generated_at: typeof r.generated_at === "string" ? r.generated_at : "",
-    installed,
-  };
+  return { installed };
 }
 
 export async function writeLockfile(cwd: string, lf: Lockfile): Promise<void> {
-  const out: Lockfile = {
+  const out = {
     agentry_version: AGENTRY_VERSION,
     generated_at: new Date().toISOString(),
     installed: [...lf.installed].sort((a, b) => a.id.localeCompare(b.id)),
@@ -118,7 +112,7 @@ export function findLockedProvide(
 export function upsertLockedEntry(lf: Lockfile, entry: LockedEntry): Lockfile {
   const installed = lf.installed.filter((e) => e.id !== entry.id);
   installed.push(entry);
-  return { ...lf, installed };
+  return { installed };
 }
 
 export function mergeLockedProvides(
