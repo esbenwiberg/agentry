@@ -1,5 +1,7 @@
 # agentry
 
+[![ci](https://github.com/esbenwiberg/agentry/actions/workflows/ci.yml/badge.svg)](https://github.com/esbenwiberg/agentry/actions/workflows/ci.yml)
+
 > Form your agentic readiness.
 
 `agentry` is a CLI that helps any repo become more **agent-ready** — better

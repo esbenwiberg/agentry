@@ -1,6 +1,6 @@
 # agentry — status
 
-*Last updated: 2026-05-04 — test suite landed (vitest, 37 tests, ~650ms).*
+*Last updated: 2026-05-04 — CI shipped (`.github/workflows/ci.yml` runs typecheck + tests on push/PR).*
 
 Current snapshot of where the build is against the original 7-phase plan
 (`~/.claude/plans/lets-brainstorm-the-idea-cheerful-pelican.md`). Update as
@@ -45,25 +45,27 @@ phases close.
 - **Spec templates** ship at `content/templates/spec/` (`README` + `_template/{purpose,design,acceptance}.md` + `briefs/README.md`), scaffolded via `coach spec-init` then `coach spec <slug>`. Slug-named, not numbered (specs are features, not point-in-time decisions).
 - **`specs/` bootstrapped on agentry itself** via `coach spec-init` — the repo now ships its own `specs/README.md` and `specs/_template/`.
 - **First per-feature spec implemented:** `specs/test-suite/` (Status: Active). vitest wired (`pretest` builds dist; `npm test` runs the suite). 37 tests at ~650ms — verb contract tests for list/doctor/add/upgrade/remove/coach, unit tests for drift/lockfile/catalog (real bundled catalog + fixture catalogs for cycles & malformed entries). Helpers at `tests/helpers/{cli,fixtures}.ts`.
+- **CI online:** `.github/workflows/ci.yml` runs `npm ci → typecheck → test` on push/PR to `main`. Single Ubuntu job, Node 22, npm cache keyed on `package-lock.json`, read-only permissions. Brief at `specs/test-suite/briefs/01-ci-workflow.md`.
 
 ## Next likely work
 
 Pick one:
-1. **Phase 5 dogfood** — round-trip TeamPlanner now that we have a
-   green test suite to catch regressions. Surfaces kernel gaps before
-   Phase 3 locks assumptions. Needs TeamPlanner access.
+1. **Phase 5 dogfood** — round-trip TeamPlanner now that the test
+   suite + CI catch regressions. Surfaces kernel gaps before Phase 3
+   locks assumptions. Needs TeamPlanner access.
 2. **Start Phase 3 plugin model** — manifest schema, capability
    scoping, `add` resolves an external catalog source. Highest-risk
    phase. Note: ADR-0001 lists "no plugin runtime" as a v1 non-goal,
    so Phase 3 requires either an amending ADR or a deliberate scope
    shift.
-3. **CI workflow** — wire `npm test` into GitHub Actions on push/PR.
-   Acceptance section in `specs/test-suite/` flags this as out of
-   scope for the spec — it's a small follow-up brief.
+3. **`bin` link / `npx agentry`** — currently the CLI runs via `node
+   dist/index.js`. Add a `package.json` `bin` entry (already declared)
+   to a smoke test once the package is locally linked, or document
+   the `npm link` flow.
 
-Default recommendation: **(1)**. The harness is now safe enough to
-risk the round-trip; doing it before Phase 3 keeps plugin design
-honest.
+Default recommendation: **(1)**. The harness + CI together are safe
+enough to risk the round-trip; doing it before Phase 3 keeps plugin
+design honest.
 
 ## Persistence note
 
