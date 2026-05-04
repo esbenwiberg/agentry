@@ -114,12 +114,16 @@ async function main(argv: readonly string[]): Promise<number> {
   const args = argv.slice(2);
   const { verb, positional, flags } = parseArgs(args);
 
-  if (!verb || flags.has("--help") || verb === "--help" || verb === "-h") {
+  if (flags.has("--help") || verb === "--help" || verb === "-h") {
     console.log(HELP);
     return 0;
   }
   if (flags.has("--version") || verb === "--version" || verb === "-v") {
     console.log(VERSION);
+    return 0;
+  }
+  if (!verb) {
+    console.log(HELP);
     return 0;
   }
 
