@@ -1,8 +1,33 @@
 import * as readline from "node:readline/promises";
 import { stdin, stdout } from "node:process";
+import { spawnSync } from "node:child_process";
 
 export function isInteractive(): boolean {
   return Boolean(stdin.isTTY) && Boolean(stdout.isTTY);
+}
+
+export async function chooseConflictAction(
+  target: string,
+  src: string,
+  dest: string,
+): Promise<"keep" | "overwrite"> {
+  while (true) {
+    const ans = await ask(
+      `  ${target} differs. [k]eep / [o]verwrite / [d]iff: `,
+      "k",
+    );
+    const c = ans.trim().toLowerCase()[0] ?? "k";
+    if (c === "k") return "keep";
+    if (c === "o") return "overwrite";
+    if (c === "d") {
+      spawnSync(
+        "git",
+        ["--no-pager", "diff", "--no-index", "--color=auto", dest, src],
+        { stdio: "inherit" },
+      );
+      continue;
+    }
+  }
 }
 
 export async function ask(question: string, defaultAnswer?: string): Promise<string> {

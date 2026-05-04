@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "node:fs";
-import { mkdir, copyFile, readFile } from "node:fs/promises";
+import { mkdir, copyFile, readFile, writeFile } from "node:fs/promises";
 import { dirname, delimiter, join, resolve } from "node:path";
 
 export function isGitRepo(cwd: string): boolean {
@@ -36,4 +36,16 @@ export async function filesIdentical(a: string, b: string): Promise<boolean> {
 export async function ensureDirAndCopy(src: string, dest: string): Promise<void> {
   await mkdir(dirname(dest), { recursive: true });
   await copyFile(src, dest);
+}
+
+export async function ensureDirAndWrite(
+  dest: string,
+  contents: string | Buffer,
+): Promise<void> {
+  await mkdir(dirname(dest), { recursive: true });
+  await writeFile(dest, contents);
+}
+
+export async function readText(path: string): Promise<string> {
+  return readFile(path, "utf8");
 }

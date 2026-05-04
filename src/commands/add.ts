@@ -1,6 +1,5 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { spawnSync } from "node:child_process";
 import { loadCatalog, type CatalogEntry, type Provide } from "../catalog.js";
 import { CONTENT_DIR } from "../paths.js";
 import {
@@ -10,7 +9,7 @@ import {
   isGitRepo,
   isToolAvailable,
 } from "../io.js";
-import { ask, confirm, isInteractive } from "../prompt.js";
+import { chooseConflictAction, confirm, isInteractive } from "../prompt.js";
 
 export interface AddOptions {
   cwd: string;
@@ -221,30 +220,6 @@ async function installProvide(
   if (opts.dryRun) return { provide: p, outcome: "would-write" };
   await ensureDirAndCopy(src, dest);
   return { provide: p, outcome: "written" };
-}
-
-async function chooseConflictAction(
-  target: string,
-  src: string,
-  dest: string,
-): Promise<"keep" | "overwrite"> {
-  while (true) {
-    const ans = await ask(
-      `  ${target} differs. [k]eep / [o]verwrite / [d]iff: `,
-      "k",
-    );
-    const c = ans.trim().toLowerCase()[0] ?? "k";
-    if (c === "k") return "keep";
-    if (c === "o") return "overwrite";
-    if (c === "d") {
-      spawnSync(
-        "git",
-        ["--no-pager", "diff", "--no-index", "--color=auto", dest, src],
-        { stdio: "inherit" },
-      );
-      continue;
-    }
-  }
 }
 
 function printProvideLine(r: ProvideResult): void {

@@ -2,6 +2,7 @@
 import { runList } from "./commands/list.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runAdd } from "./commands/add.js";
+import { runCoach, type CoachKind } from "./commands/coach.js";
 
 const VERSION = "0.0.0";
 
@@ -10,41 +11,82 @@ const HELP = `agentry ${VERSION}
 Form your agentic readiness.
 
 Usage:
-  agentry list                      List catalog entries
-  agentry doctor [path]             Audit a repo's agent-readiness (default: cwd)
-  agentry add <id> [path]           Install a catalog entry into a repo (default: cwd)
-  agentry coach <id>                Interactively author an un-installable piece
-  agentry --help                    Show this message
-  agentry --version                 Show version
+  agentry list                       List catalog entries
+  agentry doctor [path]              Audit a repo's agent-readiness (default: cwd)
+  agentry add <id> [path]            Install a catalog entry into a repo
+  agentry coach <kind> [args] [path] Author un-installable scaffolding
+
+Coach kinds:
+  agentry coach claude-md [--nested <subdir>]
+  agentry coach practices
+  agentry coach adr-init             Bootstrap docs/adr/ (template + README + ADR-0)
+  agentry coach adr <slug>           Auto-numbered new ADR
 
 Flags (list):
-  --show-deprecated                 Include deprecated entries
+  --show-deprecated                  Include deprecated entries
 
 Flags (add):
-  --no-claude                       Skip files with flavor=claude
-  --no-recipe                       Skip files with flavor=agnostic
-  --non-interactive                 Don't prompt; defaults to keep-existing
-  --dry-run                         Show what would happen, don't write
+  --no-claude                        Skip files with flavor=claude
+  --no-recipe                        Skip files with flavor=agnostic
+  --non-interactive                  Don't prompt; defaults to keep-existing
+  --dry-run                          Show what would happen, don't write
 
-Status: Phase 2.1 — list/doctor/add are implemented. coach is a stub.
+Flags (coach):
+  --nested <subdir>                  (claude-md) write nested CLAUDE.md
+  --name <project-name>              Override project name (default: cwd basename)
+  --title <title>                    (adr) ADR title (skip prompt)
+  --non-interactive                  No prompts; use defaults
+  --dry-run                          Show what would happen, don't write
+
+  agentry --help                     Show this message
+  agentry --version                  Show version
+
+Status: Phase 2.2 — list, doctor, add, coach implemented.
 See https://github.com/esbenwiberg/agentry`;
+
+const VALUE_FLAGS = new Set(["--nested", "--title", "--name"]);
 
 interface ParsedArgs {
   verb: string | undefined;
   positional: string[];
-  flags: Set<string>;
+  flags: Map<string, string>;
 }
 
 function parseArgs(argv: readonly string[]): ParsedArgs {
   const positional: string[] = [];
-  const flags = new Set<string>();
-  for (const a of argv) {
-    if (a.startsWith("--")) flags.add(a);
-    else positional.push(a);
+  const flags = new Map<string, string>();
+  let i = 0;
+  while (i < argv.length) {
+    const a = argv[i]!;
+    if (a.startsWith("--")) {
+      const eq = a.indexOf("=");
+      if (eq !== -1) {
+        flags.set(a.slice(0, eq), a.slice(eq + 1));
+        i++;
+        continue;
+      }
+      if (VALUE_FLAGS.has(a) && i + 1 < argv.length) {
+        flags.set(a, argv[i + 1]!);
+        i += 2;
+        continue;
+      }
+      flags.set(a, "");
+      i++;
+      continue;
+    }
+    positional.push(a);
+    i++;
   }
   const [verb, ...rest] = positional;
   return { verb, positional: rest, flags };
 }
+
+const COACH_KINDS = new Set<CoachKind>([
+  "claude-md",
+  "practices",
+  "adr-init",
+  "adr",
+]);
 
 async function main(argv: readonly string[]): Promise<number> {
   const args = argv.slice(2);
@@ -83,9 +125,37 @@ async function main(argv: readonly string[]): Promise<number> {
         dryRun: flags.has("--dry-run"),
       });
     }
-    case "coach":
-      console.error(`agentry ${verb}: not implemented yet (Phase 2.1).`);
-      return 2;
+    case "coach": {
+      const kind = positional[0];
+      if (!kind || !COACH_KINDS.has(kind as CoachKind)) {
+        console.error(
+          `agentry coach: unknown kind '${kind ?? ""}'. Expected one of: ${[...COACH_KINDS].join(", ")}`,
+        );
+        return 1;
+      }
+      const rest = positional.slice(1);
+      let subPositional: string[];
+      let cwd: string;
+      if (kind === "adr") {
+        // coach adr <slug> [path]
+        subPositional = rest.length > 0 ? [rest[0]!] : [];
+        cwd = rest[1] ?? process.cwd();
+      } else {
+        // coach <kind> [path]
+        subPositional = [];
+        cwd = rest[0] ?? process.cwd();
+      }
+      return runCoach({
+        cwd,
+        kind: kind as CoachKind,
+        positional: subPositional,
+        ...(flags.get("--nested") ? { nested: flags.get("--nested")! } : {}),
+        ...(flags.get("--title") ? { title: flags.get("--title")! } : {}),
+        ...(flags.get("--name") ? { name: flags.get("--name")! } : {}),
+        nonInteractive: flags.has("--non-interactive"),
+        dryRun: flags.has("--dry-run"),
+      });
+    }
     default:
       console.error(`agentry: unknown command '${verb}'.`);
       console.error(`Try 'agentry --help'.`);
