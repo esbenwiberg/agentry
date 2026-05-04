@@ -307,6 +307,53 @@ function validateCrossReferences(
       stillValid.push(entry);
     }
   }
+
+  const cycles = detectCycles(stillValid);
+  const acyclic: CatalogEntry[] = [];
+  for (const entry of stillValid) {
+    const path = cycles.get(entry.id);
+    if (path) {
+      malformed.push({
+        sourceFile: entry.sourceFile,
+        id: entry.id,
+        errors: [`requires.entries forms a cycle: ${path.join(" → ")}`],
+      });
+    } else {
+      acyclic.push(entry);
+    }
+  }
+
   entries.length = 0;
-  entries.push(...stillValid);
+  entries.push(...acyclic);
+}
+
+function detectCycles(entries: CatalogEntry[]): Map<string, string[]> {
+  const byId = new Map(entries.map((e) => [e.id, e]));
+  const color = new Map<string, "gray" | "black">();
+  const stack: string[] = [];
+  const cyclicIds = new Map<string, string[]>();
+
+  function visit(id: string): void {
+    const c = color.get(id);
+    if (c === "black") return;
+    if (c === "gray") {
+      const start = stack.indexOf(id);
+      const cyclePath = [...stack.slice(start), id];
+      for (const node of cyclePath.slice(0, -1)) {
+        if (!cyclicIds.has(node)) cyclicIds.set(node, cyclePath);
+      }
+      return;
+    }
+    color.set(id, "gray");
+    stack.push(id);
+    const entry = byId.get(id);
+    if (entry) {
+      for (const dep of entry.requires.entries) visit(dep);
+    }
+    stack.pop();
+    color.set(id, "black");
+  }
+
+  for (const e of entries) visit(e.id);
+  return cyclicIds;
 }
