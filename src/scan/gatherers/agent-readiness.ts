@@ -36,6 +36,7 @@ interface SpecsSummary {
 interface AgentReadinessReport {
   configs: AgentConfig[];
   docs: AgentDoc[];
+  nestedContextFiles: NestedContextFile[];
   adrs: AdrSummary[];
   specs: SpecsSummary;
   agentryLockfilePresent: boolean;
@@ -45,6 +46,15 @@ interface AgentReadinessReport {
     path: string;
     reason: string;
   }>;
+}
+
+interface NestedContextFile {
+  kind: "claude-md" | "agents-md";
+  path: string;
+  bytes: number;
+  depth: number;
+  lastTouchedDaysAgo?: number;
+  lastTouchedISO?: string;
 }
 
 const AGENT_CONFIG_LOCATIONS: Array<{ tool: string; paths: string[] }> = [
@@ -75,6 +85,44 @@ const ADR_DIRS = [
   "architecture/decisions",
   "doc/adr",
 ];
+
+const NESTED_CONTEXT_FILENAMES: Record<string, "claude-md" | "agents-md"> = {
+  "CLAUDE.md": "claude-md",
+  "AGENTS.md": "agents-md",
+};
+
+const NESTED_IGNORE_DIRS = new Set([
+  "node_modules",
+  ".git",
+  "dist",
+  "build",
+  "out",
+  ".next",
+  ".nuxt",
+  ".cache",
+  "__pycache__",
+  ".venv",
+  "venv",
+  ".tox",
+  ".mypy_cache",
+  ".pytest_cache",
+  "target",
+  "vendor",
+  ".gradle",
+  "coverage",
+  ".nyc_output",
+  ".turbo",
+  ".parcel-cache",
+  ".agentry",
+  ".idea",
+  ".vscode",
+]);
+
+const MAX_NESTED_DEPTH = 6;
+// Codex documents a 32 KiB hard cap on AGENTS.md (project_doc_max_bytes
+// default). Beyond that, content is silently dropped. Use the same threshold
+// to flag CLAUDE.md / AGENTS.md context-rot risk across tools.
+const CONTEXT_ROT_BYTES = 32_768;
 
 async function detectConfigs(cwd: string): Promise<AgentConfig[]> {
   const out: AgentConfig[] = [];
@@ -124,6 +172,62 @@ async function detectDocs(
       out.push(doc);
     }
   }
+  return out;
+}
+
+async function findNestedContextFiles(
+  cwd: string,
+  hasGit: boolean,
+): Promise<NestedContextFile[]> {
+  const out: NestedContextFile[] = [];
+
+  async function walk(rel: string, depth: number): Promise<void> {
+    if (depth > MAX_NESTED_DEPTH) return;
+    let entries;
+    try {
+      entries = readdirSync(resolve(cwd, rel), { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const ent of entries) {
+      const childRel = rel === "" ? ent.name : `${rel}/${ent.name}`;
+      if (ent.isDirectory()) {
+        if (NESTED_IGNORE_DIRS.has(ent.name)) continue;
+        // Skip hidden dirs except `.github` (which can hold AGENTS.md).
+        if (ent.name.startsWith(".") && ent.name !== ".github") continue;
+        await walk(childRel, depth + 1);
+        continue;
+      }
+      if (!ent.isFile()) continue;
+      const kind = NESTED_CONTEXT_FILENAMES[ent.name];
+      if (!kind) continue;
+      // Root-level CLAUDE.md / AGENTS.md are already in `docs[]`.
+      if (depth === 0) continue;
+      let bytes = 0;
+      try {
+        bytes = statSync(resolve(cwd, childRel)).size;
+      } catch {
+        continue;
+      }
+      const file: NestedContextFile = {
+        kind,
+        path: childRel,
+        bytes,
+        depth,
+      };
+      if (hasGit) {
+        const t = await getLastTouchedDays(cwd, childRel);
+        if (t) {
+          file.lastTouchedDaysAgo = t.days;
+          file.lastTouchedISO = t.iso;
+        }
+      }
+      out.push(file);
+    }
+  }
+
+  await walk("", 0);
+  out.sort((a, b) => a.path.localeCompare(b.path));
   return out;
 }
 
@@ -216,6 +320,7 @@ function detectSpecs(cwd: string): SpecsSummary {
 
 function findStaleSignals(
   docs: AgentDoc[],
+  nested: NestedContextFile[],
   adrs: AdrSummary[],
 ): Array<{ kind: string; path: string; reason: string }> {
   const out: Array<{ kind: string; path: string; reason: string }> = [];
@@ -226,6 +331,32 @@ function findStaleSignals(
         kind: d.kind,
         path: d.path,
         reason: `not touched in ${d.lastTouchedDaysAgo} days`,
+      });
+    }
+    if (
+      (d.kind === "claude-md" || d.kind === "agents-md") &&
+      d.bytes >= CONTEXT_ROT_BYTES
+    ) {
+      out.push({
+        kind: d.kind,
+        path: d.path,
+        reason: `context-rot risk — ${d.bytes} bytes (≥ ${CONTEXT_ROT_BYTES}); consider splitting into nested context files`,
+      });
+    }
+  }
+  for (const f of nested) {
+    if (f.lastTouchedDaysAgo !== undefined && f.lastTouchedDaysAgo > STALE_DAYS) {
+      out.push({
+        kind: f.kind,
+        path: f.path,
+        reason: `nested context not touched in ${f.lastTouchedDaysAgo} days`,
+      });
+    }
+    if (f.bytes >= CONTEXT_ROT_BYTES) {
+      out.push({
+        kind: f.kind,
+        path: f.path,
+        reason: `context-rot risk — ${f.bytes} bytes (≥ ${CONTEXT_ROT_BYTES}); consider splitting deeper`,
       });
     }
   }
@@ -253,13 +384,15 @@ export const agentReadinessGatherer: Gatherer = {
 
     const configs = await detectConfigs(ctx.cwd);
     const docs = await detectDocs(ctx.cwd, hasGit);
+    const nestedContextFiles = await findNestedContextFiles(ctx.cwd, hasGit);
     const adrs = await detectAdrs(ctx.cwd, hasGit);
     const specs = detectSpecs(ctx.cwd);
-    const stale = findStaleSignals(docs, adrs);
+    const stale = findStaleSignals(docs, nestedContextFiles, adrs);
 
     const report: AgentReadinessReport = {
       configs,
       docs,
+      nestedContextFiles,
       adrs,
       specs,
       agentryLockfilePresent: existsSync(resolve(ctx.cwd, "agentry.lock.toml")),

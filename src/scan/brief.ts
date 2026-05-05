@@ -113,7 +113,7 @@ function renderBrief(
   lines.push(`- \`${repoRel("git/stats.json")}\`, \`${repoRel("git/commit-messages.txt")}\`, \`${repoRel("git/hot-files.json")}\`, \`${repoRel("git/pr-samples.json")}\``);
   lines.push(`- \`${repoRel("hygiene/checklist.json")}\`, \`${repoRel("hygiene/ci-coverage.json")}\`, \`${repoRel("hygiene/linters.json")}\`, \`${repoRel("hygiene/gitignore-audit.json")}\`, \`${repoRel("hygiene/readme-structure.json")}\``);
   lines.push(`- \`${repoRel("security/secrets-suspects.json")}\`, \`${repoRel("security/committed-keys.json")}\`, \`${repoRel("security/lockfile-age.json")}\`, \`${repoRel("security/audit.json")}\``);
-  lines.push(`- \`${repoRel("agent-readiness/report.json")}\` — existing CLAUDE.md / ADRs / specs / configs / stale signals`);
+  lines.push(`- \`${repoRel("agent-readiness/report.json")}\` — existing CLAUDE.md / AGENTS.md (root + nested) with bytes + age, ADRs, specs, agent configs, stale + context-rot signals`);
   lines.push(`- \`${repoRel("docs/readme-head.md")}\`, \`${repoRel("docs/root-headings.json")}\`, \`${repoRel("docs/claude-md.md")}\` (if present)`);
   if (manifest.options.fitness) {
     lines.push(`- \`${repoRel("fitness/results.json")}\` — build/test/typecheck/lint output (executed user code)`);
@@ -126,6 +126,7 @@ function renderBrief(
   lines.push("- **Catalog ids only.** The full list of valid `agentry add <id>` ids is in `catalog.json` under `entries[].id`. Anything not in that list is a hallucination.");
   lines.push("- **Author from evidence.** Tailor CLAUDE.md / ARCHITECTURE.md / ADRs to what's actually in `structure/`, `git/`, `agent-readiness/`. Generic boilerplate is worse than nothing.");
   lines.push("- **Stale signals matter.** If `agent-readiness/report.json` shows ADRs / CLAUDE.md not touched in over a year while `git/hot-files.json` shows churn, flag the doc as outdated rather than treating it as ground truth.");
+  lines.push("- **Context rot is real.** Each `claude-md` / `agents-md` entry in `agent-readiness/report.json` has a `bytes` field. If a single context file is ≥30KB, suggest splitting it into nested `CLAUDE.md` files closer to the code. If the repo has a large subtree (`structure/languages.json`, `git/hot-files.json`) with no nested context file, recommend authoring one.");
 
   if (manifest.options.fitness === false) {
     lines.push("");
