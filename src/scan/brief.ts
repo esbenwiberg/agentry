@@ -113,7 +113,7 @@ function renderBrief(
   lines.push(`- \`${repoRel("git/stats.json")}\`, \`${repoRel("git/commit-messages.txt")}\`, \`${repoRel("git/hot-files.json")}\`, \`${repoRel("git/pr-samples.json")}\``);
   lines.push(`- \`${repoRel("hygiene/checklist.json")}\`, \`${repoRel("hygiene/ci-coverage.json")}\`, \`${repoRel("hygiene/linters.json")}\`, \`${repoRel("hygiene/gitignore-audit.json")}\`, \`${repoRel("hygiene/readme-structure.json")}\``);
   lines.push(`- \`${repoRel("security/secrets-suspects.json")}\`, \`${repoRel("security/committed-keys.json")}\`, \`${repoRel("security/lockfile-age.json")}\`, \`${repoRel("security/audit.json")}\``);
-  lines.push(`- \`${repoRel("agent-readiness/report.json")}\` — existing CLAUDE.md / ADRs / specs / configs / stale signals`);
+  lines.push(`- \`${repoRel("agent-readiness/report.json")}\` — existing CLAUDE.md / AGENTS.md (root + nested) with bytes + age, ADRs, specs, agent configs across 11 tools (Claude Code, Cursor, Copilot, Codex, Aider, Continue, Windsurf, devcontainer, …), monorepo markers, stale + context-rot signals`);
   lines.push(`- \`${repoRel("docs/readme-head.md")}\`, \`${repoRel("docs/root-headings.json")}\`, \`${repoRel("docs/claude-md.md")}\` (if present)`);
   if (manifest.options.fitness) {
     lines.push(`- \`${repoRel("fitness/results.json")}\` — build/test/typecheck/lint output (executed user code)`);
@@ -126,6 +126,10 @@ function renderBrief(
   lines.push("- **Catalog ids only.** The full list of valid `agentry add <id>` ids is in `catalog.json` under `entries[].id`. Anything not in that list is a hallucination.");
   lines.push("- **Author from evidence.** Tailor CLAUDE.md / ARCHITECTURE.md / ADRs to what's actually in `structure/`, `git/`, `agent-readiness/`. Generic boilerplate is worse than nothing.");
   lines.push("- **Stale signals matter.** If `agent-readiness/report.json` shows ADRs / CLAUDE.md not touched in over a year while `git/hot-files.json` shows churn, flag the doc as outdated rather than treating it as ground truth.");
+  lines.push("- **Context rot is real.** Each `claude-md` / `agents-md` entry in `agent-readiness/report.json` has a `bytes` field. If a single context file is ≥32 KiB (Codex's documented hard cap on the AGENTS.md chain — content beyond is silently dropped), suggest splitting it into nested `CLAUDE.md` / `AGENTS.md` files closer to the code. HumanLayer's empirical guidance: split at 200 lines, content past 500 lines is mostly ignored.");
+  lines.push("- **Monorepo without per-package context is a known failure mode.** If `monorepo.isMonorepo` is true and `nestedContextFiles` is empty, recommend per-package `AGENTS.md` (or `CLAUDE.md`). Nx, pnpm, Cargo workspaces all rely on the agent's nearest-file-wins routing to scope edits correctly.");
+  lines.push("- **Fitness commands must be reachable from agent context.** Check `fitnessReachability` in `agent-readiness/report.json`. If `reachable === false`, the project declares `npm test` / `npm run build` / etc. but no `CLAUDE.md` / `AGENTS.md` / `.agent.toml` / `copilot-instructions.md` names them — autonomous runners (Devin, Copilot Coding Agent, Cursor Background Agents) will synthesize wrong commands. Adding the canonical commands to one of those files is high-leverage.");
+  lines.push("- **Local-config files must be gitignored.** `localConfigIgnored` reports whether `CLAUDE.local.md` and `.claude/settings.local.json` are excluded by `.gitignore`. Both should be — they hold per-developer overrides and permissions and leak if committed.");
 
   if (manifest.options.fitness === false) {
     lines.push("");
