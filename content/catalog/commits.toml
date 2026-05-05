@@ -1,48 +1,12 @@
 id = "commits"
 name = "Commit workflow"
-description = "Conventional commits with changelog fragments and a structured group/classify/commit workflow."
-version = "0.2.0"
+description = "Practice — structured commit format (conventional / gitmoji / jira-prefix), how to choose, what good looks like."
+version = "1.0.0"
+kind = "practice"
+practice = "practices/commits.md"
 
 layers = ["harness", "conventions"]
 
-[[provides]]
-source   = "skills/commits/skill.md"
-target   = ".claude/skills/commits/skill.md"
-flavor   = "claude"
-conflict = "prompt"
-
-[[provides]]
-source   = "skills/commits/command.md"
-target   = ".claude/commands/commit.md"
-flavor   = "claude"
-conflict = "prompt"
-
-[[provides]]
-source   = "skills/commits/rules.md"
-target   = ".claude/skills/commits/rules.md"
-flavor   = "claude"
-conflict = "prompt"
-
-[[provides]]
-source   = "recipes/commits/conventional-commits.md"
-target   = ".agentry/recipes/commits/conventional-commits.md"
-flavor   = "agnostic"
-conflict = "prompt"
-
-[[provides]]
-source   = "hooks/commit-msg"
-target   = ".githooks/commit-msg"
-flavor   = "agnostic"
-conflict = "prompt"
-
-[detect]
-any_of = [
-  ".claude/skills/commits/skill.md",
-  ".claude/commands/commit.md",
-  ".agentry/recipes/commits/conventional-commits.md",
-]
-
 [requires]
 git     = true
-entries = ["changelog"]
 tools   = []

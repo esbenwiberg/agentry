@@ -34,9 +34,10 @@ export function runList(options: ListOptions): number {
     const sorted = [...visible].sort((a, b) => a.id.localeCompare(b.id));
     for (const e of sorted) {
       const dep = e.deprecated_by ? ` (deprecated → ${e.deprecated_by})` : "";
-      const tag = e.overlay ? ` [overlay:${e.overlay}]` : "";
+      const overlayTag = e.overlay ? ` [overlay:${e.overlay}]` : "";
+      const kindTag = e.kind === "practice" ? " [practice]" : "";
       console.log(
-        `${e.id.padEnd(idWidth)}  ${e.name.padEnd(nameWidth)}  ${e.description}${dep}${tag}`,
+        `${e.id.padEnd(idWidth)}  ${e.name.padEnd(nameWidth)}  ${e.description}${dep}${kindTag}${overlayTag}`,
       );
     }
 

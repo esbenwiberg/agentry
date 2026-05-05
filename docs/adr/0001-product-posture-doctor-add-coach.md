@@ -1,6 +1,6 @@
 # 0001 — Product posture: doctor / add / coach
 
-**Status:** Accepted (amended by ADR-0004 for plugin model — local overlay paths only)
+**Status:** Superseded for verb taxonomy by ADR-0005 (kills `doctor`, narrows `add`/`coach`, adds `scan`/`brief`); amended by ADR-0004 for plugin model (local overlay paths only). Posture (read / opt-in write / never-fabricate) survives unchanged with `scan` as the new read-only entry point.
 **Date:** 2026-05-03
 
 ## Context

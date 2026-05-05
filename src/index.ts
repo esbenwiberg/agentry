@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { runList } from "./commands/list.js";
-import { runDoctor } from "./commands/doctor.js";
 import { runAdd } from "./commands/add.js";
 import { runUpgrade } from "./commands/upgrade.js";
 import { runRemove } from "./commands/remove.js";
 import { runCoach, type CoachKind } from "./commands/coach.js";
+import { runScanCommand } from "./commands/scan.js";
+import { runBriefCommand } from "./commands/brief.js";
 import { AGENTRY_VERSION } from "./version.js";
 
 const HELP = `agentry ${AGENTRY_VERSION}
@@ -12,10 +13,11 @@ const HELP = `agentry ${AGENTRY_VERSION}
 Form your agentic readiness.
 
 Usage:
+  agentry scan [path]                Collect deterministic evidence into .agentry/scan/<ts>/
+  agentry brief [path]               Emit instructions.md against the latest scan bundle
   agentry list [path]                List catalog entries (incl. overlays at path)
-  agentry doctor [path]              Audit a repo's agent-readiness (default: cwd)
-  agentry add <id> [path]            Install a catalog entry into a repo
-  agentry upgrade [id] [path]        Refresh installed entries from the catalog
+  agentry add <id> [path]            Install an overlay artifact entry into a repo
+  agentry upgrade [id] [path]        Refresh installed entries; --check for drift CI gate
   agentry remove <id> [path]         Uninstall an entry and prune the lockfile
   agentry coach <kind> [args] [path] Author un-installable scaffolding
 
@@ -27,6 +29,13 @@ Coach kinds:
   agentry coach adr <slug>           Auto-numbered new ADR
   agentry coach spec-init            Bootstrap specs/ (template dir + README)
   agentry coach spec <slug>          New spec folder under specs/<slug>/
+
+Flags (scan):
+  --no-fitness                       Skip executing build/test/typecheck/lint
+  --include-source                   (reserved) bundle source-code excerpts
+
+Flags (brief):
+  --scan <dir>                       Use a specific bundle dir instead of latest
 
 Flags (list):
   --show-deprecated                  Include deprecated entries
@@ -40,6 +49,7 @@ Flags (add):
   --dry-run                          Show what would happen, don't write
 
 Flags (upgrade):
+  --check                            Report drift + orphans only; exit 1 on any
   --force                            Overwrite user-edited files
   --non-interactive                  Don't prompt; auto-accept the plan
   --dry-run                          Show the plan, don't write
@@ -59,10 +69,10 @@ Flags (coach):
   agentry --help                     Show this message
   agentry --version                  Show version
 
-Status: Phase 2.6 — list, doctor, add, upgrade, remove, coach implemented.
+Status: scan + brief MVP shipped; doctor folded into 'upgrade --check'.
 See https://github.com/esbenwiberg/agentry`;
 
-const VALUE_FLAGS = new Set(["--nested", "--title", "--name"]);
+const VALUE_FLAGS = new Set(["--nested", "--title", "--name", "--scan"]);
 
 interface ParsedArgs {
   verb: string | undefined;
@@ -127,13 +137,31 @@ async function main(argv: readonly string[]): Promise<number> {
   }
 
   switch (verb) {
+    case "scan": {
+      const cwd = positional[0] ?? process.cwd();
+      return runScanCommand({
+        cwd,
+        fitness: !flags.has("--no-fitness"),
+        includeSource: flags.has("--include-source"),
+      });
+    }
+    case "brief": {
+      const cwd = positional[0] ?? process.cwd();
+      const scanDir = flags.get("--scan");
+      return runBriefCommand({
+        cwd,
+        ...(scanDir ? { scanDir } : {}),
+      });
+    }
     case "list": {
       const cwd = positional[0] ?? process.cwd();
       return runList({ cwd, showDeprecated: flags.has("--show-deprecated") });
     }
     case "doctor": {
-      const cwd = positional[0] ?? process.cwd();
-      return runDoctor({ cwd });
+      console.error(
+        "agentry doctor: removed. Use 'agentry upgrade --check' for drift; 'agentry scan' for an audit. (ADR-0005)",
+      );
+      return 1;
     }
     case "add": {
       const id = positional[0];
@@ -184,6 +212,7 @@ async function main(argv: readonly string[]): Promise<number> {
         dryRun: flags.has("--dry-run"),
         force: flags.has("--force"),
         nonInteractive: flags.has("--non-interactive"),
+        check: flags.has("--check"),
       });
     }
     case "coach": {

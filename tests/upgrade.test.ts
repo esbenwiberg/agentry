@@ -10,12 +10,24 @@ import {
   writeLockfile,
 } from "../src/lockfile.js";
 import { runCli } from "./helpers/cli.js";
-import { makeGitRepoFixture } from "./helpers/fixtures.js";
+import {
+  ACME_OVERLAY_DIR,
+  makeGitRepoFixture,
+  overlayRegistrationToml,
+} from "./helpers/fixtures.js";
 
-const CHANGELOG_SKILL = ".claude/skills/changelog/skill.md";
+const ACME_TARGET = ".claude/skills/acme-base/skill.md";
 
-async function installChangelog(cwd: string): Promise<void> {
-  const res = await runCli(["add", "changelog", "--non-interactive"], { cwd });
+async function makeRepoWithAcme(): Promise<string> {
+  return makeGitRepoFixture({
+    "agentry.overlays.toml": overlayRegistrationToml([
+      { id: "acme", path: ACME_OVERLAY_DIR },
+    ]),
+  });
+}
+
+async function installAcmeBase(cwd: string): Promise<void> {
+  const res = await runCli(["add", "acme-base", "--non-interactive"], { cwd });
   expect(res.code).toBe(0);
 }
 
@@ -25,55 +37,55 @@ function sha256(text: string): string {
 
 describe("agentry upgrade", () => {
   it("refreshes an out-of-date file (dest matches lockfile but not src)", async () => {
-    const cwd = await makeGitRepoFixture();
-    await installChangelog(cwd);
-    const claudeMd = resolve(cwd, CHANGELOG_SKILL);
+    const cwd = await makeRepoWithAcme();
+    await installAcmeBase(cwd);
+    const dest = resolve(cwd, ACME_TARGET);
 
     const stale = "STALE PRIOR VERSION\n";
-    await writeFile(claudeMd, stale);
+    await writeFile(dest, stale);
 
     const lf = await readLockfile(cwd);
     expect(lf).not.toBeNull();
-    const entry = findLockedEntry(lf, "changelog");
-    const provide = findLockedProvide(entry, CHANGELOG_SKILL);
+    const entry = findLockedEntry(lf, "acme-base");
+    const provide = findLockedProvide(entry, ACME_TARGET);
     expect(provide).toBeDefined();
     provide!.checksum = sha256(stale);
     await writeLockfile(cwd, lf!);
 
     const res = await runCli(
-      ["upgrade", "changelog", "--non-interactive"],
+      ["upgrade", "acme-base", "--non-interactive"],
       { cwd },
     );
     expect(res.code).toBe(0);
-    expect(readFileSync(claudeMd, "utf8")).not.toBe(stale);
+    expect(readFileSync(dest, "utf8")).not.toBe(stale);
   });
 
   it("preserves user edits without --force", async () => {
-    const cwd = await makeGitRepoFixture();
-    await installChangelog(cwd);
-    const claudeMd = resolve(cwd, CHANGELOG_SKILL);
+    const cwd = await makeRepoWithAcme();
+    await installAcmeBase(cwd);
+    const dest = resolve(cwd, ACME_TARGET);
     const userText = "USER EDIT — not from catalog";
-    await writeFile(claudeMd, userText);
+    await writeFile(dest, userText);
 
     const res = await runCli(
-      ["upgrade", "changelog", "--non-interactive"],
+      ["upgrade", "acme-base", "--non-interactive"],
       { cwd },
     );
     expect(res.code).toBe(0);
-    expect(readFileSync(claudeMd, "utf8")).toBe(userText);
+    expect(readFileSync(dest, "utf8")).toBe(userText);
   });
 
   it("--force overwrites user edits", async () => {
-    const cwd = await makeGitRepoFixture();
-    await installChangelog(cwd);
-    const claudeMd = resolve(cwd, CHANGELOG_SKILL);
-    await writeFile(claudeMd, "USER EDIT");
+    const cwd = await makeRepoWithAcme();
+    await installAcmeBase(cwd);
+    const dest = resolve(cwd, ACME_TARGET);
+    await writeFile(dest, "USER EDIT");
 
     const res = await runCli(
-      ["upgrade", "changelog", "--non-interactive", "--force"],
+      ["upgrade", "acme-base", "--non-interactive", "--force"],
       { cwd },
     );
     expect(res.code).toBe(0);
-    expect(readFileSync(claudeMd, "utf8")).not.toBe("USER EDIT");
+    expect(readFileSync(dest, "utf8")).not.toBe("USER EDIT");
   });
 });

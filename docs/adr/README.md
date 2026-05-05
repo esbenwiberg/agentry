@@ -37,7 +37,8 @@ See [template.md](template.md).
 ## Index
 
 - [0000 — Record architectural decisions](0000-record-architecture-decisions.md)
-- [0001 — Product posture: doctor / add / coach](0001-product-posture-doctor-add-coach.md) — amended by 0004
-- [0002 — Catalog schema](0002-catalog-schema.md)
+- [0001 — Product posture: doctor / add / coach](0001-product-posture-doctor-add-coach.md) — amended by 0004; verb taxonomy superseded by 0005
+- [0002 — Catalog schema](0002-catalog-schema.md) — `kind` discriminator added by 0005
 - [0003 — Agent profile schema (`.agent.toml`)](0003-agent-profile-schema.md)
-- [0004 — Overlay plugin model](0004-overlay-plugin-model.md)
+- [0004 — Overlay plugin model](0004-overlay-plugin-model.md) — role expanded by 0005 (overlays own team-canonical artifacts)
+- [0005 — Scan-driven core, catalog as practices, overlays as artifacts](0005-scan-driven-core-catalog-as-practices.md) — Accepted; dogfood validation deferred

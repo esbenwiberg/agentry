@@ -32,11 +32,15 @@ export interface Requires {
   tools: string[];
 }
 
+export type EntryKind = "practice" | "artifact";
+
 export interface CatalogEntry {
   id: string;
   name: string;
   description: string;
   version: string;
+  kind: EntryKind;
+  practice?: string;
   layers: Layer[];
   provides: Provide[];
   detect: Detect;
@@ -45,6 +49,10 @@ export interface CatalogEntry {
   sourceFile: string;
   sourceRoot: string;
   overlay?: string;
+}
+
+export function isPractice(entry: CatalogEntry): boolean {
+  return entry.kind === "practice";
 }
 
 export interface MalformedEntry {
@@ -177,9 +185,39 @@ function parseEntry(
     }
   }
 
+  let kind: EntryKind = "artifact";
+  if (raw.kind !== undefined) {
+    if (raw.kind === "practice" || raw.kind === "artifact") {
+      kind = raw.kind;
+    } else {
+      errors.push(`kind must be "practice" or "artifact" (got ${JSON.stringify(raw.kind)})`);
+    }
+  }
+
+  let practice: string | undefined;
+  if (kind === "practice") {
+    if (!isString(raw.practice) || !isRepoRelative(raw.practice)) {
+      errors.push(`practice entries must set practice = "<repo-relative path>"`);
+    } else if (!existsSync(resolve(sourceRoot, raw.practice))) {
+      errors.push(`practice file not found: ${raw.practice}`);
+    } else {
+      practice = raw.practice;
+    }
+    if (raw.provides !== undefined) {
+      errors.push(`practice entries must not declare [[provides]]`);
+    }
+    if (raw.detect !== undefined) {
+      errors.push(`practice entries must not declare [detect]`);
+    }
+  } else if (raw.practice !== undefined) {
+    errors.push(`practice field is only valid when kind = "practice"`);
+  }
+
   const providesRaw = raw.provides;
   const provides: Provide[] = [];
-  if (!Array.isArray(providesRaw) || providesRaw.length === 0) {
+  if (kind === "practice") {
+    // skip provides validation
+  } else if (!Array.isArray(providesRaw) || providesRaw.length === 0) {
     errors.push(`[[provides]] must have at least one entry`);
   } else {
     const seenTargets = new Set<string>();
@@ -233,7 +271,9 @@ function parseEntry(
 
   const detectRaw = raw.detect as Record<string, unknown> | undefined;
   let detect: Detect = { any_of: [] };
-  if (!detectRaw) {
+  if (kind === "practice") {
+    // detect not applicable to practices
+  } else if (!detectRaw) {
     errors.push(`[detect] table is required`);
   } else {
     const anyOf = detectRaw.any_of;
@@ -284,12 +324,14 @@ function parseEntry(
     name: raw.name as string,
     description: raw.description as string,
     version: raw.version as string,
+    kind,
     layers,
     provides,
     detect,
     requires,
     sourceFile: filePath,
     sourceRoot,
+    ...(practice ? { practice } : {}),
     ...(deprecated_by ? { deprecated_by } : {}),
     ...(overlayId ? { overlay: overlayId } : {}),
   };

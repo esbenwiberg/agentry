@@ -12,3 +12,6 @@ conflict = "prompt"
 
 [detect]
 any_of = [".claude/skills/acme-demo/skill.md"]
+
+[requires]
+entries = ["acme-base"]

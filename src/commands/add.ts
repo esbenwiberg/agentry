@@ -77,6 +77,22 @@ export async function runAdd(opts: AddOptions): Promise<number> {
     return 1;
   }
 
+  if (target.kind === "practice") {
+    console.error(
+      `agentry add: '${opts.id}' is a practice, not an installable artifact.`,
+    );
+    console.error(
+      `Practices are guidance the LLM reads and adapts per repo. Run 'agentry brief' to`,
+    );
+    console.error(
+      `hand it to your agent, or read ${target.practice ?? "the practice doc"} directly.`,
+    );
+    console.error(
+      `If you want a byte-perfect team artifact, publish it via an overlay (see ADR-0004).`,
+    );
+    return 1;
+  }
+
   if (target.requires.git && !isGitRepo(opts.cwd)) {
     console.error(
       `agentry add: '${opts.id}' requires a git repository at ${opts.cwd}`,

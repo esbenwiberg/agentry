@@ -14,7 +14,7 @@ function entryToml(
   opts: EntryOverrides = {},
 ): { filename: string; content: string } {
   const provides = [
-    { source: "skills/commits/skill.md", target: `.claude/skills/${id}.md` },
+    { source: "practices/commits.md", target: `.claude/skills/${id}.md` },
     ...(opts.extraProvides ?? []),
   ];
   const lines: string[] = [
@@ -119,7 +119,7 @@ describe("loadCatalog (fixture catalog)", () => {
   it("rejects duplicate targets within a single entry", async () => {
     const { filename, content } = entryToml("dup-targets", {
       extraProvides: [
-        { source: "skills/changelog/skill.md", target: ".claude/skills/dup-targets.md" },
+        { source: "practices/changelog.md", target: ".claude/skills/dup-targets.md" },
       ],
     });
     const dir = await makeRepoFixture({ [filename]: content });

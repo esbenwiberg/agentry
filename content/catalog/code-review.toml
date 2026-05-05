@@ -1,42 +1,12 @@
 id = "code-review"
 name = "Code review workflow"
-description = "Prioritised diff review (Critical/High/Medium/Low) with structured findings and a verdict line."
-version = "0.1.0"
+description = "Practice — prioritised diff review (Critical/High/Medium/Low), structured findings, verdict line."
+version = "1.0.0"
+kind = "practice"
+practice = "practices/code-review.md"
 
 layers = ["harness"]
 
-[[provides]]
-source   = "skills/code-review/skill.md"
-target   = ".claude/skills/code-review/skill.md"
-flavor   = "claude"
-conflict = "prompt"
-
-[[provides]]
-source   = "skills/code-review/command.md"
-target   = ".claude/commands/review.md"
-flavor   = "claude"
-conflict = "prompt"
-
-[[provides]]
-source   = "skills/code-review/rules.md"
-target   = ".claude/skills/code-review/rules.md"
-flavor   = "claude"
-conflict = "prompt"
-
-[[provides]]
-source   = "recipes/code-review/structured-review.md"
-target   = ".agentry/recipes/code-review/structured-review.md"
-flavor   = "agnostic"
-conflict = "prompt"
-
-[detect]
-any_of = [
-  ".claude/skills/code-review/skill.md",
-  ".claude/commands/review.md",
-  ".agentry/recipes/code-review/structured-review.md",
-]
-
 [requires]
 git     = true
-entries = []
 tools   = []

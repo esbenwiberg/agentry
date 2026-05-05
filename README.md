@@ -10,28 +10,31 @@ coding agents (Claude Code, Cursor, Aider, Codex, your own).
 
 It is opinionated about one thing: **most agentic readiness can't just be
 installed.** A nested `CLAUDE.md`, an ADR, a spec — those have to be
-*authored* against your code. So `agentry` splits the surface into three
-verbs:
+*authored* against your code. So `agentry` runs a scan-driven loop:
 
 | Verb | Posture | What it does |
 |---|---|---|
-| `agentry doctor` | Audit | Read-only sweep across 7 layers of agent-readiness. Tells you what's missing. Works on any repo, no install. |
-| `agentry add <thing>` | Install | Drops in the genuinely-installable pieces — hooks, scripts, templates, generic skills. Lazy: only what you ask for. Conflict-aware. |
-| `agentry coach <thing>` | Author | Interactive helper that walks you through writing the un-installable bits — root + nested context files, ADRs, specs, fitness rules. |
+| `agentry scan` | Audit | Deterministic evidence bundle: stack, git, hygiene, security, agent-readiness, fitness. Read-only. Works on any repo. |
+| `agentry brief` | Author handoff | Emits an `instructions.md` for your coding agent — bundle pointers + inlined practices + catalog snapshot. The agent does the writing. |
+| `agentry add <id>` | Install | Drops in byte-perfect overlay artifacts (team commit-msg hook, secret-scan config, etc.). Lockfile-tracked, conflict-aware. |
+| `agentry upgrade [--check]` | Refresh / CI gate | Refreshes installed artifacts. `--check` is the drift gate (formerly `doctor`). |
+| `agentry coach <kind>` | Author | Bespoke prose authoring without running the full scan loop. |
+| `agentry list` / `remove` | Browse / uninstall | The boring-but-needed pair. |
 
-No `init`, no plugins-as-runtime, no daemon, no marketplace. Just three verbs
-and a content tree you can read.
+The bundled catalog ships **practices** (markdown guidance the agent
+reads and adapts). **Overlays** ship byte-perfect team artifacts your
+agent installs verbatim. **Re-scan** is the verification contract.
 
-Stack-specific or org-private content lives in **overlays** — local
-directories registered via `agentry.overlays.toml` that ride the same
-verbs as the bundled catalog. See [docs/overlays.md](docs/overlays.md)
-for the author guide.
+No `init`, no plugins-as-runtime, no daemon, no marketplace.
 
 ## Status
 
-🚧 Phase 0 — repo scaffold. Not usable yet. Watch
-[ADR-0001](docs/adr/0001-product-posture-doctor-add-coach.md) for the
-locked design.
+scan + brief + catalog migration shipped. `doctor` removed; drift-check
+folded into `upgrade --check`. Bundled catalog is practice-only.
+TeamPlanner round-trip dogfood deferred. Locked design lives in
+[ADR-0005](docs/adr/0005-scan-driven-core-catalog-as-practices.md);
+[ADR-0001](docs/adr/0001-product-posture-doctor-add-coach.md) is
+superseded for the verb taxonomy.
 
 ## Development
 

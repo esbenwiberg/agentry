@@ -43,13 +43,12 @@ describe("overlay e2e — acme fixture", () => {
     expect(locked?.provides[0]?.target).toBe(ACME_TARGET);
   });
 
-  it("doctor reports an installed overlay entry with no drift", async () => {
+  it("upgrade --check reports no drift on a clean overlay install", async () => {
     const cwd = await makeRepoWithAcme();
     await runCli(["add", "acme-demo", "--non-interactive"], { cwd });
-    const res = await runCli(["doctor", cwd], { cwd });
+    const res = await runCli(["upgrade", "--check", cwd], { cwd });
     expect(res.code).toBe(0);
-    expect(res.stdout).toMatch(/acme-demo\s+installed/);
-    expect(res.stdout).not.toContain("[orphaned]");
+    expect(res.stdout).toContain("no drift");
   });
 
   it("upgrade detects user-edit drift on an overlay entry", async () => {
@@ -64,17 +63,16 @@ describe("overlay e2e — acme fixture", () => {
     expect(res.stdout).toContain("user-edit");
   });
 
-  it("doctor flags orphaned when the overlay is deregistered post-install", async () => {
+  it("upgrade --check flags orphaned when the overlay is deregistered post-install", async () => {
     const cwd = await makeRepoWithAcme();
     await runCli(["add", "acme-demo", "--non-interactive"], { cwd });
     // Drop the acme registration; lockfile still claims overlay = "acme"
     await writeFile(resolve(cwd, "agentry.overlays.toml"), "");
 
-    const res = await runCli(["doctor", cwd], { cwd });
-    expect(res.code).toBe(0);
-    expect(res.stdout).toContain("[orphaned]");
-    expect(res.stdout).toMatch(/acme-demo\s+orphaned/);
-    expect(res.stdout).toContain("overlay 'acme' is not registered");
+    const res = await runCli(["upgrade", "--check", cwd], { cwd });
+    expect(res.code).toBe(1);
+    expect(res.stdout).toContain("orphaned");
+    expect(res.stdout).toContain("'acme' is not registered");
   });
 
   it("remove uninstalls an overlay entry cleanly", async () => {

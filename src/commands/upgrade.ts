@@ -29,6 +29,13 @@ export interface UpgradeOptions {
   dryRun: boolean;
   force: boolean;
   nonInteractive: boolean;
+  check: boolean;
+}
+
+interface OrphanedReport {
+  id: string;
+  overlay: string | undefined;
+  reason: string;
 }
 
 interface ProvideAction {
@@ -80,6 +87,10 @@ function planReasons(plan: EntryPlan): string[] {
 export async function runUpgrade(opts: UpgradeOptions): Promise<number> {
   const lf = await readLockfile(opts.cwd);
   if (lf === null) {
+    if (opts.check) {
+      console.log("agentry upgrade --check: no agentry.lock.toml — nothing to drift.");
+      return 0;
+    }
     console.error(
       "agentry upgrade: no agentry.lock.toml — nothing to upgrade.",
     );
@@ -87,7 +98,7 @@ export async function runUpgrade(opts: UpgradeOptions): Promise<number> {
     return 1;
   }
 
-  const { entries } = loadMergedCatalog(opts.cwd);
+  const { entries, registeredOverlays } = loadMergedCatalog(opts.cwd);
   const allPlans = await Promise.all(
     activeEntries(entries).map((e) => buildPlan(e, lf, opts.cwd)),
   );
@@ -96,11 +107,27 @@ export async function runUpgrade(opts: UpgradeOptions): Promise<number> {
   if (opts.id) {
     plans = plans.filter((p) => p.entry.id === opts.id);
     if (plans.length === 0) {
+      if (opts.check) {
+        console.log(
+          `agentry upgrade --check: '${opts.id}' is not stale, not installed, or unknown.`,
+        );
+        return 0;
+      }
       console.error(
         `agentry upgrade: '${opts.id}' is not stale, not installed, or unknown.`,
       );
       return 1;
     }
+  }
+
+  const knownIds = new Set(activeEntries(entries).map((e) => e.id));
+  const overlayIds = new Set(registeredOverlays.map((o) => o.registrationId));
+  const orphans = opts.id
+    ? []
+    : findOrphaned(lf, knownIds, overlayIds);
+
+  if (opts.check) {
+    return printCheckReport(plans, orphans);
   }
 
   if (plans.length === 0) {
@@ -133,6 +160,52 @@ export async function runUpgrade(opts: UpgradeOptions): Promise<number> {
   await writeLockfile(opts.cwd, updatedLf);
   console.log("\nupgrade complete.");
   return 0;
+}
+
+function findOrphaned(
+  lf: Lockfile,
+  knownIds: Set<string>,
+  registeredOverlays: Set<string>,
+): OrphanedReport[] {
+  const out: OrphanedReport[] = [];
+  for (const e of lf.installed) {
+    if (knownIds.has(e.id)) continue;
+    let reason: string;
+    if (e.overlay) {
+      reason = registeredOverlays.has(e.overlay)
+        ? `overlay '${e.overlay}' no longer ships entry`
+        : `overlay '${e.overlay}' is not registered`;
+    } else {
+      reason = `no longer in bundled catalog`;
+    }
+    out.push({ id: e.id, overlay: e.overlay, reason });
+  }
+  return out;
+}
+
+function printCheckReport(
+  plans: EntryPlan[],
+  orphans: OrphanedReport[],
+): number {
+  console.log("agentry upgrade --check");
+  if (plans.length === 0 && orphans.length === 0) {
+    console.log("  ✓ no drift, no orphans — installed entries current.");
+    return 0;
+  }
+  for (const p of plans) {
+    console.log(`\n  ! ${p.entry.id} — ${planReasons(p).join(", ")}`);
+    for (const a of p.actions) {
+      console.log(`    ${actionGlyph(a.kind, false)} ${a.provide.target.padEnd(50)} ${actionLabel(a.kind, false)}`);
+    }
+  }
+  for (const o of orphans) {
+    const tag = o.overlay ? ` (was overlay:${o.overlay})` : "";
+    console.log(`\n  ! ${o.id} orphaned${tag} — ${o.reason}`);
+  }
+  console.log(
+    `\nsummary: ${plans.length} drifted, ${orphans.length} orphaned`,
+  );
+  return 1;
 }
 
 async function buildPlan(

@@ -11,8 +11,8 @@ import type { Flavor } from "./catalog.js";
 const LOCKFILE_NAME = "agentry.lock.toml";
 const LOCKFILE_HEADER = `# agentry.lock.toml — managed by 'agentry'. Don't edit by hand.
 # Records what was installed by which entry at what catalog version,
-# with file checksums so 'agentry doctor' can tell user edits apart
-# from source-of-truth updates.
+# with file checksums so 'agentry upgrade --check' can tell user edits
+# apart from source-of-truth updates.
 
 `;
 
