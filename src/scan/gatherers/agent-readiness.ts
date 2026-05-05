@@ -37,6 +37,7 @@ interface AgentReadinessReport {
   configs: AgentConfig[];
   docs: AgentDoc[];
   nestedContextFiles: NestedContextFile[];
+  monorepo: { isMonorepo: boolean; markers: string[] };
   adrs: AdrSummary[];
   specs: SpecsSummary;
   agentryLockfilePresent: boolean;
@@ -58,16 +59,65 @@ interface NestedContextFile {
 }
 
 const AGENT_CONFIG_LOCATIONS: Array<{ tool: string; paths: string[] }> = [
-  { tool: "claude-code", paths: [".claude", ".claude.json"] },
-  { tool: "claude-md", paths: ["CLAUDE.md"] },
-  { tool: "agents-md", paths: ["AGENTS.md"] },
-  { tool: "cursor", paths: [".cursor", ".cursorrules"] },
-  { tool: "github-copilot", paths: [".github/copilot-instructions.md"] },
-  { tool: "aider", paths: [".aider.conf.yml", ".aider.conf.yaml", ".aider.conf"] },
-  { tool: "continue", paths: [".continue", ".continue.json"] },
-  { tool: "codex", paths: [".codex"] },
-  { tool: "windsurf", paths: [".windsurf"] },
+  {
+    tool: "claude-code",
+    paths: [
+      ".claude",
+      ".claude.json",
+      ".claude/settings.json",
+      ".claude/settings.local.json",
+      ".claude/agents",
+      ".claude/skills",
+      ".claude/commands",
+      ".mcp.json",
+    ],
+  },
+  { tool: "claude-md", paths: ["CLAUDE.md", "CLAUDE.local.md"] },
+  { tool: "agents-md", paths: ["AGENTS.md", "AGENTS.override.md"] },
+  {
+    tool: "cursor",
+    paths: [
+      ".cursor",
+      ".cursorrules",
+      ".cursor/rules",
+      ".cursor/mcp.json",
+      ".cursor/environment.json",
+      ".cursor/sandbox.json",
+    ],
+  },
+  {
+    tool: "github-copilot",
+    paths: [
+      ".github/copilot-instructions.md",
+      ".github/instructions",
+      ".github/prompts",
+      ".github/workflows/copilot-setup-steps.yml",
+    ],
+  },
+  {
+    tool: "aider",
+    paths: [
+      ".aider.conf.yml",
+      ".aider.conf.yaml",
+      ".aider.conf",
+      "CONVENTIONS.md",
+      ".aiderignore",
+    ],
+  },
+  {
+    tool: "continue",
+    paths: [".continue", ".continue/config.yaml", ".continue/rules", ".continue.json"],
+  },
+  { tool: "codex", paths: [".codex", ".codex/config.toml"] },
+  {
+    tool: "windsurf",
+    paths: [".windsurf", ".windsurf/rules", ".windsurf/workflows"],
+  },
   { tool: "agent-toml", paths: [".agent.toml"] },
+  {
+    tool: "devcontainer",
+    paths: [".devcontainer", ".devcontainer/devcontainer.json", "devcontainer-lock.json"],
+  },
 ];
 
 const AGENT_DOC_LOCATIONS: Array<{ kind: string; paths: string[] }> = [
@@ -283,6 +333,47 @@ async function detectAdrs(cwd: string, hasGit: boolean): Promise<AdrSummary[]> {
   return out;
 }
 
+interface MonorepoSignal {
+  isMonorepo: boolean;
+  markers: string[];
+}
+
+async function detectMonorepo(cwd: string): Promise<MonorepoSignal> {
+  const markers: string[] = [];
+  const fileMarkers = [
+    "pnpm-workspace.yaml",
+    "pnpm-workspace.yml",
+    "nx.json",
+    "turbo.json",
+    "lerna.json",
+    "rush.json",
+    "go.work",
+  ];
+  for (const m of fileMarkers) {
+    if (existsSync(resolve(cwd, m))) markers.push(m);
+  }
+  const pkgPath = resolve(cwd, "package.json");
+  if (existsSync(pkgPath)) {
+    try {
+      const txt = await readFile(pkgPath, "utf8");
+      const parsed = JSON.parse(txt) as { workspaces?: unknown };
+      if (parsed.workspaces !== undefined) markers.push("package.json:workspaces");
+    } catch {
+      /* ignore */
+    }
+  }
+  const cargoPath = resolve(cwd, "Cargo.toml");
+  if (existsSync(cargoPath)) {
+    try {
+      const txt = await readFile(cargoPath, "utf8");
+      if (/^\[workspace\]/m.test(txt)) markers.push("Cargo.toml:[workspace]");
+    } catch {
+      /* ignore */
+    }
+  }
+  return { isMonorepo: markers.length > 0, markers };
+}
+
 function detectSpecs(cwd: string): SpecsSummary {
   const dir = resolve(cwd, "specs");
   if (!existsSync(dir)) {
@@ -322,6 +413,7 @@ function findStaleSignals(
   docs: AgentDoc[],
   nested: NestedContextFile[],
   adrs: AdrSummary[],
+  monorepo: MonorepoSignal,
 ): Array<{ kind: string; path: string; reason: string }> {
   const out: Array<{ kind: string; path: string; reason: string }> = [];
   const STALE_DAYS = 365;
@@ -369,6 +461,14 @@ function findStaleSignals(
       });
     }
   }
+  if (monorepo.isMonorepo && nested.length === 0) {
+    out.push({
+      kind: "monorepo",
+      path: monorepo.markers.join(", "),
+      reason:
+        "monorepo detected with no nested CLAUDE.md / AGENTS.md — agents lose per-package context; author one per package",
+    });
+  }
   return out;
 }
 
@@ -385,14 +485,16 @@ export const agentReadinessGatherer: Gatherer = {
     const configs = await detectConfigs(ctx.cwd);
     const docs = await detectDocs(ctx.cwd, hasGit);
     const nestedContextFiles = await findNestedContextFiles(ctx.cwd, hasGit);
+    const monorepo = await detectMonorepo(ctx.cwd);
     const adrs = await detectAdrs(ctx.cwd, hasGit);
     const specs = detectSpecs(ctx.cwd);
-    const stale = findStaleSignals(docs, nestedContextFiles, adrs);
+    const stale = findStaleSignals(docs, nestedContextFiles, adrs, monorepo);
 
     const report: AgentReadinessReport = {
       configs,
       docs,
       nestedContextFiles,
+      monorepo,
       adrs,
       specs,
       agentryLockfilePresent: existsSync(resolve(ctx.cwd, "agentry.lock.toml")),

@@ -5,6 +5,7 @@ import { runCli } from "../helpers/cli.js";
 import { makeRepoFixture } from "../helpers/fixtures.js";
 
 interface AgentReadinessReport {
+  configs: Array<{ tool: string; paths: string[] }>;
   docs: Array<{
     kind: string;
     path: string;
@@ -17,6 +18,7 @@ interface AgentReadinessReport {
     bytes: number;
     depth: number;
   }>;
+  monorepo: { isMonorepo: boolean; markers: string[] };
   staleSignals: Array<{ kind: string; path: string; reason: string }>;
 }
 
@@ -96,5 +98,98 @@ describe("agent-readiness — nested context files", () => {
     const r = await readReport(cwd);
     const paths = r.nestedContextFiles.map((f) => f.path);
     expect(paths).toEqual(["src/CLAUDE.md"]);
+  });
+});
+
+describe("agent-readiness — cross-tool config detection", () => {
+  it("detects expanded Claude Code, Cursor, and Copilot config surfaces", async () => {
+    const cwd = await makeRepoFixture({
+      "README.md": "# demo\n",
+      ".mcp.json": "{}",
+      ".claude/settings.json": "{}",
+      ".claude/agents/reviewer.md": "# reviewer\n",
+      ".claude/skills/foo/SKILL.md": "# foo\n",
+      ".cursor/rules/style.mdc": "---\nalwaysApply: true\n---\n",
+      ".cursor/environment.json": "{}",
+      ".github/instructions/api.instructions.md": "---\napplyTo: 'src/api/**'\n---\n",
+      ".github/workflows/copilot-setup-steps.yml": "name: copilot-setup-steps\n",
+    });
+    const res = await runCli(["scan", "--no-fitness"], { cwd });
+    expect(res.code).toBe(0);
+
+    const r = await readReport(cwd);
+    const claude = r.configs.find((c) => c.tool === "claude-code");
+    expect(claude?.paths).toEqual(
+      expect.arrayContaining([
+        ".mcp.json",
+        ".claude/settings.json",
+        ".claude/agents",
+        ".claude/skills",
+      ]),
+    );
+    const cursor = r.configs.find((c) => c.tool === "cursor");
+    expect(cursor?.paths).toEqual(
+      expect.arrayContaining([".cursor/rules", ".cursor/environment.json"]),
+    );
+    const copilot = r.configs.find((c) => c.tool === "github-copilot");
+    expect(copilot?.paths).toEqual(
+      expect.arrayContaining([
+        ".github/instructions",
+        ".github/workflows/copilot-setup-steps.yml",
+      ]),
+    );
+  });
+});
+
+describe("agent-readiness — monorepo detection", () => {
+  it("flags pnpm workspace + missing per-package context", async () => {
+    const cwd = await makeRepoFixture({
+      "README.md": "# demo\n",
+      "pnpm-workspace.yaml": "packages:\n  - 'packages/*'\n",
+      "packages/api/package.json": "{}",
+      "packages/web/package.json": "{}",
+    });
+    const res = await runCli(["scan", "--no-fitness"], { cwd });
+    expect(res.code).toBe(0);
+
+    const r = await readReport(cwd);
+    expect(r.monorepo.isMonorepo).toBe(true);
+    expect(r.monorepo.markers).toContain("pnpm-workspace.yaml");
+    const sig = r.staleSignals.find((s) => s.kind === "monorepo");
+    expect(sig).toBeDefined();
+    expect(sig!.reason).toContain("monorepo");
+  });
+
+  it("does not flag monorepo when nested context exists", async () => {
+    const cwd = await makeRepoFixture({
+      "README.md": "# demo\n",
+      "pnpm-workspace.yaml": "packages:\n  - 'packages/*'\n",
+      "packages/api/CLAUDE.md": "# api\n",
+      "packages/web/AGENTS.md": "# web\n",
+    });
+    const res = await runCli(["scan", "--no-fitness"], { cwd });
+    expect(res.code).toBe(0);
+
+    const r = await readReport(cwd);
+    expect(r.monorepo.isMonorepo).toBe(true);
+    expect(r.staleSignals.find((s) => s.kind === "monorepo")).toBeUndefined();
+  });
+
+  it("detects workspaces field in package.json and Cargo workspace marker", async () => {
+    const cwdNpm = await makeRepoFixture({
+      "package.json": JSON.stringify({ name: "root", workspaces: ["packages/*"] }),
+    });
+    const npmRes = await runCli(["scan", "--no-fitness"], { cwd: cwdNpm });
+    expect(npmRes.code).toBe(0);
+    const r1 = await readReport(cwdNpm);
+    expect(r1.monorepo.markers).toContain("package.json:workspaces");
+
+    const cwdCargo = await makeRepoFixture({
+      "Cargo.toml": "[workspace]\nmembers = [\"crates/*\"]\n",
+    });
+    const cargoRes = await runCli(["scan", "--no-fitness"], { cwd: cwdCargo });
+    expect(cargoRes.code).toBe(0);
+    const r2 = await readReport(cwdCargo);
+    expect(r2.monorepo.markers).toContain("Cargo.toml:[workspace]");
   });
 });
