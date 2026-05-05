@@ -30,3 +30,5 @@ coverage/
 
 # Local agent state
 .claude/
+CLAUDE.local.md
+AGENTS.local.md

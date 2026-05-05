@@ -38,6 +38,8 @@ interface AgentReadinessReport {
   docs: AgentDoc[];
   nestedContextFiles: NestedContextFile[];
   monorepo: { isMonorepo: boolean; markers: string[] };
+  localConfigIgnored: LocalConfigIgnoredCheck;
+  fitnessReachability: FitnessReachability;
   adrs: AdrSummary[];
   specs: SpecsSummary;
   agentryLockfilePresent: boolean;
@@ -47,6 +49,23 @@ interface AgentReadinessReport {
     path: string;
     reason: string;
   }>;
+}
+
+interface LocalConfigIgnoredCheck {
+  hasGitignore: boolean;
+  ignoresClaudeLocalMd: boolean;
+  ignoresClaudeSettingsLocal: boolean;
+}
+
+interface FitnessReachability {
+  declaredCommands: {
+    test?: string;
+    build?: string;
+    lint?: string;
+    typecheck?: string;
+  };
+  contextDocsMentioning: string[];
+  reachable: boolean;
 }
 
 interface NestedContextFile {
@@ -374,6 +393,116 @@ async function detectMonorepo(cwd: string): Promise<MonorepoSignal> {
   return { isMonorepo: markers.length > 0, markers };
 }
 
+async function checkLocalConfigIgnored(
+  cwd: string,
+): Promise<LocalConfigIgnoredCheck> {
+  const path = resolve(cwd, ".gitignore");
+  if (!existsSync(path)) {
+    return {
+      hasGitignore: false,
+      ignoresClaudeLocalMd: false,
+      ignoresClaudeSettingsLocal: false,
+    };
+  }
+  let txt = "";
+  try {
+    txt = await readFile(path, "utf8");
+  } catch {
+    return {
+      hasGitignore: true,
+      ignoresClaudeLocalMd: false,
+      ignoresClaudeSettingsLocal: false,
+    };
+  }
+  const hasLine = (re: RegExp): boolean => re.test(txt);
+  const ignoresClaudeLocalMd =
+    hasLine(/(^|\n)\s*CLAUDE\.local\.md\s*(\n|$)/) ||
+    hasLine(/(^|\n)\s*\*\.local\.md\s*(\n|$)/) ||
+    hasLine(/(^|\n)\s*CLAUDE\.local\.\*\s*(\n|$)/);
+  const ignoresClaudeSettingsLocal =
+    hasLine(/(^|\n)\s*\.claude\/settings\.local\.json\s*(\n|$)/) ||
+    hasLine(/(^|\n)\s*\.claude\/settings\.local\.\*\s*(\n|$)/) ||
+    hasLine(/(^|\n)\s*\.claude\/\*\.local\.\*\s*(\n|$)/) ||
+    hasLine(/(^|\n)\s*\.claude\/$/m) ||
+    hasLine(/(^|\n)\s*\.claude\/?\s*(\n|$)/);
+  return { hasGitignore: true, ignoresClaudeLocalMd, ignoresClaudeSettingsLocal };
+}
+
+async function detectDeclaredFitnessCommands(
+  cwd: string,
+): Promise<FitnessReachability["declaredCommands"]> {
+  const out: FitnessReachability["declaredCommands"] = {};
+  const pkgPath = resolve(cwd, "package.json");
+  if (existsSync(pkgPath)) {
+    try {
+      const txt = await readFile(pkgPath, "utf8");
+      const pkg = JSON.parse(txt) as { scripts?: Record<string, string> };
+      const s = pkg.scripts ?? {};
+      if (s["test"]) out.test = "npm test";
+      if (s["build"]) out.build = "npm run build";
+      if (s["lint"]) out.lint = "npm run lint";
+      if (s["typecheck"]) out.typecheck = "npm run typecheck";
+    } catch {
+      /* ignore */
+    }
+  }
+  const mkPath = resolve(cwd, "Makefile");
+  if (existsSync(mkPath)) {
+    try {
+      const txt = await readFile(mkPath, "utf8");
+      if (!out.test && /^\s*test\s*:/m.test(txt)) out.test = "make test";
+      if (!out.build && /^\s*build\s*:/m.test(txt)) out.build = "make build";
+      if (!out.lint && /^\s*lint\s*:/m.test(txt)) out.lint = "make lint";
+    } catch {
+      /* ignore */
+    }
+  }
+  return out;
+}
+
+async function checkFitnessDocReachability(
+  cwd: string,
+  declared: FitnessReachability["declaredCommands"],
+): Promise<FitnessReachability> {
+  const declaredValues = Object.values(declared).filter(
+    (v): v is string => typeof v === "string" && v.length > 0,
+  );
+  if (declaredValues.length === 0) {
+    return { declaredCommands: declared, contextDocsMentioning: [], reachable: true };
+  }
+  const candidates = [
+    "CLAUDE.md",
+    "AGENTS.md",
+    ".agent.toml",
+    ".github/copilot-instructions.md",
+    "PRACTICES.md",
+    "CONTRIBUTING.md",
+  ];
+  const mentioning: string[] = [];
+  for (const rel of candidates) {
+    const full = resolve(cwd, rel);
+    if (!existsSync(full)) continue;
+    let txt = "";
+    try {
+      txt = await readFile(full, "utf8");
+    } catch {
+      continue;
+    }
+    if (rel === ".agent.toml") {
+      // Any [commands] field with a non-empty quoted value counts.
+      const block = txt.match(/\[commands\]([\s\S]*?)(\n\[|$)/);
+      if (block && /=\s*"[^"]+"/.test(block[1]!)) mentioning.push(rel);
+      continue;
+    }
+    if (declaredValues.some((cmd) => txt.includes(cmd))) mentioning.push(rel);
+  }
+  return {
+    declaredCommands: declared,
+    contextDocsMentioning: mentioning,
+    reachable: mentioning.length > 0,
+  };
+}
+
 function detectSpecs(cwd: string): SpecsSummary {
   const dir = resolve(cwd, "specs");
   if (!existsSync(dir)) {
@@ -414,6 +543,9 @@ function findStaleSignals(
   nested: NestedContextFile[],
   adrs: AdrSummary[],
   monorepo: MonorepoSignal,
+  configs: AgentConfig[],
+  localConfig: LocalConfigIgnoredCheck,
+  fitness: FitnessReachability,
 ): Array<{ kind: string; path: string; reason: string }> {
   const out: Array<{ kind: string; path: string; reason: string }> = [];
   const STALE_DAYS = 365;
@@ -469,6 +601,40 @@ function findStaleSignals(
         "monorepo detected with no nested CLAUDE.md / AGENTS.md — agents lose per-package context; author one per package",
     });
   }
+  // Local-config gitignore footgun: only flag if the user is actually using
+  // Claude Code (otherwise the warning is just noise).
+  const usesClaude =
+    configs.some((c) => c.tool === "claude-code" || c.tool === "claude-md") ||
+    docs.some((d) => d.kind === "claude-md");
+  if (usesClaude && localConfig.hasGitignore) {
+    if (!localConfig.ignoresClaudeLocalMd) {
+      out.push({
+        kind: "local-config",
+        path: ".gitignore",
+        reason:
+          "CLAUDE.local.md is not gitignored — local overrides will leak if committed; add `CLAUDE.local.md` to .gitignore",
+      });
+    }
+    if (!localConfig.ignoresClaudeSettingsLocal) {
+      out.push({
+        kind: "local-config",
+        path: ".gitignore",
+        reason:
+          ".claude/settings.local.json is not gitignored — local agent permissions will leak if committed; add `.claude/settings.local.json` to .gitignore",
+      });
+    }
+  }
+  if (!fitness.reachable) {
+    const cats = Object.entries(fitness.declaredCommands)
+      .filter(([, v]) => typeof v === "string" && v.length > 0)
+      .map(([k]) => k)
+      .join(", ");
+    out.push({
+      kind: "fitness",
+      path: "agent-context",
+      reason: `${cats} command(s) declared in package.json/Makefile but no agent-context doc (CLAUDE.md / AGENTS.md / .agent.toml / copilot-instructions.md) names them — autonomous agents will guess`,
+    });
+  }
   return out;
 }
 
@@ -486,15 +652,31 @@ export const agentReadinessGatherer: Gatherer = {
     const docs = await detectDocs(ctx.cwd, hasGit);
     const nestedContextFiles = await findNestedContextFiles(ctx.cwd, hasGit);
     const monorepo = await detectMonorepo(ctx.cwd);
+    const localConfigIgnored = await checkLocalConfigIgnored(ctx.cwd);
+    const declaredFitness = await detectDeclaredFitnessCommands(ctx.cwd);
+    const fitnessReachability = await checkFitnessDocReachability(
+      ctx.cwd,
+      declaredFitness,
+    );
     const adrs = await detectAdrs(ctx.cwd, hasGit);
     const specs = detectSpecs(ctx.cwd);
-    const stale = findStaleSignals(docs, nestedContextFiles, adrs, monorepo);
+    const stale = findStaleSignals(
+      docs,
+      nestedContextFiles,
+      adrs,
+      monorepo,
+      configs,
+      localConfigIgnored,
+      fitnessReachability,
+    );
 
     const report: AgentReadinessReport = {
       configs,
       docs,
       nestedContextFiles,
       monorepo,
+      localConfigIgnored,
+      fitnessReachability,
       adrs,
       specs,
       agentryLockfilePresent: existsSync(resolve(ctx.cwd, "agentry.lock.toml")),

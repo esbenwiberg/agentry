@@ -19,6 +19,16 @@ interface AgentReadinessReport {
     depth: number;
   }>;
   monorepo: { isMonorepo: boolean; markers: string[] };
+  localConfigIgnored: {
+    hasGitignore: boolean;
+    ignoresClaudeLocalMd: boolean;
+    ignoresClaudeSettingsLocal: boolean;
+  };
+  fitnessReachability: {
+    declaredCommands: Record<string, string>;
+    contextDocsMentioning: string[];
+    reachable: boolean;
+  };
   staleSignals: Array<{ kind: string; path: string; reason: string }>;
 }
 
@@ -191,5 +201,113 @@ describe("agent-readiness — monorepo detection", () => {
     expect(cargoRes.code).toBe(0);
     const r2 = await readReport(cwdCargo);
     expect(r2.monorepo.markers).toContain("Cargo.toml:[workspace]");
+  });
+});
+
+describe("agent-readiness — local-config gitignore audit", () => {
+  it("flags missing CLAUDE.local.md / settings.local.json patterns when Claude is in use", async () => {
+    const cwd = await makeRepoFixture({
+      "README.md": "# demo\n",
+      "CLAUDE.md": "# demo\n",
+      ".gitignore": "node_modules/\ndist/\n",
+    });
+    const res = await runCli(["scan", "--no-fitness"], { cwd });
+    expect(res.code).toBe(0);
+    const r = await readReport(cwd);
+    expect(r.localConfigIgnored.hasGitignore).toBe(true);
+    expect(r.localConfigIgnored.ignoresClaudeLocalMd).toBe(false);
+    expect(r.localConfigIgnored.ignoresClaudeSettingsLocal).toBe(false);
+    const sigs = r.staleSignals.filter((s) => s.kind === "local-config");
+    expect(sigs).toHaveLength(2);
+    expect(sigs.map((s) => s.reason).join(" ")).toContain("CLAUDE.local.md");
+    expect(sigs.map((s) => s.reason).join(" ")).toContain("settings.local.json");
+  });
+
+  it("does not flag when patterns are present", async () => {
+    const cwd = await makeRepoFixture({
+      "README.md": "# demo\n",
+      "CLAUDE.md": "# demo\n",
+      ".gitignore":
+        "node_modules/\nCLAUDE.local.md\n.claude/settings.local.json\n",
+    });
+    const res = await runCli(["scan", "--no-fitness"], { cwd });
+    expect(res.code).toBe(0);
+    const r = await readReport(cwd);
+    expect(r.localConfigIgnored.ignoresClaudeLocalMd).toBe(true);
+    expect(r.localConfigIgnored.ignoresClaudeSettingsLocal).toBe(true);
+    expect(r.staleSignals.find((s) => s.kind === "local-config")).toBeUndefined();
+  });
+
+  it("stays silent when Claude is not in use", async () => {
+    const cwd = await makeRepoFixture({
+      "README.md": "# demo\n",
+      ".gitignore": "node_modules/\n",
+    });
+    const res = await runCli(["scan", "--no-fitness"], { cwd });
+    expect(res.code).toBe(0);
+    const r = await readReport(cwd);
+    expect(r.staleSignals.find((s) => s.kind === "local-config")).toBeUndefined();
+  });
+});
+
+describe("agent-readiness — fitness command reachability", () => {
+  it("flags package.json scripts not mentioned in any agent-context doc", async () => {
+    const cwd = await makeRepoFixture({
+      "README.md": "# demo\n",
+      "package.json": JSON.stringify({
+        scripts: { test: "vitest", build: "tsc" },
+      }),
+      "CLAUDE.md": "# project\n\nThis is a demo project.\n",
+    });
+    const res = await runCli(["scan", "--no-fitness"], { cwd });
+    expect(res.code).toBe(0);
+    const r = await readReport(cwd);
+    expect(r.fitnessReachability.declaredCommands.test).toBe("npm test");
+    expect(r.fitnessReachability.declaredCommands.build).toBe("npm run build");
+    expect(r.fitnessReachability.reachable).toBe(false);
+    const sig = r.staleSignals.find((s) => s.kind === "fitness");
+    expect(sig).toBeDefined();
+    expect(sig!.reason).toContain("test");
+    expect(sig!.reason).toContain("build");
+  });
+
+  it("counts CLAUDE.md mentioning npm test as reachable", async () => {
+    const cwd = await makeRepoFixture({
+      "README.md": "# demo\n",
+      "package.json": JSON.stringify({
+        scripts: { test: "vitest", build: "tsc" },
+      }),
+      "CLAUDE.md": "# project\n\nRun `npm test` then `npm run build`.\n",
+    });
+    const res = await runCli(["scan", "--no-fitness"], { cwd });
+    expect(res.code).toBe(0);
+    const r = await readReport(cwd);
+    expect(r.fitnessReachability.reachable).toBe(true);
+    expect(r.fitnessReachability.contextDocsMentioning).toContain("CLAUDE.md");
+    expect(r.staleSignals.find((s) => s.kind === "fitness")).toBeUndefined();
+  });
+
+  it("counts a filled .agent.toml [commands] block as reachable", async () => {
+    const cwd = await makeRepoFixture({
+      "README.md": "# demo\n",
+      "package.json": JSON.stringify({ scripts: { test: "vitest" } }),
+      ".agent.toml": '[commands]\ntest = "npm test"\nbuild = ""\n',
+    });
+    const res = await runCli(["scan", "--no-fitness"], { cwd });
+    expect(res.code).toBe(0);
+    const r = await readReport(cwd);
+    expect(r.fitnessReachability.reachable).toBe(true);
+    expect(r.fitnessReachability.contextDocsMentioning).toContain(".agent.toml");
+  });
+
+  it("treats no declared commands as reachable (nothing to document)", async () => {
+    const cwd = await makeRepoFixture({
+      "README.md": "# demo\n",
+    });
+    const res = await runCli(["scan", "--no-fitness"], { cwd });
+    expect(res.code).toBe(0);
+    const r = await readReport(cwd);
+    expect(r.fitnessReachability.reachable).toBe(true);
+    expect(r.staleSignals.find((s) => s.kind === "fitness")).toBeUndefined();
   });
 });
