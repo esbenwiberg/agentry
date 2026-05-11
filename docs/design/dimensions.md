@@ -1,6 +1,6 @@
-# primer — default dimensions
+# trim — default dimensions
 
-> **Status:** agreed. Companion to `primer.md` (architecture) and
+> **Status:** agreed. Companion to `trim.md` (architecture) and
 > `probe-schema.md` (authoring contract).
 
 ---
