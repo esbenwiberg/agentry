@@ -1,18 +1,28 @@
 import consistencyDimension from "./dimensions/consistency.js";
 import contextDimension from "./dimensions/context.js";
+import costDimension from "./dimensions/cost.js";
 import feedbackDimension from "./dimensions/feedback.js";
 import safetyDimension from "./dimensions/safety.js";
 import agentGuidancePresent from "./probes/agent-guidance-present.js";
 import agentGuidanceSubstance from "./probes/agent-guidance-substance.js";
 import changelogStrategyDeclared from "./probes/changelog-strategy-declared.js";
+import ciRunsTests from "./probes/ci-runs-tests.js";
+import commitsConventionalFollowed from "./probes/commits-conventional-followed.js";
+import docsAdrPresence from "./probes/docs-adr-presence.js";
 import docsContributingPresent from "./probes/docs-contributing-present.js";
 import docsReadmePresent from "./probes/docs-readme-present.js";
+import docsReadmeSubstance from "./probes/docs-readme-substance.js";
 import editorconfigPresent from "./probes/editorconfig-present.js";
 import formatConfigured from "./probes/format-configured.js";
+import gitignoreComprehensive from "./probes/gitignore-comprehensive.js";
 import hooksPrecommitPresent from "./probes/hooks-precommit-present.js";
 import lintConfigured from "./probes/lint-configured.js";
 import safetyDangerousScriptFlags from "./probes/safety-dangerous-script-flags.js";
 import secretsDotenvGitignored from "./probes/secrets-dotenv-gitignored.js";
+import secretsPrecommitScanConfigured from "./probes/secrets-precommit-scan-configured.js";
+import sizeDirectoryDepth from "./probes/size-directory-depth.js";
+import sizeLargeFiles from "./probes/size-large-files.js";
+import sizeRepoTokenEstimate from "./probes/size-repo-token-estimate.js";
 import testsRunnerConfigured from "./probes/tests-runner-configured.js";
 import typesConfigured from "./probes/types-configured.js";
 
@@ -25,14 +35,23 @@ export const probes = [
   agentGuidancePresent,
   agentGuidanceSubstance,
   changelogStrategyDeclared,
+  ciRunsTests,
+  commitsConventionalFollowed,
+  docsAdrPresence,
   docsContributingPresent,
   docsReadmePresent,
+  docsReadmeSubstance,
   editorconfigPresent,
   formatConfigured,
+  gitignoreComprehensive,
   hooksPrecommitPresent,
   lintConfigured,
   safetyDangerousScriptFlags,
   secretsDotenvGitignored,
+  secretsPrecommitScanConfigured,
+  sizeDirectoryDepth,
+  sizeLargeFiles,
+  sizeRepoTokenEstimate,
   testsRunnerConfigured,
   typesConfigured,
 ];
@@ -40,6 +59,7 @@ export const probes = [
 export const dimensions = [
   contextDimension,
   consistencyDimension,
+  costDimension,
   feedbackDimension,
   safetyDimension,
 ];

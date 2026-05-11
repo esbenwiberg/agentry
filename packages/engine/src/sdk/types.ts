@@ -100,11 +100,49 @@ export type GitignoreEvidence = {
   ignores(path: string): boolean;
 };
 
+export type SizeStatsFile = {
+  path: string;
+  bytes: number;
+  lines: number;
+  depth: number;
+};
+
+export type SizeStatsEvidence = {
+  files: SizeStatsFile[];
+  totalBytes: number;
+  totalFiles: number;
+  source: "git-ls-files" | "walk" | "none";
+};
+
+export type CiWorkflow = {
+  path: string;
+  raw: string;
+};
+
+export type CiWorkflowsEvidence = {
+  present: boolean;
+  workflows: CiWorkflow[];
+};
+
+export type CommitRecord = {
+  sha: string;
+  subject: string;
+  authorEmail: string;
+};
+
+export type CommitHistoryEvidence = {
+  available: boolean;
+  commits: CommitRecord[];
+};
+
 export type EvidenceMap = {
   files: FilesEvidence;
   agent_config: AgentConfigEvidence;
   node_package: NodePackageEvidence;
   gitignore: GitignoreEvidence;
+  size_stats: SizeStatsEvidence;
+  ci_workflows: CiWorkflowsEvidence;
+  commit_history: CommitHistoryEvidence;
 };
 
 export type GatherContext = {

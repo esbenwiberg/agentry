@@ -3,6 +3,8 @@ import ignore from "ignore";
 import { score as scoreReading } from "../scorer/index.js";
 import type {
   AgentConfigEvidence,
+  CiWorkflowsEvidence,
+  CommitHistoryEvidence,
   EvidenceMap,
   FilesEvidence,
   Fixture,
@@ -11,6 +13,7 @@ import type {
   NodePackageEvidence,
   Probe,
   Reading,
+  SizeStatsEvidence,
 } from "../sdk/types.js";
 import { errorMessage } from "../util/error-message.js";
 
@@ -55,6 +58,9 @@ function hydrateFixtureEvidence(raw: Record<string, unknown>): EvidenceMap {
     agent_config: hydrateAgentConfig(raw.agent_config),
     node_package: hydrateNodePackage(raw.node_package),
     gitignore: hydrateGitignore(raw.gitignore),
+    size_stats: hydrateSizeStats(raw.size_stats),
+    ci_workflows: hydrateCiWorkflows(raw.ci_workflows),
+    commit_history: hydrateCommitHistory(raw.commit_history),
   };
 }
 
@@ -117,4 +123,34 @@ function hydrateGitignore(raw: unknown): GitignoreEvidence {
     patterns,
     ignores: (p) => matcher.ignores(p),
   };
+}
+
+function hydrateSizeStats(raw: unknown): SizeStatsEvidence {
+  if (!raw || typeof raw !== "object") {
+    return { files: [], totalBytes: 0, totalFiles: 0, source: "none" };
+  }
+  const obj = raw as Partial<SizeStatsEvidence>;
+  return {
+    files: obj.files ?? [],
+    totalBytes: obj.totalBytes ?? 0,
+    totalFiles: obj.totalFiles ?? obj.files?.length ?? 0,
+    source: obj.source ?? "git-ls-files",
+  };
+}
+
+function hydrateCiWorkflows(raw: unknown): CiWorkflowsEvidence {
+  if (!raw || typeof raw !== "object") {
+    return { present: false, workflows: [] };
+  }
+  const obj = raw as Partial<CiWorkflowsEvidence>;
+  const workflows = obj.workflows ?? [];
+  return { present: obj.present ?? workflows.length > 0, workflows };
+}
+
+function hydrateCommitHistory(raw: unknown): CommitHistoryEvidence {
+  if (!raw || typeof raw !== "object") {
+    return { available: false, commits: [] };
+  }
+  const obj = raw as Partial<CommitHistoryEvidence>;
+  return { available: obj.available ?? true, commits: obj.commits ?? [] };
 }
