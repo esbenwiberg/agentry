@@ -1,3 +1,4 @@
+export { type FixtureOutcome, runFixture } from "../fixtures/runner.js";
 export { defineDimension } from "./define-dimension.js";
 export { defineProbe } from "./define-probe.js";
 export type {
