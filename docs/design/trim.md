@@ -419,9 +419,9 @@ Reasons we'd eventually split:
 
 ## 18. Open questions
 
-- Default corpus reviewed and locked in `corpus-v1.md`. Four operational decisions resolved: historical N=100, latency warm-up runs twice, secrets via secretlint, dangerous-scripts via our own 5-pattern set.
+- Config + baseline schemas drafted in `config-and-baseline.md`. 5 small open items inside that doc (waiver hash, init verb vs flag, corpus merge order, baseline granularity, llm credentials discipline).
 - SARIF reporter — v1.x or later? (currently: reserved slot, not v1)
-- Final `trim.config.json` schema — settle once probes are concrete.
+- Final naming for npm package(s) / scope — likely `@<org>/trim` for CLI; `@<org>/corpus-default` for the bundled corpus.
 - License for the project.
 - Initial CI surface — which checks gate trim's own development?
 - Plugin distribution — npm by default; do we want a registry index later?
@@ -430,9 +430,11 @@ Reasons we'd eventually split:
 > locked in `dimensions.md`: Context (25%) / Feedback (20%) /
 > Consistency (15%) / Cost (15%) / Latency (10%) / Safety (15%,
 > gating). Default corpus drafted in `corpus-v1.md` (26 always-on
-> probes + 10 opt-in + 1 reasoned for v1.x). Locked decisions on
-> probes: weight precedence (probe → dimension → project), detectors
-> always async, recipe library ships in v1.
+> probes + 10 opt-in + 1 reasoned for v1.x). Config + baseline schemas
+> drafted in `config-and-baseline.md` (corpus pinning, gate modes,
+> overrides, waivers, bootstrap flow). Locked decisions on probes:
+> weight precedence (probe → dimension → project), detectors always
+> async, recipe library ships in v1.
 
 ---
 
