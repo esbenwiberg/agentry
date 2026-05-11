@@ -1,7 +1,17 @@
 import type { Aggregated } from "../aggregator/index.js";
 import type { ProbeResult } from "../runner/tiered.js";
+import type { Drift } from "../verdict/drift.js";
+import type { Verdict } from "../verdict/index.js";
 
-export function renderHuman(aggregated: Aggregated, results: ProbeResult[]): string {
+export type RenderInput = {
+  aggregated: Aggregated;
+  results: ProbeResult[];
+  verdict: Verdict;
+  drift: Drift;
+};
+
+export function renderHuman(input: RenderInput): string {
+  const { aggregated, results, verdict, drift } = input;
   const lines: string[] = [];
 
   lines.push("");
@@ -16,8 +26,7 @@ export function renderHuman(aggregated: Aggregated, results: ProbeResult[]): str
 
   lines.push("");
   for (const r of results) {
-    const verdict = readingVerdict(r);
-    lines.push(`    ${verdict}  ${r.probe.id}`);
+    lines.push(`    ${readingVerdict(r)}  ${r.probe.id}`);
   }
 
   lines.push("");
@@ -26,8 +35,21 @@ export function renderHuman(aggregated: Aggregated, results: ProbeResult[]): str
   } else {
     lines.push(`  fitness  ${aggregated.fitness.toFixed(0)}`);
   }
-  lines.push("");
+  lines.push(`  gate     ${verdict.mode}  ·  ${verdict.pass ? "PASS" : "FAIL"}`);
+  for (const reason of verdict.reasons) lines.push(`           ${reason}`);
 
+  if (drift.newProbes.length > 0) {
+    lines.push("");
+    lines.push(`  new probes (not yet in baseline): ${drift.newProbes.join(", ")}`);
+  }
+  if (drift.removedProbes.length > 0) {
+    lines.push(`  stale baseline entries: ${drift.removedProbes.join(", ")}`);
+  }
+  for (const m of drift.corpusVersionMismatches) {
+    lines.push(`  corpus version drift: ${m.package} baseline=${m.baseline} current=${m.current}`);
+  }
+
+  lines.push("");
   return lines.join("\n");
 }
 
