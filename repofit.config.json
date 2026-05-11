@@ -1,0 +1,25 @@
+{
+  "$schema": "https://repofit.dev/schema/config.v1.json",
+  "version": 1,
+  "corpus": [{ "package": "@esbenwiberg/corpus-default", "version": "0.0.0" }],
+  "gate": {
+    "mode": "ratchet"
+  },
+  "dimensions": {
+    "consistency": {
+      "probes": {
+        "changelog.strategy-declared": { "disabled": true }
+      }
+    },
+    "context": {
+      "probes": {
+        "docs.adr-presence": { "disabled": true }
+      }
+    },
+    "safety": {
+      "probes": {
+        "secrets.precommit-scan-configured": { "disabled": true }
+      }
+    }
+  }
+}
