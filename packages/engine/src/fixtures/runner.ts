@@ -54,8 +54,23 @@ function hydrateFixtureEvidence(raw: Record<string, unknown>): EvidenceMap {
 }
 
 function hydrateFiles(raw: unknown): FilesEvidence {
-  const paths = new Set(Array.isArray(raw) ? (raw as string[]) : []);
-  return { has: (p) => paths.has(p) };
+  let paths: Set<string>;
+  let contents: Map<string, string>;
+  if (Array.isArray(raw)) {
+    paths = new Set(raw as string[]);
+    contents = new Map();
+  } else if (raw && typeof raw === "object") {
+    const map = raw as Record<string, string>;
+    paths = new Set(Object.keys(map));
+    contents = new Map(Object.entries(map));
+  } else {
+    paths = new Set();
+    contents = new Map();
+  }
+  return {
+    has: (p) => paths.has(p),
+    readText: async (p) => contents.get(p),
+  };
 }
 
 function hydrateAgentConfig(raw: unknown): AgentConfigEvidence {

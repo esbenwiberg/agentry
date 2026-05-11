@@ -72,6 +72,7 @@ export type DimensionRecipe = {
 
 export type FilesEvidence = {
   has(path: string): boolean;
+  readText(path: string): Promise<string | undefined>;
 };
 
 export type GuidanceFile = {
