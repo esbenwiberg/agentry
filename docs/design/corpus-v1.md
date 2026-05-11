@@ -174,15 +174,25 @@ Coupling probes to dimensions via prefix would force renames when we move a prob
 | id | tier | evidence | reading | direction |
 |---|---|---|---|---|
 | `secrets.dotenv-gitignored` | static | `gitignore` | predicate | positive |
-| `secrets.tracked-indicators` | static | `files`, `secrets_indicators` | inventory | severity |
+| `secrets.tracked-indicators` | derived | `secrets_scan` | inventory | severity |
 | `secrets.precommit-scan-configured` | derived | `files`, `ci_workflows` | predicate | positive |
-| `safety.dangerous-script-flags` | static | `node_package`, `nuget`, `files` | inventory | severity |
+| `safety.dangerous-script-flags` | static | `node_package`, `nuget`, `files`, `ci_workflows` | inventory | severity |
 | `git.branch-protection` *(external)* | executed | API call to forge | predicate | positive |
 | `git.code-review-required` *(external)* | executed | API call to forge | predicate | positive |
 
 **Notes:**
-- `secrets.tracked-indicators` is heuristic, not a real scanner. Looks for suspicious patterns in tracked file contents (high-entropy strings, common token formats: AWS, GitHub, Stripe, JWT). Severity ladder: warn for low-confidence, error for high-confidence.
-- `safety.dangerous-script-flags` scans npm scripts, dotnet targets, Makefiles for `rm -rf`, `curl | sh`, unguarded force-pushes, etc. Inventory-shaped so each finding is actionable.
+- `secrets.tracked-indicators` wraps **secretlint** (Node-native, MIT, plugin-based) via a new `secrets_scan` evidence subsystem. Engine runs the scan once over tracked files, caches the result. Default rule preset: `@secretlint/secretlint-rule-preset-recommend` (AWS, GCP, GitHub, Slack, Stripe, SendGrid, npm tokens, etc.). Severity from secretlint maps to our error/warn ladder.
+- `safety.dangerous-script-flags` uses our own minimal pattern set, multi-context by design (works across npm scripts, dotnet targets, Makefiles, .sh files, inline shell in CI YAML). v1 pattern set (5 patterns):
+
+  | Pattern | Severity |
+  |---|---|
+  | `rm -rf /` (literal) | error |
+  | `rm -rf $UNSET_VAR` (var not set in same script) | warn |
+  | `curl … \| sh` / `wget … \| bash` | warn |
+  | `git push --force` to default branch | warn |
+  | `chmod 777` / `chmod -R 0777` | warn |
+
+  Each finding shows location + exact match. Project waivers can suppress by file:line. Patterns documented exactly in the probe rationale. Grow set in v1.x after real-world FP/FN data.
 - The two `git.*` external probes require API credentials and are off by default. They live in the schema so corpora/projects can opt in.
 
 **Why this is gating:** Safety doesn't aggregate gracefully. A repo with one tracked secret should not score 88 because everything else is fine. The gating cap forces it visible.
@@ -229,12 +239,12 @@ A first-time `primer check` on a repo runs 26 probes, all static or derived. Sho
 
 ---
 
-## 12. Open questions
+## 12. Resolved decisions
 
-1. **Default `last N commits` for historical probes** — 100? 250? I lean 100 (fast, recent-trend-sensitive).
-2. **Latency probe warm-up** — run-once vs run-twice-report-second-time? I lean twice for correctness.
-3. **`secrets.tracked-indicators` scanner library** — write our own pattern set or wrap an existing one (e.g. `detect-secrets`-style heuristics, not a tool dependency)? Lean: write our own; minimal patterns; document precisely what we flag.
-4. **`safety.dangerous-script-flags` patterns** — should this start very conservative (only obvious things) and grow, or aim broader and tune? I lean conservative — false positives in Safety are corrosive given gating.
+1. **Historical N**: 100 by default, configurable in `primer.config.json`, graceful with <100 commits (uses what's available; reading carries sample size).
+2. **Latency warm-up**: probes run twice and report the second timing. Per-probe (no shared warmup across the four latency probes — isolation > speed in an opt-in tier). Tunable: `warmup: 0 | 1 | <n>`.
+3. **Secret patterns**: wrap **secretlint** via a new `secrets_scan` evidence subsystem (Node-native, MIT, plugin-based). Default rule preset: `secretlint-rule-preset-recommend`. Project config can add/remove rules.
+4. **Dangerous-script patterns**: roll our own minimal multi-context set (5 patterns above). Static tier, always-on. Documented exactly in the probe rationale. Project waivers can suppress by file:line. Grow in v1.x.
 
 ---
 

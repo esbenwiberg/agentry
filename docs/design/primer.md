@@ -381,7 +381,8 @@ agent-fitness use case).
 
 ### Composite / cross-ecosystem
 `test_runner`, `lint_config`, `build_targets`, `runtime_targets`,
-`secrets_indicators`.
+`secrets_indicators`, `secrets_scan` (wraps secretlint; produces an
+inventory of token-shape findings).
 
 ### External (executed tier, opt-in)
 `dependency_advisories`, `branch_protection`, `issue_tracker`.
@@ -418,7 +419,7 @@ Reasons we'd eventually split:
 
 ## 18. Open questions
 
-- Default corpus reviewed in `corpus-v1.md` — 4 small open items (historical N, latency warm-up, secret pattern source, dangerous-script breadth).
+- Default corpus reviewed and locked in `corpus-v1.md`. Four operational decisions resolved: historical N=100, latency warm-up runs twice, secrets via secretlint, dangerous-scripts via our own 5-pattern set.
 - SARIF reporter — v1.x or later? (currently: reserved slot, not v1)
 - Final `primer.config.json` schema — settle once probes are concrete.
 - License for the project.
