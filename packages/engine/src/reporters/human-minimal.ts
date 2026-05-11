@@ -9,7 +9,7 @@ export function renderHuman(aggregated: Aggregated, results: ProbeResult[]): str
   lines.push("");
 
   for (const dim of aggregated.dimensions) {
-    const scoreText = dim.score === null ? "  —  " : pad(dim.score.toFixed(0), 5);
+    const scoreText = dim.score === null ? "  —  " : dim.score.toFixed(0).padStart(5, " ");
     const gating = dim.gating ? "  (gating)" : "";
     lines.push(`  ${scoreText}  ${dim.name}${gating}  ·  ${dim.probeCount} probe(s)`);
   }
@@ -42,8 +42,4 @@ function readingVerdict(r: ProbeResult): string {
     default:
       return r.score === null ? "  ?  " : `${r.score.toFixed(0)}`.padStart(4, " ");
   }
-}
-
-function pad(s: string, width: number): string {
-  return s.padStart(width, " ");
 }

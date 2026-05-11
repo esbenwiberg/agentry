@@ -17,7 +17,11 @@ function mkProbe(id: string, dimWeight: { id: string; weight: number }[]): Probe
   };
 }
 
-function mkDim(id: string, gating = false, overrides?: { probeId: string; weight: number }[]): DimensionRecipe {
+function mkDim(
+  id: string,
+  gating = false,
+  overrides?: { probeId: string; weight: number }[],
+): DimensionRecipe {
   return {
     id,
     name: id,
@@ -30,7 +34,9 @@ function mkDim(id: string, gating = false, overrides?: { probeId: string; weight
 describe("aggregator", () => {
   test("single dim, single probe, score passes through", () => {
     const probe = mkProbe("p1", [{ id: "context", weight: 1 }]);
-    const results: ProbeResult[] = [{ probe, reading: { kind: "predicate", value: true }, score: 100 }];
+    const results: ProbeResult[] = [
+      { probe, reading: { kind: "predicate", value: true }, score: 100 },
+    ];
 
     const out = aggregate(results, [mkDim("context")]);
 
@@ -61,7 +67,6 @@ describe("aggregator", () => {
       { probe: p2, reading: { kind: "predicate", value: false }, score: 0 },
     ];
 
-    // Override p2 weight to 0 — p1 should be the only contributor.
     const out = aggregate(results, [mkDim("context", false, [{ probeId: "p2", weight: 0 }])]);
 
     expect(out.dimensions[0]?.score).toBe(100);

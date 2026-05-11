@@ -14,9 +14,6 @@ export type Aggregated = {
   fitness: number | null;
 };
 
-// Phase 1: equal weight per dimension at the overall level (per-dimension
-// weighting from config lands in Phase 3). Within a dimension, probe weights
-// come from the probe's declared dimension assignments.
 export function aggregate(results: ProbeResult[], recipes: DimensionRecipe[]): Aggregated {
   const dimensions: DimensionResult[] = recipes.map((recipe) => scoreDimension(recipe, results));
 
@@ -30,42 +27,28 @@ export function aggregate(results: ProbeResult[], recipes: DimensionRecipe[]): A
 }
 
 function scoreDimension(recipe: DimensionRecipe, results: ProbeResult[]): DimensionResult {
-  const contributing = results.filter(
-    (r) => r.score !== null && r.probe.dimensions.some((d) => d.id === recipe.id),
-  );
-
-  if (contributing.length === 0) {
-    return {
-      id: recipe.id,
-      name: recipe.name,
-      score: null,
-      gating: recipe.gating,
-      probeCount: 0,
-    };
-  }
+  const overrideWeights = new Map(recipe.overrides?.map((o) => [o.probeId, o.weight]));
 
   let totalWeight = 0;
   let weightedSum = 0;
-  for (const r of contributing) {
+  let probeCount = 0;
+
+  for (const r of results) {
+    if (r.score === null) continue;
     const assignment = r.probe.dimensions.find((d) => d.id === recipe.id);
     if (!assignment) continue;
-    const weight = applyOverride(recipe, r.probe.id, assignment.weight);
+    probeCount += 1;
+    const weight = overrideWeights.get(r.probe.id) ?? assignment.weight;
     if (weight <= 0) continue;
-    weightedSum += (r.score ?? 0) * weight;
+    weightedSum += r.score * weight;
     totalWeight += weight;
   }
 
-  const score = totalWeight === 0 ? null : weightedSum / totalWeight;
   return {
     id: recipe.id,
     name: recipe.name,
-    score,
+    score: totalWeight === 0 ? null : weightedSum / totalWeight,
     gating: recipe.gating,
-    probeCount: contributing.length,
+    probeCount,
   };
-}
-
-function applyOverride(recipe: DimensionRecipe, probeId: string, baseWeight: number): number {
-  const override = recipe.overrides?.find((o) => o.probeId === probeId);
-  return override ? override.weight : baseWeight;
 }

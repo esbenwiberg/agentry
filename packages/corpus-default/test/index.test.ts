@@ -1,8 +1,9 @@
 import { describe, expect, test } from "vitest";
-import { CORPUS_VERSION } from "../src/index.js";
+import { meta } from "../src/index.js";
 
 describe("corpus-default", () => {
-  test("exports a corpus version", () => {
-    expect(CORPUS_VERSION).toBe("0.0.0");
+  test("exports meta with name and version", () => {
+    expect(meta.name).toBe("@esbenwiberg/corpus-default");
+    expect(meta.version).toBe("0.0.0");
   });
 });

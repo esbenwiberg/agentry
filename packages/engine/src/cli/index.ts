@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { VERSION } from "../index.js";
+import { errorMessage } from "../util/error-message.js";
 import { check } from "./check.js";
 
 const program = new Command();
@@ -17,14 +18,10 @@ program
   .option("--cwd <path>", "Working directory.", process.cwd())
   .action(async (opts: { probe?: string; cwd: string }) => {
     try {
-      const exitCode = await check({
-        cwd: opts.cwd,
-        ...(opts.probe ? { probe: opts.probe } : {}),
-      });
+      const exitCode = await check({ cwd: opts.cwd, probe: opts.probe });
       process.exit(exitCode);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`repofit: ${message}`);
+      console.error(`repofit: ${errorMessage(err)}`);
       process.exit(2);
     }
   });

@@ -1,5 +1,5 @@
-import { describe, expect, test } from "vitest";
 import type { EvidenceMap, GuidanceFile } from "@esbenwiberg/repofit/sdk";
+import { describe, expect, test } from "vitest";
 import probe from "../src/probes/agent-guidance-present.js";
 
 function mkEvidence(guidance: GuidanceFile[]): EvidenceMap {

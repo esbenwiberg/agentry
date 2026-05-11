@@ -9,5 +9,3 @@ export const meta = {
 export const probes = [agentGuidancePresent];
 
 export const dimensions = [contextDimension];
-
-export const CORPUS_VERSION = meta.version;

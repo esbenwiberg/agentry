@@ -1,6 +1,3 @@
-// Public SDK types.
-// Implements the contracts locked in docs/design/probe-schema.md.
-
 export type Location = {
   path: string;
   range?: { startLine: number; endLine?: number };
@@ -25,10 +22,12 @@ export type Reading =
 
 export type Band = { upTo?: number; score: number };
 
+export type Direction = "positive" | "negative";
+
 export type ScoreConfig =
-  | { kind: "predicate"; direction: "positive" | "negative" }
-  | { kind: "count"; direction: "positive" | "negative"; bands: Band[] }
-  | { kind: "magnitude"; direction: "positive" | "negative"; bands: Band[] }
+  | { kind: "predicate"; direction: Direction }
+  | { kind: "count"; direction: Direction; bands: Band[] }
+  | { kind: "magnitude"; direction: Direction; bands: Band[] }
   | { kind: "inventory"; severityWeights: Record<Severity, number>; bands: Band[] }
   | {
       kind: "distribution";
@@ -70,8 +69,6 @@ export type DimensionRecipe = {
   gating: boolean;
   overrides?: DimensionOverride[];
 };
-
-// Evidence shapes — Phase 1 ships two subsystems.
 
 export type FilesEvidence = {
   has(path: string): boolean;
