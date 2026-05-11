@@ -4,6 +4,6 @@ import { meta } from "../src/index.js";
 describe("corpus-default", () => {
   test("exports meta with name and version", () => {
     expect(meta.name).toBe("@esbenwiberg/corpus-default");
-    expect(meta.version).toBe("1.0.0");
+    expect(meta.version).toMatch(/^\d+\.\d+\.\d+/);
   });
 });

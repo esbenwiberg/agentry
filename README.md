@@ -36,7 +36,7 @@ Six dimensions, weighted into one fitness score:
 | Cost        | Repo size, file depth, token estimate                     |
 | Feedback    | CI runs, lint/format/types clean                          |
 | Latency     | Wall-clock of test/build/lint/typecheck (opt-in tier)     |
-| Safety      | Secret hygiene, dangerous flags, branch protection (gating)|
+| Safety      | Secret hygiene, dangerous script flags, branch protection  |
 
 Each probe carries its own rationale and scoring rubric. Run
 `repofit explain <probe-id>` for the full story behind any reading.
@@ -53,8 +53,8 @@ repofit --include executed  # also run the slow stuff (test/build/lint timings)
 ## How it works
 
 The engine runs probes in tiers — static → derived → historical →
-executed → reasoned — and skips the opt-in tiers (executed/reasoned)
-unless you ask for them. Each probe emits a typed **reading**
+executed — and skips the executed tier (latency probes, branch
+protection, *.clean) unless you ask for it. Each probe emits a typed **reading**
 (predicate, count, magnitude, inventory, distribution, or n/a), which
 the scorer reduces to 0–100. Probes are bundled in versioned **corpus**
 packages so the rubric is reproducible.

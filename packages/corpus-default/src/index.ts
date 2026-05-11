@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import consistencyDimension from "./dimensions/consistency.js";
 import contextDimension from "./dimensions/context.js";
 import costDimension from "./dimensions/cost.js";
@@ -35,9 +36,11 @@ import testsRunnerConfigured from "./probes/tests-runner-configured.js";
 import typesClean from "./probes/types-clean.js";
 import typesConfigured from "./probes/types-configured.js";
 
+const pkg = createRequire(import.meta.url)("../package.json") as { name: string; version: string };
+
 export const meta = {
-  name: "@esbenwiberg/corpus-default",
-  version: "1.0.0",
+  name: pkg.name,
+  version: pkg.version,
 };
 
 export const probes = [

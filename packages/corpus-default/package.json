@@ -21,6 +21,9 @@
     "test": "vitest run"
   },
   "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.19.18"
+  },
   "dependencies": {
     "@esbenwiberg/repofit": "^1.0.0"
   }
