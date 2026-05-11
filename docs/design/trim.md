@@ -419,12 +419,7 @@ Reasons we'd eventually split:
 
 ## 18. Open questions
 
-- Config + baseline schemas locked in `config-and-baseline.md`. Notable: `provider: "claude-code"` reuses the host Claude Code session's auth via the Claude Agent SDK (transport mechanism deferred to v1.x).
-- Implementation plan drafted in `implementation-plan.md`. Seven phases from skeleton to release; dogfood at Phase 6. Open: linter choice (Biome vs ESLint+Prettier), license (MIT recommended), npm scope/org name.
 - SARIF reporter — v1.x or later? (currently: reserved slot, not v1)
-- Final naming for npm package(s) / scope — likely `@<org>/trim` for CLI; `@<org>/corpus-default` for the bundled corpus.
-- License for the project.
-- Initial CI surface — which checks gate trim's own development?
 - Plugin distribution — npm by default; do we want a registry index later?
 
 > Probe schema concretized in `probe-schema.md`. Default dimensions

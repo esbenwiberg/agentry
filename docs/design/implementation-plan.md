@@ -9,7 +9,7 @@
 
 A user can:
 
-1. `npx @<org>/trim check` on a real TS or .NET repo and get a real score.
+1. `npx @esbenwiberg/trim check` on a real TS or .NET repo and get a real score.
 2. Run `--init` to commit `trim.config.json`.
 3. Run `--accept` to commit `trim-baseline.json`.
 4. Add `trim check --ci` to GitHub Actions and have PRs gated.
@@ -40,7 +40,7 @@ Monorepo, two packages from day one, strict boundaries.
 ```
 trim/
 ├── packages/
-│   ├── engine/                       # @<org>/trim — the CLI + runtime
+│   ├── engine/                       # @esbenwiberg/trim — the CLI + runtime
 │   │   ├── src/
 │   │   │   ├── cli/                  # commander/yargs/etc entrypoints
 │   │   │   ├── loader/               # config + corpus + baseline loaders
@@ -53,7 +53,7 @@ trim/
 │   │   │   └── sdk/                  # public API: defineProbe, defineDimension, recipes, types
 │   │   ├── test/
 │   │   └── package.json
-│   └── corpus-default/               # @<org>/corpus-default — the bundled probes
+│   └── corpus-default/               # @esbenwiberg/corpus-default — the bundled probes
 │       ├── src/
 │       │   ├── probes/               # one file per probe
 │       │   ├── dimensions/           # six dimension recipes
@@ -79,12 +79,13 @@ trim/
 - **Node**: 22.x (LTS). `engines.node` enforced.
 - **TypeScript**: strict, ESM, NodeNext resolution. Same posture as existing agentry repo.
 - **Test runner**: **vitest** — fast, ESM-native, good fixture support, similar API to jest.
-- **Linter**: **biome** — single-tool linter + formatter, fast, good defaults. (Alternative: eslint + prettier, more familiar but more deps.)
+- **Linter**: **biome** — single-tool linter + formatter, fast, good defaults.
 - **Workspace**: npm workspaces (no pnpm/yarn dependency).
 - **CLI parsing**: **commander** — battle-tested, small, ESM-friendly.
-- **License**: **MIT** (recommended; least friction, widest adoption).
+- **License**: **MIT**.
+- **npm scope**: **`@esbenwiberg`** — packages publish as `@esbenwiberg/trim` and `@esbenwiberg/corpus-default`.
 
-**Status: tentative — see open question on biome vs eslint+prettier.**
+**Status: agreed.**
 
 ---
 
@@ -184,7 +185,7 @@ Each phase is a vertical slice. End-of-phase = something demoable + committed.
 - npm publish under chosen scope.
 - GitHub release with changelog.
 
-**Demoable**: `npx @<org>/trim check` works for any user.
+**Demoable**: `npx @esbenwiberg/trim check` works for any user.
 
 **Status: phases agreed in shape; estimates are rough.**
 
@@ -223,8 +224,6 @@ Two surfaces:
 
 These are coding-time decisions, not design decisions. Listed so they're not forgotten:
 
-- **npm scope** — `@<org>/trim`, `@<org>/corpus-default`. Pending owner.
-- **Biome vs ESLint + Prettier** — see §3 open question.
 - **Commit / changelog discipline** — likely mirror existing agentry conventions (`type(scope): subject` + `.changes/` fragments).
 - **README structure** — quickstart, badge, screenshot of `trim check` output.
 
@@ -232,10 +231,7 @@ These are coding-time decisions, not design decisions. Listed so they're not for
 
 ## 8. Open questions
 
-1. **Linter choice** — Biome (one tool, fast, opinionated) vs ESLint + Prettier (familiar, plugin ecosystem). I lean Biome for a greenfield repo. Either fine.
-2. **License** — MIT recommended. Alternatives (Apache 2.0 for patent clarity, BSL/CC if commercial-restrictive intent) not obviously needed.
-3. **npm scope / org name** — needs your call. `@<org>/...` could be your username, an org you own, or a new org.
-4. **Phase estimates** — rough; the only critical bit is the *order*. Time-boxing per phase happens once we start.
+1. **Phase estimates** — rough; the only critical bit is the *order*. Time-boxing per phase happens once we start.
 
 ---
 

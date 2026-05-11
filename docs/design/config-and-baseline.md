@@ -28,7 +28,7 @@ Both files are JSON for universal tooling. Engine validates both at load.
   "version": 1,
 
   "corpus": [
-    { "package": "@<org>/corpus-default", "version": "1.0.0" }
+    { "package": "@esbenwiberg/corpus-default", "version": "1.0.0" }
   ],
 
   "gate": {
@@ -90,8 +90,8 @@ Array, because a project may layer multiple corpus packages (default + .NET-spec
 
 ```jsonc
 "corpus": [
-  { "package": "@<org>/corpus-default", "version": "1.0.0" },
-  { "package": "@<org>/corpus-dotnet",  "version": "0.4.2" }
+  { "package": "@esbenwiberg/corpus-default", "version": "1.0.0" },
+  { "package": "@esbenwiberg/corpus-dotnet",  "version": "0.4.2" }
 ]
 ```
 
@@ -244,7 +244,7 @@ Exact `claude-code` transport (SDK call vs IPC vs MCP-style bridge) is a v1.x im
   "commit": "be447ba0...",
 
   "corpus": [
-    { "package": "@<org>/corpus-default", "version": "1.0.0" }
+    { "package": "@esbenwiberg/corpus-default", "version": "1.0.0" }
   ],
 
   "fitness": 72,
@@ -357,7 +357,7 @@ Day 1:
 
 ```bash
 $ trim check --init
-# Writing trim.config.json (corpus pinned at @<org>/corpus-default@1.0.0).
+# Writing trim.config.json (corpus pinned at @esbenwiberg/corpus-default@1.0.0).
 # Gate mode: advisory (until you set a baseline).
 # (Run `trim check --accept` to set the baseline and enable ratchet.)
 

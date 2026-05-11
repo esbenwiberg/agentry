@@ -24,7 +24,7 @@ Modes are mutually exclusive — `--json` and `--ci` can't combine (CI mode emit
 ## 2. Human report — example
 
 ```
-trim 1.0.0  ·  corpus @<org>/corpus-default@1.0.0  ·  commit be447ba
+trim 1.0.0  ·  corpus @esbenwiberg/corpus-default@1.0.0  ·  commit be447ba
 ─────────────────────────────────────────────────────────────────────
 
 Fitness: 72  (baseline 70, +2)  ·  ratchet  ·  PASS
@@ -115,7 +115,7 @@ Stable schema, versioned. Consumed by dashboards, custom reporters, GitHub Actio
   "ranAt": "2026-05-11T14:23:00Z",
   "commit": "be447ba0...",
   "corpus": [
-    { "package": "@<org>/corpus-default", "version": "1.0.0" }
+    { "package": "@esbenwiberg/corpus-default", "version": "1.0.0" }
   ],
   "config": { "gateMode": "ratchet", "include": ["static", "derived", "historical"] },
 
@@ -208,7 +208,7 @@ Plus:
 $ trim explain agent.guidance-present
 
 Probe       agent.guidance-present  v1.0.0
-Corpus      @<org>/corpus-default@1.0.0
+Corpus      @esbenwiberg/corpus-default@1.0.0
 Tier        static  ·  Reading type: predicate
 Dimensions  Context (weight 1, default)
 
