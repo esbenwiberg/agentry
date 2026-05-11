@@ -23,7 +23,7 @@ export default defineProbe({
   fixtures: [
     {
       name: "guidance-present",
-      evidence: { agent_config: { guidance: [{ path: "CLAUDE.md", bytes: 1024 }] } },
+      evidence: { agent_config: { guidance: [{ path: "CLAUDE.md", bytes: 1024, lines: 30 }] } },
       expect: { reading: { kind: "predicate", value: true }, score: 100 },
     },
     {

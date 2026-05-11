@@ -39,7 +39,7 @@ export type Tier = "static" | "derived" | "historical" | "executed" | "reasoned"
 
 export type DimensionAssignment = { id: string; weight: number };
 
-export type FixtureExpect = { reading: Reading; score: number };
+export type FixtureExpect = { reading: Reading; score: number | null };
 
 export type Fixture = {
   name: string;
@@ -78,6 +78,7 @@ export type FilesEvidence = {
 export type GuidanceFile = {
   path: string;
   bytes: number;
+  lines: number;
 };
 
 export type AgentConfigEvidence = {

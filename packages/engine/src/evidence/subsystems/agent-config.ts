@@ -1,4 +1,4 @@
-import { stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentConfigEvidence, GatherContext, GuidanceFile } from "../../sdk/types.js";
 
@@ -15,9 +15,10 @@ export const agentConfigSubsystem = {
 
     const found = await Promise.all(
       GUIDANCE_CANDIDATES.map(async (name): Promise<GuidanceFile | null> => {
+        const full = join(root, name);
         try {
-          const s = await stat(join(root, name));
-          return { path: name, bytes: s.size };
+          const [s, content] = await Promise.all([stat(full), readFile(full, "utf8")]);
+          return { path: name, bytes: s.size, lines: countLines(content) };
         } catch {
           return null;
         }
@@ -35,3 +36,12 @@ export const agentConfigSubsystem = {
     };
   },
 };
+
+function countLines(content: string): number {
+  if (content.length === 0) return 0;
+  let n = 1;
+  for (let i = 0; i < content.length; i++) {
+    if (content.charCodeAt(i) === 10) n++;
+  }
+  return content.endsWith("\n") ? n - 1 : n;
+}

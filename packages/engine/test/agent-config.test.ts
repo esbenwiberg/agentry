@@ -21,12 +21,13 @@ describe("agent_config subsystem", () => {
     expect(ev.has("CLAUDE.md")).toBe(false);
   });
 
-  test("CLAUDE.md present → found with byte count", async () => {
-    writeFileSync(join(tmp, "CLAUDE.md"), "# Hello agent\n");
+  test("CLAUDE.md present → found with byte and line count", async () => {
+    writeFileSync(join(tmp, "CLAUDE.md"), "# Hello agent\nLine two\nLine three\n");
     const ev = await agentConfigSubsystem.gather({ cwd: tmp });
     expect(ev.guidance).toHaveLength(1);
     expect(ev.guidance[0]?.path).toBe("CLAUDE.md");
     expect(ev.guidance[0]?.bytes).toBeGreaterThan(0);
+    expect(ev.guidance[0]?.lines).toBe(3);
     expect(ev.has("CLAUDE.md")).toBe(true);
   });
 
