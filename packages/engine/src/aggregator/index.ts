@@ -1,4 +1,4 @@
-import type { ProbeResult } from "../runner/sequential.js";
+import type { ProbeResult } from "../runner/tiered.js";
 import type { DimensionRecipe } from "../sdk/types.js";
 
 export type DimensionResult = {

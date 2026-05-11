@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { aggregate } from "../src/aggregator/index.js";
-import type { ProbeResult } from "../src/runner/sequential.js";
+import type { ProbeResult } from "../src/runner/tiered.js";
 import type { DimensionRecipe, Probe } from "../src/sdk/types.js";
 
 function mkProbe(id: string, dimWeight: { id: string; weight: number }[]): Probe {

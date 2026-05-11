@@ -2,7 +2,7 @@ import { aggregate } from "../aggregator/index.js";
 import { gatherAll } from "../evidence/registry.js";
 import { loadDefaultCorpus } from "../loader/corpus.js";
 import { renderHuman } from "../reporters/human-minimal.js";
-import { runProbes } from "../runner/sequential.js";
+import { runProbes } from "../runner/tiered.js";
 
 export type CheckOptions = {
   cwd: string;

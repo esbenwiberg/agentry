@@ -1,5 +1,5 @@
 import type { Aggregated } from "../aggregator/index.js";
-import type { ProbeResult } from "../runner/sequential.js";
+import type { ProbeResult } from "../runner/tiered.js";
 
 export function renderHuman(aggregated: Aggregated, results: ProbeResult[]): string {
   const lines: string[] = [];
