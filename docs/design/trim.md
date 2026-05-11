@@ -420,6 +420,7 @@ Reasons we'd eventually split:
 ## 18. Open questions
 
 - Config + baseline schemas locked in `config-and-baseline.md`. Notable: `provider: "claude-code"` reuses the host Claude Code session's auth via the Claude Agent SDK (transport mechanism deferred to v1.x).
+- Implementation plan drafted in `implementation-plan.md`. Seven phases from skeleton to release; dogfood at Phase 6. Open: linter choice (Biome vs ESLint+Prettier), license (MIT recommended), npm scope/org name.
 - SARIF reporter — v1.x or later? (currently: reserved slot, not v1)
 - Final naming for npm package(s) / scope — likely `@<org>/trim` for CLI; `@<org>/corpus-default` for the bundled corpus.
 - License for the project.
@@ -431,11 +432,12 @@ Reasons we'd eventually split:
 > Consistency (15%) / Cost (15%) / Latency (10%) / Safety (15%,
 > gating). Default corpus drafted in `corpus-v1.md` (26 always-on
 > probes + 10 opt-in + 1 reasoned for v1.x). Config + baseline schemas
-> locked in `config-and-baseline.md`. Report formats drafted in
+> locked in `config-and-baseline.md`. Report formats locked in
 > `reports.md` (human / json / ci modes, explain output, gating cap
-> handling). Locked decisions on probes: weight precedence (probe →
-> dimension → project), detectors always async, recipe library ships
-> in v1.
+> handling). Implementation plan in `implementation-plan.md` (seven
+> phases, soft v1 possible without opt-in tiers). Locked decisions on
+> probes: weight precedence (probe → dimension → project), detectors
+> always async, recipe library ships in v1.
 
 ---
 
