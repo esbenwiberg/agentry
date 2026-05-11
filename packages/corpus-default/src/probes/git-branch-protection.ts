@@ -2,7 +2,7 @@ import { defineProbe } from "@esbenwiberg/repofit/sdk";
 
 export default defineProbe({
   id: "git.branch-protection",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "safety", weight: 1 }],
   tier: "executed",
   evidence: ["github_api"],

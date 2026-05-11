@@ -6,7 +6,7 @@ const ADR_FILE_PATTERN = /\.(md|markdown)$/i;
 
 export default defineProbe({
   id: "docs.adr-presence",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "context", weight: 1 }],
   tier: "derived",
   evidence: ["size_stats"],

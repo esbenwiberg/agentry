@@ -4,7 +4,7 @@ const CHARS_PER_TOKEN = 4;
 
 export default defineProbe({
   id: "size.repo-token-estimate",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "cost", weight: 1 }],
   tier: "derived",
   evidence: ["size_stats"],

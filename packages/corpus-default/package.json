@@ -1,6 +1,6 @@
 {
   "name": "@esbenwiberg/corpus-default",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Default probe corpus for repofit.",
   "type": "module",
   "engines": {
@@ -22,6 +22,6 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@esbenwiberg/repofit": "^0.0.0"
+    "@esbenwiberg/repofit": "^1.0.0"
   }
 }

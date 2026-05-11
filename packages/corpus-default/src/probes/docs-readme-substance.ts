@@ -12,7 +12,7 @@ const CANONICAL_SECTIONS = [
 
 export default defineProbe({
   id: "docs.readme-substance",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "context", weight: 1 }],
   tier: "static",
   evidence: ["files"],

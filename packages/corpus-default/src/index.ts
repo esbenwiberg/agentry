@@ -37,7 +37,7 @@ import typesConfigured from "./probes/types-configured.js";
 
 export const meta = {
   name: "@esbenwiberg/corpus-default",
-  version: "0.0.0",
+  version: "1.0.0",
 };
 
 export const probes = [

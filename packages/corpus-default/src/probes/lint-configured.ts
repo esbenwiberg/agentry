@@ -4,7 +4,7 @@ const LINTERS = ["@biomejs/biome", "eslint", "oxlint", "rome", "standard", "xo"]
 
 export default defineProbe({
   id: "lint.configured",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "feedback", weight: 1 }],
   tier: "static",
   evidence: ["node_package"],

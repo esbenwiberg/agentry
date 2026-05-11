@@ -2,7 +2,7 @@ import { fileExists } from "@esbenwiberg/repofit/sdk/recipes";
 
 export default fileExists({
   id: "editorconfig.present",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "consistency", weight: 1 }],
   rationale: `
     .editorconfig declares indentation, line endings, and final-newline

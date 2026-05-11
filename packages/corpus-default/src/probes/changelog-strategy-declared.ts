@@ -10,7 +10,7 @@ const STRATEGY_PATHS = [
 
 export default defineProbe({
   id: "changelog.strategy-declared",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "consistency", weight: 1 }],
   tier: "static",
   evidence: ["files"],

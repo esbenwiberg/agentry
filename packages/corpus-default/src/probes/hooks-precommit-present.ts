@@ -4,7 +4,7 @@ const HOOK_PATHS = [".husky/pre-commit", ".githooks/pre-commit", ".pre-commit-co
 
 export default defineProbe({
   id: "hooks.precommit-present",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "feedback", weight: 1 }],
   tier: "static",
   evidence: ["files"],

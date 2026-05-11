@@ -2,7 +2,7 @@ import { defineProbe } from "@esbenwiberg/repofit/sdk";
 
 export default defineProbe({
   id: "format.clean",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [
     { id: "consistency", weight: 1 },
     { id: "feedback", weight: 0.3 },

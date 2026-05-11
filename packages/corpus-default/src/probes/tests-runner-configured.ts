@@ -12,7 +12,7 @@ const TEST_RUNNERS = [
 
 export default defineProbe({
   id: "tests.runner-configured",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "feedback", weight: 1 }],
   tier: "static",
   evidence: ["node_package"],

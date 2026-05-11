@@ -4,7 +4,7 @@ const FORMATTERS = ["prettier", "@biomejs/biome", "dprint"];
 
 export default defineProbe({
   id: "format.configured",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "consistency", weight: 1 }],
   tier: "static",
   evidence: ["node_package"],

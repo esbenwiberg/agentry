@@ -12,7 +12,7 @@ const PRESENT_THRESHOLD = 4;
 
 export default defineProbe({
   id: "gitignore.comprehensive",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "consistency", weight: 1 }],
   tier: "derived",
   evidence: ["gitignore"],

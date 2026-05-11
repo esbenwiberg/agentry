@@ -3,7 +3,7 @@ import { LATENCY_BANDS } from "./_shared/latency-bands.js";
 
 export default defineProbe({
   id: "latency.lint",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "latency", weight: 1 }],
   tier: "executed",
   evidence: ["node_package", "commands"],

@@ -11,7 +11,7 @@ const DANGEROUS_PATTERNS: { pattern: RegExp; message: string }[] = [
 
 export default defineProbe({
   id: "safety.dangerous-script-flags",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "safety", weight: 1 }],
   tier: "static",
   evidence: ["node_package"],

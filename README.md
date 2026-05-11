@@ -2,22 +2,64 @@
 
 Measure how agent-friendly your repo is. Score, gate, and improve.
 
-> **Status:** Phase 0 scaffold. Not yet usable. See [`docs/design/`](docs/design/) for the design corpus.
+repofit runs a corpus of **probes** against your repository — reading
+files, scanning git history, executing scripts — and reduces what it
+finds to a single **fitness** number plus a per-dimension breakdown.
+Use it locally to spot rough edges, and in CI as a ratchet that
+prevents regressions.
 
-## Quickstart (planned for v1)
-
-```bash
-npx @esbenwiberg/repofit check
-```
-
-## Development
+## Quickstart
 
 ```bash
-npm install
-npm run typecheck
-npm run build
-npm test
+npx @esbenwiberg/repofit          # one-shot score, no install
 ```
+
+To wire it into a repo:
+
+```bash
+npx @esbenwiberg/repofit --init   # writes repofit.config.json
+npx @esbenwiberg/repofit --accept # writes repofit-baseline.json
+```
+
+Commit both files. From then on, `repofit check --ci` in CI gates
+against the baseline; `repofit check --accept` ratchets it forward
+after intentional improvements.
+
+## What it scores
+
+Six dimensions, weighted into one fitness score:
+
+| Dimension   | What it measures                                          |
+|-------------|-----------------------------------------------------------|
+| Context     | Onboarding docs, ADRs, agent guidance, README substance   |
+| Consistency | Lint/format/types/test configuration, conventional commits|
+| Cost        | Repo size, file depth, token estimate                     |
+| Feedback    | CI runs, lint/format/types clean                          |
+| Latency     | Wall-clock of test/build/lint/typecheck (opt-in tier)     |
+| Safety      | Secret hygiene, dangerous flags, branch protection (gating)|
+
+Each probe carries its own rationale and scoring rubric. Run
+`repofit explain <probe-id>` for the full story behind any reading.
+
+## Output modes
+
+```bash
+repofit                  # human-readable (default)
+repofit --json           # full machine-readable report
+repofit --ci             # one-line verdict + GitHub Actions annotations
+repofit --include executed  # also run the slow stuff (test/build/lint timings)
+```
+
+## How it works
+
+The engine runs probes in tiers — static → derived → historical →
+executed → reasoned — and skips the opt-in tiers (executed/reasoned)
+unless you ask for them. Each probe emits a typed **reading**
+(predicate, count, magnitude, inventory, distribution, or n/a), which
+the scorer reduces to 0–100. Probes are bundled in versioned **corpus**
+packages so the rubric is reproducible.
+
+See [`docs/design/`](docs/design/) for the full architecture.
 
 ## Layout
 
@@ -27,6 +69,19 @@ packages/
   corpus-default/  @esbenwiberg/corpus-default  — bundled probes
 docs/design/                                    — design corpus
 ```
+
+## Development
+
+```bash
+npm install
+npm run typecheck
+npm run lint
+npm run build
+npm test
+```
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for branch/commit conventions
+and the probe-authoring guide.
 
 ## License
 

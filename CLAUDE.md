@@ -1,9 +1,7 @@
 # repofit
 
-> **Status:** Phase 0 scaffold. The agentry codebase that previously lived here
-> has been removed; this repo now hosts repofit (the successor architecture
-> described in [`docs/design/`](docs/design/)). Coding is in early bring-up —
-> packages exist, but verbs are not implemented yet.
+> **Status:** v1.0.0 — initial release. CLI, default corpus, and dogfood gate
+> are all wired. Release notes: [`docs/release/v1.0.0.md`](docs/release/v1.0.0.md).
 
 A CLI that measures how agent-friendly a repo is. The engine runs a corpus of
 **probes** that emit **readings**, scores each reading, aggregates per
@@ -19,17 +17,17 @@ packages/
   engine/          @esbenwiberg/repofit          — CLI + runtime
     src/
       cli/         entrypoints
-      sdk/         public API (defineProbe, defineDimension, recipes) — Phase 1
-      evidence/    subsystem registry + gatherers                     — Phase 1
-      loader/      config + corpus + baseline loaders                 — Phase 1+
-      runner/      tier scheduler, probe execution                    — Phase 1+
-      scorer/      reading → score                                    — Phase 1+
-      aggregator/  probe → dim → fitness                              — Phase 1+
-      reporters/   human / json / ci                                  — Phase 1+
+      sdk/         public API (defineProbe, defineDimension, recipes)
+      evidence/    subsystem registry + gatherers
+      loader/      config + corpus + baseline loaders
+      runner/      tier scheduler, probe execution
+      scorer/      reading → score
+      aggregator/  probe → dim → fitness
+      reporters/   human / json / ci
   corpus-default/  @esbenwiberg/corpus-default   — bundled probes
     src/
-      probes/      one file per probe                                 — Phase 1+
-      dimensions/  dimension definitions                              — Phase 1+
+      probes/      one file per probe
+      dimensions/  dimension definitions
 docs/
   design/          design corpus (read this before changing the design)
 ```
@@ -47,7 +45,7 @@ npm test               # vitest run on both packages
 CLI smoke test once built:
 
 ```bash
-node packages/engine/dist/cli/index.js --version    # → repofit 0.0.0
+node packages/engine/dist/cli/index.js --version    # → repofit 1.0.0
 ```
 
 ## Key Conventions
@@ -57,8 +55,8 @@ node packages/engine/dist/cli/index.js --version    # → repofit 0.0.0
   `.githooks/commit-msg`. Wire hooks via `.githooks/install-hooks.sh`.
 - **Pre-commit:** `.githooks/pre-commit` runs a secret scan.
 - **No `--no-verify`.** Fix the underlying issue.
-- **No `CHANGELOG.md` discipline.** The agentry-era `.changes/` fragment system
-  was removed; release notes will be written manually at v1 ship time.
+- **No `CHANGELOG.md` discipline.** Release notes are written per-release
+  under [`docs/release/`](docs/release/).
 - **License:** MIT.
 - **npm scope:** `@esbenwiberg` (packages publish as `@esbenwiberg/repofit`
   and `@esbenwiberg/corpus-default`).
@@ -68,7 +66,8 @@ node packages/engine/dist/cli/index.js --version    # → repofit 0.0.0
 | What | Where |
 |---|---|
 | Design corpus (read before changing the architecture) | [`docs/design/`](docs/design/) — start with `README.md` |
-| Implementation plan (phases 0 → 7) | [`docs/design/implementation-plan.md`](docs/design/implementation-plan.md) |
+| Release notes | [`docs/release/`](docs/release/) |
+| Implementation plan (phases 0 → 7, now complete) | [`docs/design/implementation-plan.md`](docs/design/implementation-plan.md) |
 | Probe schema | [`docs/design/probe-schema.md`](docs/design/probe-schema.md) |
 | Report formats | [`docs/design/reports.md`](docs/design/reports.md) |
 | Config + baseline | [`docs/design/config-and-baseline.md`](docs/design/config-and-baseline.md) |

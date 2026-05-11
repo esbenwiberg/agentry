@@ -16,7 +16,7 @@ const TEST_COMMAND_HINTS = [
 
 export default defineProbe({
   id: "ci.runs-tests",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "feedback", weight: 1 }],
   tier: "derived",
   evidence: ["ci_workflows"],

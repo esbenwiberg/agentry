@@ -18,7 +18,7 @@ const PRECOMMIT_PATHS = [
 
 export default defineProbe({
   id: "secrets.precommit-scan-configured",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "safety", weight: 1 }],
   tier: "derived",
   evidence: ["files", "ci_workflows"],

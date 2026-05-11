@@ -6,7 +6,7 @@ const BYTE_THRESHOLD = 100 * 1024;
 
 export default defineProbe({
   id: "size.large-files",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "cost", weight: 1 }],
   tier: "derived",
   evidence: ["size_stats"],

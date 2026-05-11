@@ -5,7 +5,7 @@ const CONVENTIONAL_PATTERN =
 
 export default defineProbe({
   id: "commits.conventional-followed",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "consistency", weight: 1 }],
   tier: "historical",
   evidence: ["commit_history"],

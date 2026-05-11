@@ -2,7 +2,7 @@ import { defineProbe } from "@esbenwiberg/repofit/sdk";
 
 export default defineProbe({
   id: "size.directory-depth",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "cost", weight: 1 }],
   tier: "derived",
   evidence: ["size_stats"],

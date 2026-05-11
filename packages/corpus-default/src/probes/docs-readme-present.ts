@@ -2,7 +2,7 @@ import { fileExists } from "@esbenwiberg/repofit/sdk/recipes";
 
 export default fileExists({
   id: "docs.readme-present",
-  version: "0.0.0",
+  version: "1.0.0",
   dimensions: [{ id: "context", weight: 1 }],
   rationale: `
     A README is the canonical entry point for any human or agent landing in
