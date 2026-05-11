@@ -213,12 +213,20 @@ Each probe declares its supported knobs and defaults in its `defineProbe()` conf
 
 ```jsonc
 "llm": {
-  "provider": "anthropic",
-  "apiKeyEnv": "ANTHROPIC_API_KEY"
+  "provider": "auto",                  // auto | anthropic | claude-code | openai | local
+  "apiKeyEnv": "ANTHROPIC_API_KEY",    // used when provider resolves to anthropic
+  "baseUrl": "https://..."             // optional; for self-hosted / proxy
 }
 ```
 
-Reasoned tier (v1.x). API keys never in the config file — always via env var. Endpoint URL also configurable for self-hosted (`baseUrl`).
+Reasoned tier (v1.x). Providers:
+
+- **`anthropic`** — direct API; reads key from env (`apiKeyEnv`). Never literal key in config.
+- **`claude-code`** — when trim runs inside a Claude Code session, reuse the session's auth/transport via the Claude Agent SDK. No separate API key needed; cost is billed to the host session. Detect via env (`CLAUDECODE=1` or similar) when explicit, or auto.
+- **`openai`** / **`local`** — slots reserved.
+- **`auto`** (default) — prefer `claude-code` if detected, else fall back to `anthropic` via env. Lets a CI run the same config that a developer uses inside Claude Code.
+
+Exact `claude-code` transport (SDK call vs IPC vs MCP-style bridge) is a v1.x implementation detail; the schema reservation is the v1 commitment.
 
 **Status: agreed.**
 
@@ -396,13 +404,13 @@ Same discipline for the baseline file — JSON schema validation, fail loud.
 
 ---
 
-## 14. Open questions
+## 14. Resolved decisions
 
-1. **Waiver identification** — `probeId + location` is human-friendly but breaks under line shifts. Add a `findingHash` for content-stable matching? I lean *yes for v1.x, no for v1* — keep it simple, accept the brittleness, document it.
-2. **Baseline granularity** — keep both per-probe and per-dimension? I lean yes (per-dimension gates, per-probe explains). Costs ~30 lines for a default corpus, diff-readable.
-3. **`trim init` as a verb** — or stay with `trim check --init` flag? Verb keeps verb count to 3; flag is mildly cute. Function-wise identical.
-4. **Multiple corpora ordering** — when two corpus packages declare the same dimension recipe (`context`), how do we merge? Last-wins? Diff and require explicit project-level resolution? I lean *last-wins with a load-time warning*, like CSS.
-5. **Reasoned tier credentials** — only via env, never config file. Agreed; just confirming the discipline holds.
+1. **Waiver identification**: `probeId + location` only in v1. Brittle under line shifts; document the limitation. Add `findingHash` in v1.x for content-stable matching.
+2. **Baseline granularity**: store **both** per-dimension scores (the gate) and per-probe scores (the explanation). ~30 extra lines for the default corpus; diff-readable.
+3. **Init surface**: `trim check --init` flag, not a separate verb. Keeps verb count at three.
+4. **Multiple corpora**: **last-wins with a load-time warning** when two corpus packages define the same dimension recipe. Mirrors layered config conventions.
+5. **LLM credentials**: env-only for literal keys (`apiKeyEnv` points to env var; never `apiKey` in the file). `provider: "claude-code"` reuses the host Claude Code session's auth via the Claude Agent SDK, billed to that session. `provider: "auto"` prefers claude-code when detected, falls back to anthropic via env.
 
 ---
 
@@ -412,7 +420,8 @@ Same discipline for the baseline file — JSON schema validation, fail loud.
 - SARIF reporter (slot reserved).
 - Finding-hash-based waiver matching (v1: location-only).
 - Per-probe severity promotion in dimension overrides (v1.x).
-- LLM endpoint config for non-Anthropic providers (slot reserved).
+- `claude-code` LLM provider transport mechanism (Claude Agent SDK call vs IPC vs MCP bridge); schema slot reserved in v1.
+- `openai`, `local`, and other LLM provider implementations (slots reserved).
 
 ---
 

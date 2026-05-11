@@ -419,7 +419,7 @@ Reasons we'd eventually split:
 
 ## 18. Open questions
 
-- Config + baseline schemas drafted in `config-and-baseline.md`. 5 small open items inside that doc (waiver hash, init verb vs flag, corpus merge order, baseline granularity, llm credentials discipline).
+- Config + baseline schemas locked in `config-and-baseline.md`. Notable: `provider: "claude-code"` reuses the host Claude Code session's auth via the Claude Agent SDK (transport mechanism deferred to v1.x).
 - SARIF reporter — v1.x or later? (currently: reserved slot, not v1)
 - Final naming for npm package(s) / scope — likely `@<org>/trim` for CLI; `@<org>/corpus-default` for the bundled corpus.
 - License for the project.
