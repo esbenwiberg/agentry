@@ -33,5 +33,6 @@ coverage/
 
 # Local agent state
 .claude/
+.mcp.json
 CLAUDE.local.md
 AGENTS.local.md
