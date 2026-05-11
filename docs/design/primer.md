@@ -418,16 +418,18 @@ Reasons we'd eventually split:
 
 ## 18. Open questions
 
-- Default dimension list — **next discussion topic**.
+- Default corpus probe set — **next discussion topic** (per-dimension).
 - SARIF reporter — v1.x or later? (currently: reserved slot, not v1)
-- Final `primer.config.json` schema — settle once dimensions are concrete.
+- Final `primer.config.json` schema — settle once probes are concrete.
 - License for the project.
 - Initial CI surface — which checks gate primer's own development?
 - Plugin distribution — npm by default; do we want a registry index later?
 
-> Probe schema concretized in `probe-schema.md`. Locked decisions: weight
-> precedence (probe → dimension → project), detectors always async,
-> recipe library ships in v1.
+> Probe schema concretized in `probe-schema.md`. Default dimensions
+> sketched in `dimensions.md` (three tentative items: names, weights,
+> gating choice). Locked decisions on probes: weight precedence (probe →
+> dimension → project), detectors always async, recipe library ships in
+> v1.
 
 ---
 
