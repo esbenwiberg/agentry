@@ -1,7 +1,6 @@
 # primer — default dimensions
 
-> **Status:** proposed shape, three items tentative pending confirmation
-> (see end of file). Companion to `primer.md` (architecture) and
+> **Status:** agreed. Companion to `primer.md` (architecture) and
 > `probe-schema.md` (authoring contract).
 
 ---
@@ -37,7 +36,7 @@ Weights sum to 100%. They are an opinionated *starting point*, not law.
 The weight table itself ships as a dimension recipe in the default
 corpus — one PR away from adjustment.
 
-**Status: tentative (see §7).**
+**Status: agreed.**
 
 ---
 
@@ -146,7 +145,7 @@ Promotion path for v1.x: if real-world usage shows overall scores
 misleading users when Feedback is collapsing, promote Feedback to
 gating. Start narrow.
 
-**Status: tentative (see §7).**
+**Status: agreed.**
 
 ---
 
@@ -172,15 +171,7 @@ Reasoned-tier probes count toward this budget but are off by default.
 
 ---
 
-## 7. Open / tentative items
-
-1. **The six names** — Context / Feedback / Consistency / Cost / Latency / Safety. Alternatives considered: Comprehension (for Context), Velocity (for Latency), Conformance (for Consistency). Picked simpler word in each pair.
-2. **Default weights** — 25/20/15/15/10/15. Reasonable starting bias? Context highest because in practice it's the strongest lever on agent performance.
-3. **Safety as the only gating dimension in v1** — agree, or promote Feedback too?
-
----
-
-## 8. Deferred to later versions
+## 7. Deferred to later versions
 
 - **Per-ecosystem dimension recipes** — e.g. a .NET-specific Feedback recipe that re-weights probes appropriate to .NET tooling. v1.x.
 - **Sub-dimensions / hierarchical aggregation** — keep flat in v1; revisit if probe counts per dimension exceed ~15.

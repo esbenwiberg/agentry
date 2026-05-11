@@ -426,8 +426,9 @@ Reasons we'd eventually split:
 - Plugin distribution — npm by default; do we want a registry index later?
 
 > Probe schema concretized in `probe-schema.md`. Default dimensions
-> sketched in `dimensions.md` (three tentative items: names, weights,
-> gating choice). Locked decisions on probes: weight precedence (probe →
+> locked in `dimensions.md`: Context (25%) / Feedback (20%) /
+> Consistency (15%) / Cost (15%) / Latency (10%) / Safety (15%,
+> gating). Locked decisions on probes: weight precedence (probe →
 > dimension → project), detectors always async, recipe library ships in
 > v1.
 
