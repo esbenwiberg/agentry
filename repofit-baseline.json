@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "acceptedAt": "2026-05-11T19:18:27.763Z",
+  "acceptedAt": "2026-05-11T19:28:34.261Z",
   "corpus": [
     {
       "package": "@esbenwiberg/corpus-default",
-      "version": "0.0.0"
+      "version": "1.0.0"
     }
   ],
   "fitness": 94.53333333333333,
@@ -40,5 +40,5 @@
     "size.repo-token-estimate": 80,
     "commits.conventional-followed": 100
   },
-  "commit": "3d8bfb5bfbf912631b08b954b36f5c3ac4cd035d"
+  "commit": "d67fd28e5d82d8178e8c2dd0e711f795e91e452a"
 }
