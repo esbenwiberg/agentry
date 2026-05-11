@@ -35,7 +35,8 @@ export type ScoreConfig =
       bands: Band[];
     };
 
-export type Tier = "static" | "derived" | "historical" | "executed" | "reasoned";
+export const TIERS = ["static", "derived", "historical", "executed", "reasoned"] as const;
+export type Tier = (typeof TIERS)[number];
 
 export type DimensionAssignment = { id: string; weight: number };
 
@@ -153,8 +154,6 @@ export type CommandRun = {
 
 export type CommandsEvidence = {
   run(spec: CommandSpec): Promise<CommandRun>;
-  totalMs(): number;
-  runCount(): number;
 };
 
 export type BranchProtectionResult =

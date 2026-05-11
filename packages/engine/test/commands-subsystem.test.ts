@@ -12,18 +12,17 @@ describe("commands subsystem", () => {
     expect(run.stdout).toBe("hi");
     expect(run.timedOut).toBe(false);
     expect(run.durationMs).toBeGreaterThanOrEqual(0);
-    expect(evidence.runCount()).toBe(1);
-    expect(evidence.totalMs()).toBeGreaterThanOrEqual(0);
   });
 
-  test("warmup runs the command twice but only counts the measured run", async () => {
+  test("warmup runs the command twice; only the measured run is returned", async () => {
     const evidence = commandsSubsystem.gather({ cwd: process.cwd() });
-    await evidence.run({
-      argv: ["node", "-e", "process.exit(0)"],
+    const run = await evidence.run({
+      argv: ["node", "-e", "process.stdout.write('measured'); process.exit(0)"],
       warmup: 1,
       timeoutMs: 5_000,
     });
-    expect(evidence.runCount()).toBe(1);
+    expect(run.exitCode).toBe(0);
+    expect(run.stdout).toBe("measured");
   });
 
   test("non-zero exit is reported, not thrown", async () => {

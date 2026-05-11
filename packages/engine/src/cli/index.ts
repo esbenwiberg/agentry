@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { VERSION } from "../index.js";
-import type { Tier } from "../sdk/types.js";
+import { TIERS, type Tier } from "../sdk/types.js";
 import { errorMessage } from "../util/error-message.js";
 import { check, type OutputMode } from "./check.js";
 import { explain } from "./explain.js";
 
-const VALID_TIERS = new Set<Tier>(["static", "derived", "historical", "executed", "reasoned"]);
+const VALID_TIERS = new Set<Tier>(TIERS);
 
 function parseInclude(value: string, previous: Tier[] = []): Tier[] {
   const tokens = value
@@ -15,7 +15,7 @@ function parseInclude(value: string, previous: Tier[] = []): Tier[] {
     .filter((t) => t.length > 0);
   for (const t of tokens) {
     if (!VALID_TIERS.has(t as Tier)) {
-      throw new Error(`--include: unknown tier '${t}' (valid: ${[...VALID_TIERS].join(", ")})`);
+      throw new Error(`--include: unknown tier '${t}' (valid: ${TIERS.join(", ")})`);
     }
   }
   return [...previous, ...(tokens as Tier[])];

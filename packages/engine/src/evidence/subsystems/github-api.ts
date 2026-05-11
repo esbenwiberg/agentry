@@ -1,9 +1,5 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import type { BranchProtectionResult, GatherContext, GithubApiEvidence } from "../../sdk/types.js";
-
-const exec = promisify(execFile);
-const REMOTE_URL_REGEX = /github\.com[:/]([^/]+)\/([^/.]+?)(?:\.git)?(?:\s|$)/i;
+import { detectDefaultBranch, detectGithubRemote } from "../../util/git.js";
 
 export const githubApiSubsystem = {
   gather(ctx: GatherContext): GithubApiEvidence {
@@ -12,10 +8,13 @@ export const githubApiSubsystem = {
         const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
         if (!token) return { kind: "unavailable", reason: "no GITHUB_TOKEN/GH_TOKEN in env" };
 
-        const remote = await detectRemote(ctx.cwd);
+        const [remote, defaultBranch] = await Promise.all([
+          detectGithubRemote(ctx.cwd),
+          branch ? Promise.resolve(null) : detectDefaultBranch(ctx.cwd),
+        ]);
         if (!remote) return { kind: "unavailable", reason: "no GitHub origin remote" };
 
-        const target = branch ?? (await detectDefaultBranch(ctx.cwd)) ?? "main";
+        const target = branch ?? defaultBranch ?? "main";
         const url = `https://api.github.com/repos/${remote.owner}/${remote.repo}/branches/${target}/protection`;
 
         try {
@@ -37,25 +36,3 @@ export const githubApiSubsystem = {
     };
   },
 };
-
-async function detectRemote(cwd: string): Promise<{ owner: string; repo: string } | null> {
-  try {
-    const { stdout } = await exec("git", ["remote", "get-url", "origin"], { cwd });
-    const match = REMOTE_URL_REGEX.exec(stdout.trim());
-    if (!match?.[1] || !match[2]) return null;
-    return { owner: match[1], repo: match[2] };
-  } catch {
-    return null;
-  }
-}
-
-async function detectDefaultBranch(cwd: string): Promise<string | null> {
-  try {
-    const { stdout } = await exec("git", ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], {
-      cwd,
-    });
-    return stdout.trim().replace(/^origin\//, "") || null;
-  } catch {
-    return null;
-  }
-}

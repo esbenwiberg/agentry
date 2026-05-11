@@ -1,7 +1,8 @@
 import type { Waiver } from "../loader/config.js";
 import { score } from "../scorer/index.js";
-import type { EvidenceMap, Probe, Reading, Tier } from "../sdk/types.js";
+import { type EvidenceMap, type Probe, type Reading, TIERS, type Tier } from "../sdk/types.js";
 import { errorMessage } from "../util/error-message.js";
+import { startTimer } from "../util/timing.js";
 
 export type ProbeResult = {
   probe: Probe;
@@ -20,8 +21,9 @@ export type RunSummary = {
   tierWallClockMs: Record<Tier, number>;
 };
 
-const TIER_ORDER: Tier[] = ["static", "derived", "historical", "executed", "reasoned"];
-export const DEFAULT_TIERS: ReadonlySet<Tier> = new Set(["static", "derived", "historical"]);
+export const DEFAULT_TIERS: ReadonlySet<Tier> = new Set(
+  TIERS.filter((t) => t !== "executed" && t !== "reasoned"),
+);
 
 export async function runProbes(
   probes: Probe[],
@@ -42,21 +44,36 @@ export async function runProbesDetailed(
   const buckets = groupByTier(eligible);
   const results: ProbeResult[] = [];
   const tierWallClockMs = emptyTierMap();
-  for (const tier of TIER_ORDER) {
+  for (const tier of TIERS) {
     const bucket = buckets.get(tier);
     if (!bucket || bucket.length === 0) continue;
-    const tierStart = process.hrtime.bigint();
-    const tierResults = await Promise.all(
-      bucket.map((p) => runOne(p, evidence, waiversByProbe.get(p.id) ?? [])),
-    );
-    tierWallClockMs[tier] = Number((process.hrtime.bigint() - tierStart) / 1_000_000n);
+    const elapsed = startTimer();
+    const tierResults =
+      tier === "executed"
+        ? await runSerial(bucket, evidence, waiversByProbe)
+        : await Promise.all(bucket.map((p) => runOne(p, evidence, waiversByProbe.get(p.id) ?? [])));
+    tierWallClockMs[tier] = elapsed();
     results.push(...tierResults);
   }
   return { results, tierWallClockMs };
 }
 
+async function runSerial(
+  probes: Probe[],
+  evidence: EvidenceMap,
+  waiversByProbe: Map<string, Waiver[]>,
+): Promise<ProbeResult[]> {
+  const out: ProbeResult[] = [];
+  for (const probe of probes) {
+    out.push(await runOne(probe, evidence, waiversByProbe.get(probe.id) ?? []));
+  }
+  return out;
+}
+
 function emptyTierMap(): Record<Tier, number> {
-  return { static: 0, derived: 0, historical: 0, executed: 0, reasoned: 0 };
+  const out = {} as Record<Tier, number>;
+  for (const t of TIERS) out[t] = 0;
+  return out;
 }
 
 function groupByTier(probes: Probe[]): Map<Tier, Probe[]> {
@@ -84,17 +101,16 @@ async function runOne(
   evidence: EvidenceMap,
   waivers: Waiver[],
 ): Promise<ProbeResult> {
-  const start = process.hrtime.bigint();
+  const elapsed = startTimer();
   let reading: Reading;
   try {
     reading = await probe.detect(evidence);
   } catch (err) {
-    const durationMs = Number((process.hrtime.bigint() - start) / 1_000_000n);
     return {
       probe,
       reading: { kind: "error", error: errorMessage(err) },
       score: null,
-      durationMs,
+      durationMs: elapsed(),
     };
   }
 
@@ -102,15 +118,13 @@ async function runOne(
 
   try {
     const result = score(filtered, probe.score);
-    const durationMs = Number((process.hrtime.bigint() - start) / 1_000_000n);
-    return { probe, reading: filtered, score: result, durationMs };
+    return { probe, reading: filtered, score: result, durationMs: elapsed() };
   } catch (err) {
-    const durationMs = Number((process.hrtime.bigint() - start) / 1_000_000n);
     return {
       probe,
       reading: { kind: "error", error: `scoring failed: ${errorMessage(err)}` },
       score: null,
-      durationMs,
+      durationMs: elapsed(),
     };
   }
 }

@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Tier } from "../sdk/types.js";
+import { TIERS, type Tier } from "../sdk/types.js";
 import { errorMessage } from "../util/error-message.js";
 import { isObject } from "../util/is-object.js";
 
@@ -52,7 +52,6 @@ export const DEFAULT_CONFIG: ProjectConfig = {
 };
 
 const VALID_GATE_MODES: readonly GateMode[] = ["ratchet", "absolute", "advisory"];
-const VALID_TIERS: readonly Tier[] = ["static", "derived", "historical", "executed", "reasoned"];
 
 export async function loadProjectConfig(cwd: string): Promise<ProjectConfig | null> {
   let raw: string;
@@ -115,10 +114,10 @@ function validateGate(raw: unknown, path: string): GateConfig {
   if (raw.include !== undefined) {
     if (!Array.isArray(raw.include)) throw configError(`${path}/include`, "must be an array");
     for (const [i, t] of raw.include.entries()) {
-      if (typeof t !== "string" || !VALID_TIERS.includes(t as Tier)) {
+      if (typeof t !== "string" || !TIERS.includes(t as Tier)) {
         throw configError(
           `${path}/include/${i}`,
-          `must be one of ${VALID_TIERS.join(", ")}, got ${JSON.stringify(t)}`,
+          `must be one of ${TIERS.join(", ")}, got ${JSON.stringify(t)}`,
         );
       }
     }

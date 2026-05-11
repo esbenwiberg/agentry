@@ -1,4 +1,5 @@
 import { defineProbe } from "@esbenwiberg/repofit/sdk";
+import { LATENCY_BANDS } from "./_shared/latency-bands.js";
 
 export default defineProbe({
   id: "latency.lint",
@@ -32,13 +33,7 @@ export default defineProbe({
   score: {
     kind: "magnitude",
     direction: "negative",
-    bands: [
-      { upTo: 10_000, score: 100 },
-      { upTo: 30_000, score: 80 },
-      { upTo: 120_000, score: 50 },
-      { upTo: 300_000, score: 20 },
-      { score: 0 },
-    ],
+    bands: LATENCY_BANDS,
   },
 
   fixtures: [

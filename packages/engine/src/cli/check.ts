@@ -88,7 +88,7 @@ export async function check(opts: CheckOptions): Promise<number> {
   const cost = executedMs > 0 ? { executedMs } : undefined;
 
   if (output === "human") {
-    console.log(renderHuman({ aggregated, results, verdict, drift, ...(cost ? { cost } : {}) }));
+    console.log(renderHuman({ aggregated, results, verdict, drift, cost }));
     return verdict.pass ? 0 : 1;
   }
 
@@ -107,7 +107,7 @@ export async function check(opts: CheckOptions): Promise<number> {
     baseline: baseline
       ? { fitness: baseline.fitness, dimensions: baseline.dimensions, probes: baseline.probes }
       : null,
-    ...(cost ? { cost } : {}),
+    cost,
   };
 
   if (output === "json") {

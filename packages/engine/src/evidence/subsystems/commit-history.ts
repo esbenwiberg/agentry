@@ -1,8 +1,5 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import type { CommitHistoryEvidence, CommitRecord, GatherContext } from "../../sdk/types.js";
-
-const exec = promisify(execFile);
+import { exec } from "../../util/exec.js";
 
 const DEFAULT_COMMIT_LIMIT = 100;
 const RECORD_SEP = "\x1e";

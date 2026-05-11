@@ -1,12 +1,9 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import type { Aggregated } from "../aggregator/index.js";
 import { BASELINE_FILENAME, type Baseline, writeBaseline } from "../loader/baseline.js";
 import { CONFIG_FILENAME, type ProjectConfig, writeProjectConfig } from "../loader/config.js";
 import type { LoadedCorpus } from "../loader/corpus.js";
+import { exec } from "../util/exec.js";
 import { gitHeadCommit } from "../util/git.js";
-
-const exec = promisify(execFile);
 
 export type InitOptions = { cwd: string; corpus: LoadedCorpus; overwrite?: boolean };
 

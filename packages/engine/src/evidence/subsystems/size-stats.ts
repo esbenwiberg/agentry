@@ -1,11 +1,8 @@
-import { execFile } from "node:child_process";
 import { readFile, stat } from "node:fs/promises";
 import { join, relative } from "node:path";
-import { promisify } from "node:util";
 import type { GatherContext, SizeStatsEvidence, SizeStatsFile } from "../../sdk/types.js";
 import { countLines } from "../../util/count-lines.js";
-
-const exec = promisify(execFile);
+import { exec } from "../../util/exec.js";
 
 const SIZE_PROBE_LIMIT = 5000;
 const BYTE_THRESHOLD_FOR_LINE_COUNT = 2 * 1024 * 1024;

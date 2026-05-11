@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { runProbes } from "../src/runner/tiered.js";
-import type { EvidenceMap, Probe, Tier } from "../src/sdk/types.js";
+import { type EvidenceMap, type Probe, TIERS, type Tier } from "../src/sdk/types.js";
 
-const ALL_TIERS = new Set<Tier>(["static", "derived", "historical", "executed", "reasoned"]);
+const ALL_TIERS = new Set<Tier>(TIERS);
 
 const EMPTY_EVIDENCE: EvidenceMap = {
   files: { has: () => false, readText: async () => undefined },
@@ -20,8 +20,6 @@ const EMPTY_EVIDENCE: EvidenceMap = {
   commit_history: { available: false, commits: [] },
   commands: {
     run: async () => ({ exitCode: 0, durationMs: 0, stdout: "", stderr: "", timedOut: false }),
-    totalMs: () => 0,
-    runCount: () => 0,
   },
   github_api: {
     branchProtection: async () => ({ kind: "unavailable", reason: "test" }),
@@ -101,6 +99,27 @@ describe("tiered runner", () => {
     const results = await runProbes(probes, EMPTY_EVIDENCE);
     expect(results).toHaveLength(2);
   }, 1000);
+
+  test("executed-tier probes run serially to avoid wall-clock skew", async () => {
+    const events: string[] = [];
+    const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+    const probes: Probe[] = [
+      mkProbe("executed.a", "executed", async () => {
+        events.push("a:start");
+        await sleep(20);
+        events.push("a:end");
+        return { kind: "predicate", value: true };
+      }),
+      mkProbe("executed.b", "executed", async () => {
+        events.push("b:start");
+        await sleep(20);
+        events.push("b:end");
+        return { kind: "predicate", value: true };
+      }),
+    ];
+    await runProbes(probes, EMPTY_EVIDENCE, { includeTiers: ALL_TIERS });
+    expect(events).toEqual(["a:start", "a:end", "b:start", "b:end"]);
+  });
 
   test("a probe throwing in detect becomes an error reading without halting the tier", async () => {
     const probes: Probe[] = [

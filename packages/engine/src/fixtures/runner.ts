@@ -175,24 +175,17 @@ type CommandFixture = Partial<CommandRun> & { argv: string[] };
 
 function hydrateCommands(raw: unknown): CommandsEvidence {
   const entries = Array.isArray(raw) ? (raw as CommandFixture[]) : [];
-  let totalMs = 0;
-  let runs = 0;
   return {
     async run(spec: CommandSpec): Promise<CommandRun> {
       const key = spec.argv.join(" ");
       const match = entries.find((e) => e.argv.join(" ") === key);
-      const result: CommandRun = {
+      return {
         exitCode: match?.exitCode ?? null,
         durationMs: match?.durationMs ?? 0,
         stdout: match?.stdout ?? "",
         stderr: match?.stderr ?? "",
         timedOut: match?.timedOut ?? false,
       };
-      totalMs += result.durationMs;
-      runs += 1;
-      return result;
     },
-    totalMs: () => totalMs,
-    runCount: () => runs,
   };
 }

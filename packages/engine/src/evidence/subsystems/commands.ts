@@ -1,13 +1,12 @@
 import { spawn } from "node:child_process";
 import type { CommandRun, CommandSpec, CommandsEvidence, GatherContext } from "../../sdk/types.js";
+import { startTimer } from "../../util/timing.js";
 
 const DEFAULT_TIMEOUT_MS = 60_000;
+const MAX_OUTPUT_BYTES = 1_048_576;
 
 export const commandsSubsystem = {
   gather(ctx: GatherContext): CommandsEvidence {
-    let totalMs = 0;
-    let runs = 0;
-
     return {
       async run(spec: CommandSpec): Promise<CommandRun> {
         const cwd = spec.cwd ?? ctx.cwd;
@@ -18,13 +17,8 @@ export const commandsSubsystem = {
           await execOne(spec.argv, cwd, timeoutMs, spec.env);
         }
 
-        const measured = await execOne(spec.argv, cwd, timeoutMs, spec.env);
-        totalMs += measured.durationMs;
-        runs += 1;
-        return measured;
+        return execOne(spec.argv, cwd, timeoutMs, spec.env);
       },
-      totalMs: () => totalMs,
-      runCount: () => runs,
     };
   },
 };
@@ -47,7 +41,7 @@ function execOne(
   }
 
   return new Promise((resolve) => {
-    const start = process.hrtime.bigint();
+    const elapsed = startTimer();
     const child = spawn(command, args, {
       cwd,
       env: env ? { ...process.env, ...env } : process.env,
@@ -57,25 +51,43 @@ function execOne(
     let stdout = "";
     let stderr = "";
     let timedOut = false;
+    let settled = false;
 
     const timer = setTimeout(() => {
       timedOut = true;
       child.kill("SIGKILL");
     }, timeoutMs);
 
-    child.stdout?.on("data", (chunk) => {
-      stdout += chunk.toString();
+    child.stdout?.on("data", (chunk: Buffer) => {
+      if (stdout.length < MAX_OUTPUT_BYTES) {
+        stdout += chunk.toString(
+          "utf8",
+          0,
+          Math.min(chunk.length, MAX_OUTPUT_BYTES - stdout.length),
+        );
+      }
     });
-    child.stderr?.on("data", (chunk) => {
-      stderr += chunk.toString();
+    child.stderr?.on("data", (chunk: Buffer) => {
+      if (stderr.length < MAX_OUTPUT_BYTES) {
+        stderr += chunk.toString(
+          "utf8",
+          0,
+          Math.min(chunk.length, MAX_OUTPUT_BYTES - stderr.length),
+        );
+      }
     });
 
-    child.on("error", (err) => {
+    const finish = (run: CommandRun) => {
+      if (settled) return;
+      settled = true;
       clearTimeout(timer);
-      const durationMs = Number((process.hrtime.bigint() - start) / 1_000_000n);
-      resolve({
+      resolve(run);
+    };
+
+    child.on("error", (err) => {
+      finish({
         exitCode: null,
-        durationMs,
+        durationMs: elapsed(),
         stdout,
         stderr: stderr || err.message,
         timedOut,
@@ -83,11 +95,9 @@ function execOne(
     });
 
     child.on("close", (code) => {
-      clearTimeout(timer);
-      const durationMs = Number((process.hrtime.bigint() - start) / 1_000_000n);
-      resolve({
+      finish({
         exitCode: code,
-        durationMs,
+        durationMs: elapsed(),
         stdout,
         stderr,
         timedOut,
