@@ -1,88 +1,56 @@
 # Contributing to repofit
 
 repofit is a CLI that measures how agent-friendly a repo is. This guide
-explains the conventions and tooling you need to know to land a change.
+focuses on the contributor-specific bits: how to author a probe, the
+dogfood policy, and the submission flow.
 
-## Project layout
+For environment setup, the dev loop (`typecheck`, `lint`, `build`,
+`test`), and commit conventions, see [`README.md`](README.md) and
+[`CLAUDE.md`](CLAUDE.md). For architecture, see
+[`docs/design/`](docs/design/) — start with
+[`README.md`](docs/design/README.md).
 
-npm workspaces monorepo with two packages:
+## Setting up hooks
 
-- `packages/engine` — `@esbenwiberg/repofit`: CLI, evidence subsystems,
-  runner, scorer, reporters.
-- `packages/corpus-default` — `@esbenwiberg/corpus-default`: bundled
-  probes and dimension definitions.
-
-Design corpus lives in [`docs/design/`](docs/design/). Read it before
-proposing architectural changes.
-
-## Setup
+After `npm install`, wire the local hooks:
 
 ```bash
-git clone https://github.com/esbenwiberg/repofit.git
-cd repofit
-npm install
 .githooks/install-hooks.sh
 ```
 
-`install-hooks.sh` wires `.githooks/pre-commit` (secret scan) and
-`.githooks/commit-msg` (conventional-commit shape).
-
-## Development loop
-
-```bash
-npm run typecheck      # tsc --noEmit on both packages
-npm run lint           # biome check
-npm run build          # emit dist/ for both packages
-npm test               # vitest run on both packages
-```
-
-CLI smoke test once built:
-
-```bash
-node packages/engine/dist/cli/index.js --version
-```
-
-Node 22+. TypeScript strict ESM NodeNext. Biome handles both lint and
-format — no Prettier.
-
-## Branches and commits
-
-- Branch off `main`; name branches `<scope>/<short-topic>`.
-- One logical change per PR. Split unrelated work.
-- Commits follow [Conventional Commits](https://www.conventionalcommits.org/):
-  `type(scope): subject` where `type` is one of `feat`, `fix`, `docs`,
-  `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`,
-  `breaking`, `security`. The `commit-msg` hook enforces this.
-- No `--no-verify`. If a hook fails, fix the underlying issue.
+This installs `.githooks/pre-commit` (secret scan) and
+`.githooks/commit-msg` (conventional-commit shape). Do not bypass with
+`--no-verify`; fix the underlying issue.
 
 ## Adding a probe
 
 Probes live one-per-file under `packages/corpus-default/src/probes/`.
 
 1. `defineProbe({ ... })` with id, version, dimensions, tier, evidence,
-   rationale, `detect`, `score`, and fixtures.
+   rationale, `detect`, `score`, and fixtures. See
+   [`docs/design/probe-schema.md`](docs/design/probe-schema.md).
 2. Add at least one fixture per branch of `detect`. Fixtures run as
    tests via the engine's fixture runner.
 3. Register the probe in `packages/corpus-default/src/index.ts`.
 4. If the probe introduces a new dimension, add it to
-   `packages/corpus-default/src/dimensions/` and register it too.
+   `packages/corpus-default/src/dimensions/` and register it. See
+   [`docs/design/dimensions.md`](docs/design/dimensions.md).
 
-See [`docs/design/probe-schema.md`](docs/design/probe-schema.md) for
-the full schema and [existing probes](packages/corpus-default/src/probes/)
-for examples.
-
-## Tests
-
-- Unit and fixture tests run under `vitest`. No mocking of the file
-  system — use the fixture-evidence hydrators.
-- New behavior needs a test. New probes need fixtures covering every
-  reading-kind branch.
-- `npm test` is the gate; both packages must pass.
+For how scores aggregate into dimensions and the report shape, see
+[`docs/design/reports.md`](docs/design/reports.md). For how a project
+pins corpora, gates, and ratchets, see
+[`docs/design/config-and-baseline.md`](docs/design/config-and-baseline.md).
 
 ## Dogfood policy
 
-repofit checks itself in CI via `repofit check`. `repofit.config.json`
-pins the corpus and disables three probes that don't apply:
+repofit gates itself in CI via `repofit check --ci`. The static/derived/
+historical tiers run by default; executed-tier probes (latency.*,
+*.clean, branch-protection) are intentionally not part of the CI gate
+to keep the pipeline fast — run them locally with
+`npx repofit --include executed`.
+
+`repofit.config.json` pins the corpus and disables three probes that
+don't apply:
 
 - `changelog.strategy-declared` — repofit deliberately has no CHANGELOG
   discipline pre-v1; release notes will be written manually at ship.
@@ -100,6 +68,6 @@ swap in a recognized scanner).
 ## Submitting
 
 1. Open a PR against `main`.
-2. CI runs `typecheck`, `lint`, `build`, `test`, and a `repofit check`
+2. CI runs typecheck, lint, build, test, and the `repofit check`
    dogfood gate.
-3. Address review comments with follow-up commits, not force-pushes.
+3. Address review with follow-up commits, not force-pushes.

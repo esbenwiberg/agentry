@@ -30,4 +30,4 @@ jobs:
       - run: npm run build
       - run: npm test
       - name: dogfood — repofit gates itself
-        run: node packages/engine/dist/cli/index.js check --ci
+        run: npx repofit --ci
