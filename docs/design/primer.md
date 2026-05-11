@@ -418,13 +418,16 @@ Reasons we'd eventually split:
 
 ## 18. Open questions
 
-- Probe schema concrete shape — **next discussion topic**.
 - Default dimension list — **next discussion topic**.
 - SARIF reporter — v1.x or later? (currently: reserved slot, not v1)
-- Final `primer.config.json` schema — settle once probe schema is concrete.
+- Final `primer.config.json` schema — settle once dimensions are concrete.
 - License for the project.
 - Initial CI surface — which checks gate primer's own development?
 - Plugin distribution — npm by default; do we want a registry index later?
+
+> Probe schema concretized in `probe-schema.md`. Locked decisions: weight
+> precedence (probe → dimension → project), detectors always async,
+> recipe library ships in v1.
 
 ---
 
