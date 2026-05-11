@@ -1,11 +1,14 @@
 import { isDeepStrictEqual } from "node:util";
+import ignore from "ignore";
 import { score as scoreReading } from "../scorer/index.js";
 import type {
   AgentConfigEvidence,
   EvidenceMap,
   FilesEvidence,
   Fixture,
+  GitignoreEvidence,
   GuidanceFile,
+  NodePackageEvidence,
   Probe,
   Reading,
 } from "../sdk/types.js";
@@ -50,6 +53,8 @@ function hydrateFixtureEvidence(raw: Record<string, unknown>): EvidenceMap {
   return {
     files: hydrateFiles(raw.files),
     agent_config: hydrateAgentConfig(raw.agent_config),
+    node_package: hydrateNodePackage(raw.node_package),
+    gitignore: hydrateGitignore(raw.gitignore),
   };
 }
 
@@ -78,4 +83,38 @@ function hydrateAgentConfig(raw: unknown): AgentConfigEvidence {
   const guidance = obj.guidance ?? [];
   const present = new Set(guidance.map((g) => g.path));
   return { guidance, has: (p) => present.has(p) };
+}
+
+function hydrateNodePackage(raw: unknown): NodePackageEvidence {
+  if (!raw || typeof raw !== "object") {
+    return {
+      present: false,
+      dependencies: {},
+      devDependencies: {},
+      scripts: {},
+      raw: null,
+    };
+  }
+  const obj = raw as Partial<NodePackageEvidence>;
+  return {
+    present: obj.present ?? true,
+    dependencies: obj.dependencies ?? {},
+    devDependencies: obj.devDependencies ?? {},
+    scripts: obj.scripts ?? {},
+    raw: obj.raw ?? null,
+  };
+}
+
+function hydrateGitignore(raw: unknown): GitignoreEvidence {
+  if (!raw || typeof raw !== "object") {
+    return { present: false, patterns: [], ignores: () => false };
+  }
+  const obj = raw as { patterns?: string[]; present?: boolean };
+  const patterns = obj.patterns ?? [];
+  const matcher = ignore().add(patterns);
+  return {
+    present: obj.present ?? patterns.length > 0,
+    patterns,
+    ignores: (p) => matcher.ignores(p),
+  };
 }

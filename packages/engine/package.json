@@ -39,6 +39,7 @@
     "@types/node": "^22.19.18"
   },
   "dependencies": {
-    "commander": "^14.0.3"
+    "commander": "^14.0.3",
+    "ignore": "^7.0.5"
   }
 }

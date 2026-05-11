@@ -85,9 +85,25 @@ export type AgentConfigEvidence = {
   has(path: string): boolean;
 };
 
+export type NodePackageEvidence = {
+  present: boolean;
+  dependencies: Record<string, string>;
+  devDependencies: Record<string, string>;
+  scripts: Record<string, string>;
+  raw: Record<string, unknown> | null;
+};
+
+export type GitignoreEvidence = {
+  present: boolean;
+  patterns: string[];
+  ignores(path: string): boolean;
+};
+
 export type EvidenceMap = {
   files: FilesEvidence;
   agent_config: AgentConfigEvidence;
+  node_package: NodePackageEvidence;
+  gitignore: GitignoreEvidence;
 };
 
 export type GatherContext = {
