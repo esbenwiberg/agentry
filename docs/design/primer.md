@@ -130,8 +130,56 @@ nobody trusts the gate.
 - **derived** — uses cached parsed evidence (e.g. parsed package.json). Fast.
 - **historical** — reads git log/blame. Medium, deterministic on a commit.
 - **executed** — shells out (run tests, run a benchmark). Slow, opt-in only via `--include executed`.
+- **reasoned** — calls an LLM for semantic judgment. Stochastic, costly, opt-in only via `--include reasoned`. See below.
 
 **Status: agreed.**
+
+### Reasoned tier (LLM-backed probes)
+
+Some questions can't be answered without semantic judgment — *does this
+README still match the architecture? does this CLAUDE.md actually help an
+agent or is it boilerplate? do these ADRs contradict each other?* Static
+probes can't see this; reasoned probes can.
+
+**Framing**: the LLM evaluates, the engine scores. Detector calls the LLM,
+parses a structured response into a typed reading (usually an Inventory),
+and hands it to the deterministic scorer. Everything downstream is
+unchanged.
+
+```
+evidence → [LLM call] → structured findings → deterministic scorer → score
+```
+
+**Reproducibility via caching, not determinism**:
+- Cache key = `(probe_version, model_id, evidence_subset_hash)`
+- Cache hit → no LLM call. Re-runs on the same commit are free.
+- Cache lives under `.primer/cache/reasoned/<hash>.json`; can be committed for fully-offline CI.
+- Cache misses only on actual evidence change or deliberate probe-version bump.
+
+**Pinned for stability**: model id (full version, never `-latest`), prompt
+template, temperature 0, max tokens, output JSON schema. All hashed into
+the probe version. Model upgrades are explicit acts (probe-version bump →
+re-baseline prompt).
+
+**Optional self-consistency**: probe may declare `samples: 3, aggregate:
+median` for higher-stakes checks. Three calls, take consensus. Costs more,
+drifts less.
+
+**Cost surfacing**: probe declares an estimated token budget per
+invocation. Engine tracks actual spend and prints "this run cost ~$X".
+`--budget <amount>` aborts if exceeded. `explain <probe-id>` shows the
+prompt + estimated cost so authors can audit before adoption.
+
+**Privacy**: probe declares what evidence subset it sends; engine logs it.
+Project config chooses the endpoint (Anthropic / OpenAI / self-hosted /
+proxy). Evidence-requirements declaration is now a privacy contract too.
+No probe gets to send arbitrary repo content.
+
+**Sandboxing extension**: detectors in the `reasoned` tier may request an
+`LLMClient` capability from the engine. Only `reasoned`-tier probes get
+it. No other tier can call out.
+
+**Status: agreed (schema reserved); v1 reserves the tier and shape, v1.x implements.**
 
 ### Remediation slot (deferred impl, reserved schema)
 
@@ -383,6 +431,7 @@ Reasons we'd eventually split:
 ## 19. Deferred to later versions
 
 - `apply` verb (remediation execution); schema slot reserved in v1.
+- `reasoned` tier probes (LLM-backed); tier + schema + cache layout reserved in v1, implementation in v1.x.
 - SARIF output.
 - External-tier evidence subsystems beyond reservation.
 - Custom reporter plugin contract.
@@ -402,3 +451,4 @@ Reasons we'd eventually split:
 - **Tier** — probe cost class (static / derived / historical / executed).
 - **Waiver** — project-level acceptance of a specific finding.
 - **Evidence subsystem** — a typed subset of repo state (files, git, nuget, …) gathered once and shared across probes.
+- **Reasoned probe** — a probe whose detector calls an LLM to produce a structured reading. Lives in the `reasoned` tier; opt-in; cached by content hash for reproducibility.
