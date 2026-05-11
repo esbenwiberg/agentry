@@ -1,7 +1,12 @@
 import { aggregate } from "../aggregator/index.js";
 import { gatherAll } from "../evidence/registry.js";
-import { loadBaseline } from "../loader/baseline.js";
-import { DEFAULT_CONFIG, loadProjectConfig, type ProjectConfig } from "../loader/config.js";
+import { BASELINE_FILENAME, loadBaseline } from "../loader/baseline.js";
+import {
+  CONFIG_FILENAME,
+  DEFAULT_CONFIG,
+  loadProjectConfig,
+  type ProjectConfig,
+} from "../loader/config.js";
 import { loadDefaultCorpus } from "../loader/corpus.js";
 import { effectiveDimensions } from "../loader/effective-dimensions.js";
 import { renderHuman } from "../reporters/human-minimal.js";
@@ -24,14 +29,18 @@ export async function check(opts: CheckOptions): Promise<number> {
   if (opts.init) {
     const created = await writeInitialConfig({ cwd: opts.cwd, corpus });
     console.log(
-      `wrote repofit.config.json (corpus pinned: ${created.corpus?.[0]?.package}@${created.corpus?.[0]?.version})`,
+      `wrote ${CONFIG_FILENAME} (corpus pinned: ${created.corpus?.[0]?.package}@${created.corpus?.[0]?.version})`,
     );
     console.log("gate mode: advisory (run `repofit check --accept` to enable ratchet)");
     return 0;
   }
 
-  const config: ProjectConfig = (await loadProjectConfig(opts.cwd)) ?? DEFAULT_CONFIG;
-  const baseline = await loadBaseline(opts.cwd);
+  const [projectConfig, baseline, evidence] = await Promise.all([
+    loadProjectConfig(opts.cwd),
+    loadBaseline(opts.cwd),
+    gatherAll({ cwd: opts.cwd }),
+  ]);
+  const config: ProjectConfig = projectConfig ?? DEFAULT_CONFIG;
 
   const probes = opts.probe ? corpus.probes.filter((p) => p.id === opts.probe) : corpus.probes;
   if (opts.probe && probes.length === 0) {
@@ -39,7 +48,6 @@ export async function check(opts: CheckOptions): Promise<number> {
     return 2;
   }
 
-  const evidence = await gatherAll({ cwd: opts.cwd });
   const results = await runProbes(probes, evidence, { waivers: config.waivers });
 
   const dimensions = effectiveDimensions(corpus.dimensions, config);
@@ -55,7 +63,7 @@ export async function check(opts: CheckOptions): Promise<number> {
       probeScores,
       allowDirty: opts.dirty,
     });
-    console.log(`wrote repofit-baseline.json (fitness: ${fmt(written.fitness)})`);
+    console.log(`wrote ${BASELINE_FILENAME} (fitness: ${fmt(written.fitness)})`);
     return 0;
   }
 

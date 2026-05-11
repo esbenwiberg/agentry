@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { Aggregated } from "../aggregator/index.js";
-import { type Baseline, writeBaseline } from "../loader/baseline.js";
+import { BASELINE_FILENAME, type Baseline, writeBaseline } from "../loader/baseline.js";
 import { CONFIG_FILENAME, type ProjectConfig, writeProjectConfig } from "../loader/config.js";
 import type { LoadedCorpus } from "../loader/corpus.js";
 
@@ -70,7 +70,7 @@ async function gitWorkingTreeDirty(cwd: string): Promise<boolean> {
 
 function isExpectedDirty(line: string): boolean {
   const path = line.slice(3).trim();
-  return path === CONFIG_FILENAME || path === "repofit-baseline.json";
+  return path === CONFIG_FILENAME || path === BASELINE_FILENAME;
 }
 
 async function gitHeadCommit(cwd: string): Promise<string | undefined> {

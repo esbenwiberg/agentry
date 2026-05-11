@@ -1,3 +1,4 @@
+import { errorMessage } from "../../util/error-message.js";
 import { defineProbe } from "../define-probe.js";
 import type { DimensionAssignment, Fixture, Probe, Tier } from "../types.js";
 
@@ -30,7 +31,7 @@ export function jsonValueEquals(spec: JsonValueEqualsRecipe): Probe {
       } catch (err) {
         return {
           kind: "error",
-          error: `failed to parse ${spec.path} as JSON: ${(err as Error).message}`,
+          error: `failed to parse ${spec.path} as JSON: ${errorMessage(err)}`,
         };
       }
       const actual = pickJsonPath(parsed, spec.jsonPath);

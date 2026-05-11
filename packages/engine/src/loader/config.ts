@@ -2,6 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Tier } from "../sdk/types.js";
 import { errorMessage } from "../util/error-message.js";
+import { isObject } from "../util/is-object.js";
 
 export type GateMode = "ratchet" | "absolute" | "advisory";
 
@@ -249,10 +250,6 @@ function validateReporters(raw: unknown, path: string): { default?: "human" | "j
     out.default = raw.default;
   }
   return out;
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isIsoDate(value: string): boolean {

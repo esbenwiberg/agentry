@@ -1,6 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { errorMessage } from "../util/error-message.js";
+import { isObject } from "../util/is-object.js";
 import type { CorpusPin } from "./config.js";
 
 export type Baseline = {
@@ -92,10 +93,6 @@ function numberMap(raw: unknown, path: string): Record<string, number | null> {
 function numberOrThrow(raw: unknown, path: string): number {
   if (typeof raw !== "number") throw baselineError(path, "must be a number");
   return raw;
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function baselineError(path: string, message: string): Error {
