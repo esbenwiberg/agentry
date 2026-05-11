@@ -1,8 +1,8 @@
 # agentry
 
-> **Active design work**: a successor architecture called **trim** is in design
+> **Active design work**: a successor architecture called **repofit** is in design
 > review under `docs/design/` (start with `docs/design/README.md`). No code
-> against the trim design has been written yet — the scan-driven agentry
+> against the repofit design has been written yet — the scan-driven agentry
 > codebase below is what currently ships.
 
 A CLI that helps any repo become agent-ready. Scan-driven core (ADR-0005):
@@ -59,7 +59,7 @@ node dist/index.js     # run the CLI (until bin link)
 |---|---|
 | Locked design decisions (agentry) | `docs/adr/` |
 | Open design notes | `docs/decisions/` |
-| **Successor architecture (trim) — in design review** | `docs/design/` (start with `README.md`) |
+| **Successor architecture (repofit) — in design review** | `docs/design/` (start with `README.md`) |
 | Conventions for contributors | `PRACTICES.md` |
 | Bundled practice entries | `content/catalog/` |
 | Practice guidance bodies | `content/practices/` |

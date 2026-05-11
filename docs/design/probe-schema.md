@@ -1,7 +1,7 @@
-# trim — probe schema
+# repofit — probe schema
 
 > **Status:** concrete sketch. No SDK file has been written yet; this
-> document is the design target. Companion to `trim.md` (architecture
+> document is the design target. Companion to `repofit.md` (architecture
 > overview).
 
 ---
@@ -13,7 +13,7 @@ A probe is a TypeScript module that default-exports the result of
 re-validates at load time.
 
 ```ts
-import { defineProbe } from '@trim/sdk';
+import { defineProbe } from '@repofit/sdk';
 
 export default defineProbe({
   // Identity
@@ -199,7 +199,7 @@ Typed factory functions that produce the same `defineProbe()` output. The
 60% case authored without writing a detector.
 
 ```ts
-import { fileExists } from '@trim/sdk/recipes';
+import { fileExists } from '@repofit/sdk/recipes';
 
 export default fileExists({
   id: 'agent.claude-md-present',
@@ -249,7 +249,7 @@ Three layers, in order of increasing authority:
 
 1. **Probe default** — `dimensions: [{ id, weight }]` in the probe file.
 2. **Dimension recipe override** — corpus dimension file can re-weight or remove probes from its composition.
-3. **Project config override** — `trim.config.json` has final say.
+3. **Project config override** — `repofit.config.json` has final say.
 
 Same pattern as thresholds. Probes ship sensible defaults; corpus
 dimension recipes curate; projects customize.
@@ -269,7 +269,7 @@ export default defineDimension({
 ```
 
 ```jsonc
-// In trim.config.json (project-side override)
+// In repofit.config.json (project-side override)
 {
   "dimensionOverrides": {
     "agent-context": {

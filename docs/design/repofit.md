@@ -1,4 +1,4 @@
-# trim — design notes
+# repofit — design notes
 
 > **Status:** design-in-flight. This is a successor architecture to agentry,
 > captured during a design conversation. Sections marked **Status: agreed**
@@ -9,7 +9,7 @@
 
 ---
 
-## 1. What trim is
+## 1. What repofit is
 
 A thin CLI that measures and (eventually) improves a repository's *fitness for
 AI coding agents* — quality, cost, latency, safety, maintainability-for-agents.
@@ -23,7 +23,7 @@ v2).
 
 ---
 
-## 2. What trim does / does not
+## 2. What repofit does / does not
 
 ### Does
 - Evaluate a repo against a corpus of declarative *probes*.
@@ -153,7 +153,7 @@ evidence → [LLM call] → structured findings → deterministic scorer → sco
 **Reproducibility via caching, not determinism**:
 - Cache key = `(probe_version, model_id, evidence_subset_hash)`
 - Cache hit → no LLM call. Re-runs on the same commit are free.
-- Cache lives under `.trim/cache/reasoned/<hash>.json`; can be committed for fully-offline CI.
+- Cache lives under `.repofit/cache/reasoned/<hash>.json`; can be committed for fully-offline CI.
 - Cache misses only on actual evidence change or deliberate probe-version bump.
 
 **Pinned for stability**: model id (full version, never `-latest`), prompt
@@ -192,7 +192,7 @@ remediation:
 ```
 
 `guidance` is the escape hatch — a markdown blob the agent can read and act
-on. This is how trim hands the agent a recipe without fabricating content
+on. This is how repofit hands the agent a recipe without fabricating content
 itself.
 
 **Status: agreed (schema reserved); v2 implements the `apply` verb.**
@@ -240,7 +240,7 @@ The same probe can feed multiple dimensions without duplication.
 
 1. **Probe definition** — ships with the corpus. Scoring rules, recommended thresholds, rationale.
 2. **Dimension recipe** — ships with the corpus. Default weights.
-3. **Project config** (`trim.config.json`) — owns the gate. Threshold values, weight overrides, disabled probes, waivers.
+3. **Project config** (`repofit.config.json`) — owns the gate. Threshold values, weight overrides, disabled probes, waivers.
 
 Probe's recommended threshold = advice. Project's threshold = law.
 This seam is what lets the corpus evolve without breaking everyone's CI.
@@ -254,9 +254,9 @@ This seam is what lets the corpus evolve without breaking everyone's CI.
 Two modes from day one:
 
 - **Absolute** — `fitness >= threshold`. Eventual goal.
-- **Ratchet** — `fitness >= baseline` per dimension (not just overall). PRs may not regress. Raise baseline via `trim check --accept`.
+- **Ratchet** — `fitness >= baseline` per dimension (not just overall). PRs may not regress. Raise baseline via `repofit check --accept`.
 
-`trim-baseline.json` (committed) is the only stateful artifact beyond
+`repofit-baseline.json` (committed) is the only stateful artifact beyond
 config.
 
 Pin the **corpus version** in project config. Upgrading the corpus is an
@@ -317,12 +317,12 @@ CI must distinguish "your repo regressed" from "the tool is broken."
 ## 13. Cache layout
 
 ```
-<repo>/.trim/                  # gitignored
+<repo>/.repofit/                  # gitignored
   cache/
     evidence-<sha>-<subsys>.json
     readings-<sha>-<corpus>.json
-trim.config.json               # checked in (the policy)
-trim-baseline.json             # checked in (the gate, ratchet mode)
+repofit.config.json               # checked in (the policy)
+repofit-baseline.json             # checked in (the gate, ratchet mode)
 ```
 
 Baseline and config are committed; everything else is throwaway.

@@ -1,7 +1,7 @@
-# trim — report formats
+# repofit — report formats
 
-> **Status:** concrete sketch. Defines what `trim check` and
-> `trim explain` produce in each output mode. Companion to `trim.md`
+> **Status:** concrete sketch. Defines what `repofit check` and
+> `repofit explain` produce in each output mode. Companion to `repofit.md`
 > (architecture) and `config-and-baseline.md` (gate semantics).
 
 ---
@@ -13,7 +13,7 @@
 | Human (default) | Local terminal | Developer eyeballs | (none) |
 | JSON | Tooling, dashboards, downstream | Machines | `--json` |
 | CI | Pipeline gate | CI runner + annotations | `--ci` |
-| Explain | Single probe / dimension introspection | Developer debugging the corpus | `trim explain <id>` |
+| Explain | Single probe / dimension introspection | Developer debugging the corpus | `repofit explain <id>` |
 
 Modes are mutually exclusive — `--json` and `--ci` can't combine (CI mode emits its own minimal artifact path).
 
@@ -24,7 +24,7 @@ Modes are mutually exclusive — `--json` and `--ci` can't combine (CI mode emit
 ## 2. Human report — example
 
 ```
-trim 1.0.0  ·  corpus @esbenwiberg/corpus-default@1.0.0  ·  commit be447ba
+repofit 1.0.0  ·  corpus @esbenwiberg/corpus-default@1.0.0  ·  commit be447ba
 ─────────────────────────────────────────────────────────────────────
 
 Fitness: 72  (baseline 70, +2)  ·  ratchet  ·  PASS
@@ -53,9 +53,9 @@ Findings  (top 5 by severity)
 0 waivers active
 
 Try:
-  trim check --include executed   measure Latency + 4 more probes
-  trim check --accept             lock current scores as new baseline
-  trim explain docs.adr-presence  rationale + how to improve
+  repofit check --include executed   measure Latency + 4 more probes
+  repofit check --accept             lock current scores as new baseline
+  repofit explain docs.adr-presence  rationale + how to improve
 ```
 
 ### Composition
@@ -109,9 +109,9 @@ Stable schema, versioned. Consumed by dashboards, custom reporters, GitHub Actio
 
 ```jsonc
 {
-  "$schema": "https://trim.dev/schema/report.v1.json",
+  "$schema": "https://repofit.dev/schema/report.v1.json",
   "version": 1,
-  "tool": { "name": "trim", "version": "1.0.0" },
+  "tool": { "name": "repofit", "version": "1.0.0" },
   "ranAt": "2026-05-11T14:23:00Z",
   "commit": "be447ba0...",
   "corpus": [
@@ -188,7 +188,7 @@ Stable schema, versioned. Consumed by dashboards, custom reporters, GitHub Actio
 Minimal stdout, exit code drives the gate, optional structured artifact.
 
 ```
-trim: fitness 72 (baseline 70, +2)  ratchet  PASS
+repofit: fitness 72 (baseline 70, +2)  ratchet  PASS
 ```
 
 Plus:
@@ -202,10 +202,10 @@ Plus:
 
 ---
 
-## 7. `trim explain <probe-id>` — example
+## 7. `repofit explain <probe-id>` — example
 
 ```
-$ trim explain agent.guidance-present
+$ repofit explain agent.guidance-present
 
 Probe       agent.guidance-present  v1.0.0
 Corpus      @esbenwiberg/corpus-default@1.0.0
@@ -234,7 +234,7 @@ Fixtures (2)
   absent   evidence: { files: [] }                  expect: 0
 
 To debug
-  trim check --probe agent.guidance-present
+  repofit check --probe agent.guidance-present
 ```
 
 ### For reasoned-tier probes
@@ -255,7 +255,7 @@ Output schema
   <renders the JSON schema>
 
 Last LLM call
-  Cached at  .trim/cache/reasoned/<hash>.json
+  Cached at  .repofit/cache/reasoned/<hash>.json
   Tokens     4823
   Cost       $0.014
 ```
@@ -264,10 +264,10 @@ Last LLM call
 
 ---
 
-## 8. `trim explain <dimension>` — example
+## 8. `repofit explain <dimension>` — example
 
 ```
-$ trim explain context
+$ repofit explain context
 
 Dimension   Context
 Question    Can the agent understand this repo on first read?
@@ -292,8 +292,8 @@ Aggregation
   Weighted average; n/a probes dropped; error probes surfaced but not gating.
 
 To debug
-  trim explain docs.adr-presence
-  trim check --probe docs.module-readme-coverage
+  repofit explain docs.adr-presence
+  repofit check --probe docs.module-readme-coverage
 ```
 
 **Status: agreed.**
@@ -330,7 +330,7 @@ Errors surface in both human and JSON, do not contribute to scores, do not gate 
 ⓘ Baseline drift detected
   Added probes (running but not gating): agent.new-probe
   Removed probes (stale in baseline):    docs.old-thing
-  Run `trim check --accept` to refresh.
+  Run `repofit check --accept` to refresh.
 ```
 
 **Status: agreed.**

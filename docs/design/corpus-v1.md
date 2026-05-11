@@ -1,4 +1,4 @@
-# trim — default corpus v1
+# repofit — default corpus v1
 
 > **Status:** draft for review. Concrete probe set across the six
 > default dimensions. Companion to `dimensions.md`. Probe IDs and shapes
@@ -117,7 +117,7 @@ Coupling probes to dimensions via prefix would force renames when we move a prob
 **Notes:**
 - `commits.conventional-followed` looks at last 100 commits (configurable), pattern-matches against conventional-commits regex. % conformance, banded.
 - `commits.message-style-stable` is fuzzier — flags wildly inconsistent style even if not conventional (e.g. half are `feat: x` and half are `Added X`). Distinct from conformance.
-- `gitignore.comprehensive` checks coverage of common bucket-patterns: env files, build artifacts, OS junk, editor state, lockfile-of-the-wrong-tool, agent caches (`.trim/`, `.cursor/`, etc).
+- `gitignore.comprehensive` checks coverage of common bucket-patterns: env files, build artifacts, OS junk, editor state, lockfile-of-the-wrong-tool, agent caches (`.repofit/`, `.cursor/`, etc).
 - `changelog.strategy-declared` accepts any of: `CHANGELOG.md`, `.changes/`, `changesets/`, `RELEASES.md`, declared release strategy in CONTRIBUTING.
 
 **Recipe coverage:** 4/6 use recipes (editorconfig, format-configured, changelog-strategy, gitignore checks). Commit probes need custom historical detectors.
@@ -224,7 +224,7 @@ Dimensions can re-weight these in their recipes; projects can re-weight again.
 - **Add `--include executed`**: +10 probes (3 Feedback, 1 Consistency, 4 Latency, 2 Safety external)
 - **Add `--include reasoned` (v1.x)**: +1 probe (`agent.guidance-fresh`)
 
-A first-time `trim check` on a repo runs 26 probes, all static or derived. Should be under a second on a typical repo (evidence built once, probes share it).
+A first-time `repofit check` on a repo runs 26 probes, all static or derived. Should be under a second on a typical repo (evidence built once, probes share it).
 
 ---
 
@@ -241,7 +241,7 @@ A first-time `trim check` on a repo runs 26 probes, all static or derived. Shoul
 
 ## 12. Resolved decisions
 
-1. **Historical N**: 100 by default, configurable in `trim.config.json`, graceful with <100 commits (uses what's available; reading carries sample size).
+1. **Historical N**: 100 by default, configurable in `repofit.config.json`, graceful with <100 commits (uses what's available; reading carries sample size).
 2. **Latency warm-up**: probes run twice and report the second timing. Per-probe (no shared warmup across the four latency probes — isolation > speed in an opt-in tier). Tunable: `warmup: 0 | 1 | <n>`.
 3. **Secret patterns**: wrap **secretlint** via a new `secrets_scan` evidence subsystem (Node-native, MIT, plugin-based). Default rule preset: `secretlint-rule-preset-recommend`. Project config can add/remove rules.
 4. **Dangerous-script patterns**: roll our own minimal multi-context set (5 patterns above). Static tier, always-on. Documented exactly in the probe rationale. Project waivers can suppress by file:line. Grow in v1.x.

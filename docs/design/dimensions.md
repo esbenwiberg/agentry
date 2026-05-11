@@ -1,6 +1,6 @@
-# trim — default dimensions
+# repofit — default dimensions
 
-> **Status:** agreed. Companion to `trim.md` (architecture) and
+> **Status:** agreed. Companion to `repofit.md` (architecture) and
 > `probe-schema.md` (authoring contract).
 
 ---
