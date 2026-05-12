@@ -1,4 +1,4 @@
-# trim — implementation plan
+# repofit — implementation plan
 
 > **Status:** draft for review. Sequences the work from empty repo to
 > v1.0.0. Companion to all prior design docs. **Coding has not started.**
@@ -9,12 +9,12 @@
 
 A user can:
 
-1. `npx @esbenwiberg/trim check` on a real TS or .NET repo and get a real score.
-2. Run `--init` to commit `trim.config.json`.
-3. Run `--accept` to commit `trim-baseline.json`.
-4. Add `trim check --ci` to GitHub Actions and have PRs gated.
+1. `npx @esbenwiberg/repofit check` on a real TS or .NET repo and get a real score.
+2. Run `--init` to commit `repofit.config.json`.
+3. Run `--accept` to commit `repofit-baseline.json`.
+4. Add `repofit check --ci` to GitHub Actions and have PRs gated.
 5. Read clear human reports and consume the JSON for tooling.
-6. See clean rationale via `trim explain <probe>`.
+6. See clean rationale via `repofit explain <probe>`.
 
 v1 ships:
 - The engine package.
@@ -38,9 +38,9 @@ v1 does **not** ship:
 Monorepo, two packages from day one, strict boundaries.
 
 ```
-trim/
+repofit/
 ├── packages/
-│   ├── engine/                       # @esbenwiberg/trim — the CLI + runtime
+│   ├── engine/                       # @esbenwiberg/repofit — the CLI + runtime
 │   │   ├── src/
 │   │   │   ├── cli/                  # commander/yargs/etc entrypoints
 │   │   │   ├── loader/               # config + corpus + baseline loaders
@@ -83,7 +83,7 @@ trim/
 - **Workspace**: npm workspaces (no pnpm/yarn dependency).
 - **CLI parsing**: **commander** — battle-tested, small, ESM-friendly.
 - **License**: **MIT**.
-- **npm scope**: **`@esbenwiberg`** — packages publish as `@esbenwiberg/trim` and `@esbenwiberg/corpus-default`.
+- **npm scope**: **`@esbenwiberg`** — packages publish as `@esbenwiberg/repofit` and `@esbenwiberg/corpus-default`.
 
 **Status: agreed.**
 
@@ -100,10 +100,10 @@ Each phase is a vertical slice. End-of-phase = something demoable + committed.
 - Biome (or eslint+prettier) wired.
 - Vitest wired with one trivial test per package.
 - License + README skeleton + gitignore.
-- CLI entrypoint that prints `trim 0.0.0`.
+- CLI entrypoint that prints `repofit 0.0.0`.
 - CI workflow: install → typecheck → lint → test on push and PR.
 
-**Demoable**: `npx trim --version` prints something. CI is green.
+**Demoable**: `npx repofit --version` prints something. CI is green.
 
 ### Phase 1 — Engine core, one probe, read-only (3–5 days)
 
@@ -118,7 +118,7 @@ Each phase is a vertical slice. End-of-phase = something demoable + committed.
 - One probe in `corpus-default`: `agent.guidance-present` via `defineProbe`.
 - `--probe <id>` flag for targeted runs.
 
-**Demoable**: `trim check` against this very repo returns a real number based on whether `CLAUDE.md` exists.
+**Demoable**: `repofit check` against this very repo returns a real number based on whether `CLAUDE.md` exists.
 
 ### Phase 2 — Schema completeness (4–6 days)
 
@@ -131,12 +131,12 @@ Each phase is a vertical slice. End-of-phase = something demoable + committed.
 - 10–12 probes shipped across dimensions to exercise every reading type and tier.
 - Evidence subsystems added as probes need them: `git`, `gitignore`, `node_package`, `tsconfig`, `nuget`, `dotnet_solution`.
 
-**Demoable**: `trim check` against this repo produces a multi-dimension score from a representative subset of probes.
+**Demoable**: `repofit check` against this repo produces a multi-dimension score from a representative subset of probes.
 
 ### Phase 3 — Config + baseline + bootstrap (3–4 days)
 
-- `trim.config.json` loader + validator (JSON schema published in the engine).
-- `trim-baseline.json` reader/writer.
+- `repofit.config.json` loader + validator (JSON schema published in the engine).
+- `repofit-baseline.json` reader/writer.
 - `--init` flag (writes config with current corpus version pinned).
 - `--accept` flag (writes baseline; requires clean tree by default).
 - Gate modes: ratchet, absolute, advisory.
@@ -166,16 +166,16 @@ Each phase is a vertical slice. End-of-phase = something demoable + committed.
 - `--include executed` flag respected.
 - Cost surfacing for the `executed` tier (wall-clock totals in the report).
 
-**Demoable**: `trim check --include executed` runs the slow stuff.
+**Demoable**: `repofit check --include executed` runs the slow stuff.
 
 ### Phase 6 — Dogfood (2–3 days)
 
-- Run `trim check` against trim's own repo.
+- Run `repofit check` against repofit's own repo.
 - Fix or waive findings; commit baseline.
-- CI gates trim with trim (in addition to typecheck/lint/test).
+- CI gates repofit with repofit (in addition to typecheck/lint/test).
 - This phase exercises the bootstrap flow and surfaces any UX papercuts.
 
-**Demoable**: trim's CI shows a fitness score and gates the PR.
+**Demoable**: repofit's CI shows a fitness score and gates the PR.
 
 ### Phase 7 — Release (2–3 days)
 
@@ -185,7 +185,7 @@ Each phase is a vertical slice. End-of-phase = something demoable + committed.
 - npm publish under chosen scope.
 - GitHub release with changelog.
 
-**Demoable**: `npx @esbenwiberg/trim check` works for any user.
+**Demoable**: `npx @esbenwiberg/repofit check` works for any user.
 
 **Status: phases agreed in shape; estimates are rough.**
 
@@ -213,7 +213,7 @@ Two surfaces:
 - `build` (compile both packages)
 
 **Self-dogfood CI** (Phase 6+):
-- `trim check --ci` against the repo.
+- `repofit check --ci` against the repo.
 - Gates PRs in ratchet mode initially; graduates to absolute later.
 
 **Status: agreed.**
@@ -225,7 +225,7 @@ Two surfaces:
 These are coding-time decisions, not design decisions. Listed so they're not forgotten:
 
 - **Commit / changelog discipline** — likely mirror existing agentry conventions (`type(scope): subject` + `.changes/` fragments).
-- **README structure** — quickstart, badge, screenshot of `trim check` output.
+- **README structure** — quickstart, badge, screenshot of `repofit check` output.
 
 ---
 
@@ -246,7 +246,7 @@ These are already-designed features waiting for v1 to ship:
 - Per-probe severity promotion in dimension overrides.
 - Additional language corpus packages (Python, Rust, Go, Java).
 - Reporter plugin contract.
-- `trim corpus upgrade` command.
+- `repofit corpus upgrade` command.
 
 Sequence and prioritization within v1.x is a separate conversation once v1 is shipping.
 
@@ -257,5 +257,5 @@ Sequence and prioritization within v1.x is a separate conversation once v1 is sh
 ## Glossary additions
 
 - **Phase** — vertical slice ending in a demoable + committed state.
-- **Dogfood** — running trim against trim's own repo to surface UX issues.
+- **Dogfood** — running repofit against repofit's own repo to surface UX issues.
 - **Soft v1** — ships without Phase 5 (opt-in tiers); usable but no latency/clean probes.

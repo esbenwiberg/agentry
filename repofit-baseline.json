@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "acceptedAt": "2026-05-11T19:28:34.261Z",
+  "corpus": [
+    {
+      "package": "@esbenwiberg/corpus-default",
+      "version": "1.0.0"
+    }
+  ],
+  "fitness": 94.53333333333333,
+  "dimensions": {
+    "context": 86,
+    "consistency": 100,
+    "cost": 86.66666666666667,
+    "feedback": 100,
+    "latency": null,
+    "safety": 100
+  },
+  "probes": {
+    "agent.guidance-present": 100,
+    "agent.guidance-substance": 80,
+    "changelog.strategy-declared": 0,
+    "docs.contributing-present": 100,
+    "docs.readme-present": 100,
+    "docs.readme-substance": 50,
+    "editorconfig.present": 100,
+    "format.configured": 100,
+    "hooks.precommit-present": 100,
+    "lint.configured": 100,
+    "safety.dangerous-script-flags": 100,
+    "secrets.dotenv-gitignored": 100,
+    "tests.runner-configured": 100,
+    "types.configured": 100,
+    "ci.runs-tests": 100,
+    "docs.adr-presence": 0,
+    "gitignore.comprehensive": 100,
+    "secrets.precommit-scan-configured": 0,
+    "size.directory-depth": 80,
+    "size.large-files": 100,
+    "size.repo-token-estimate": 80,
+    "commits.conventional-followed": 100
+  },
+  "commit": "d67fd28e5d82d8178e8c2dd0e711f795e91e452a"
+}

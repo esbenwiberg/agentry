@@ -1,182 +1,88 @@
-# agentry
+# repofit
 
-[![ci](https://github.com/esbenwiberg/agentry/actions/workflows/ci.yml/badge.svg)](https://github.com/esbenwiberg/agentry/actions/workflows/ci.yml)
-[![node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](package.json)
-[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+Measure how agent-friendly your repo is. Score, gate, and improve.
 
-> Form your agentic readiness.
-
-`agentry` is a tool-agnostic CLI that helps any repo become **agent-ready** —
-better context, conventions, specs, fitness checks, and workflow harness for
-AI coding agents (Claude Code, Cursor, Aider, Codex, your own).
-
-It is opinionated about one thing: **most agentic readiness can't just be
-installed.** A nested `CLAUDE.md`, an ADR, a spec — those have to be
-*authored* against your code. So `agentry` runs a scan-driven loop: it
-collects deterministic evidence, hands it to your agent with a brief, and
-verifies the result by re-scanning. Byte-perfect team artifacts ride a
-small overlay/lockfile lifecycle on the side.
-
-No `init`, no plugins-as-runtime, no daemon, no marketplace.
-
----
+repofit runs a corpus of **probes** against your repository — reading
+files, scanning git history, executing scripts — and reduces what it
+finds to a single **fitness** number plus a per-dimension breakdown.
+Use it locally to spot rough edges, and in CI as a ratchet that
+prevents regressions.
 
 ## Quickstart
 
 ```bash
-# Try it without installing
-npx agentry scan        # deterministic evidence into .agentry/scan/<ts>/
-npx agentry brief       # writes .agentry/scan/<ts>/instructions.md
+npx @esbenwiberg/repofit          # one-shot score, no install
 ```
 
-Hand `instructions.md` to your coding agent. The brief inlines the
-practice library and points at every gatherer output, so the agent has
-everything it needs to author per-repo files (CLAUDE.md, ADRs, specs,
-fitness checks) and *you* re-scan to verify.
-
-Install globally if you'll use it across many repos:
+To wire it into a repo:
 
 ```bash
-npm install -g agentry
-agentry --help
+npx @esbenwiberg/repofit --init   # writes repofit.config.json
+npx @esbenwiberg/repofit --accept # writes repofit-baseline.json
 ```
 
-> **Note** — agentry is not yet published to npm. Until the first release,
-> install from source: `git clone … && npm install && npm run build && npm link`.
+Commit both files. From then on, `repofit check --ci` in CI gates
+against the baseline; `repofit check --accept` ratchets it forward
+after intentional improvements.
 
----
+## What it scores
 
-## Verbs
+Six dimensions, weighted into one fitness score:
 
-| Verb | Posture | What it does |
-|---|---|---|
-| `agentry scan` | Audit | Deterministic evidence bundle: stack, git, hygiene, security, agent-readiness, docs, fitness, catalog. Read-only. Works on any repo. |
-| `agentry brief` | Author handoff | Emits an `instructions.md` against the latest scan — bundle pointers, reading rules, fitness warnings, inlined practice library. |
-| `agentry list` | Browse | Shows the merged catalog (bundled practices + overlays). |
-| `agentry add <id>` | Install | Drops in byte-perfect overlay artifacts. Lockfile-tracked, conflict-aware (keep / overwrite / diff / skip). |
-| `agentry upgrade [id]` | Refresh | Refreshes installed artifacts from the merged catalog. |
-| `agentry upgrade --check` | CI gate | Reports drift (`missing` / `out-of-date` / `user-edit` / `orphaned`). Exits 1 on any drift. Replaces the old `doctor` verb. |
-| `agentry remove <id>` | Uninstall | Deletes installed files and prunes the lockfile. |
-| `agentry coach <kind>` | Author | Bespoke scaffolding without the full scan loop. |
+| Dimension   | What it measures                                          |
+|-------------|-----------------------------------------------------------|
+| Context     | Onboarding docs, ADRs, agent guidance, README substance   |
+| Consistency | Lint/format/types/test configuration, conventional commits|
+| Cost        | Repo size, file depth, token estimate                     |
+| Feedback    | CI runs, lint/format/types clean                          |
+| Latency     | Wall-clock of test/build/lint/typecheck (opt-in tier)     |
+| Safety      | Secret hygiene, dangerous script flags, branch protection  |
 
-`coach` kinds: `claude-md` (with `--nested <subdir>`), `practices`,
-`agent-profile`, `adr-init` / `adr <slug>`, `spec-init` / `spec <slug>`.
+Each probe carries its own rationale and scoring rubric. Run
+`repofit explain <probe-id>` for the full story behind any reading.
 
-Run `agentry --help` for the full flag surface.
+## Output modes
 
----
-
-## How the loop fits together
-
-```
-   ┌─────────────┐    ┌────────────┐    ┌────────────────┐
-   │ agentry     │───▶│ agentry    │───▶│ your coding    │
-   │ scan        │    │ brief      │    │ agent authors  │
-   │ (evidence)  │    │ (handoff)  │    │ files          │
-   └─────────────┘    └────────────┘    └────────────────┘
-          ▲                                     │
-          │             re-scan to verify       │
-          └─────────────────────────────────────┘
-
-   ┌─────────────┐    ┌────────────┐    ┌────────────────┐
-   │ agentry add │───▶│ lockfile   │───▶│ agentry        │
-   │ <overlay>   │    │ tracks it  │    │ upgrade --check│
-   └─────────────┘    └────────────┘    └────────────────┘
+```bash
+repofit                  # human-readable (default)
+repofit --json           # full machine-readable report
+repofit --ci             # one-line verdict + GitHub Actions annotations
+repofit --include executed  # also run the slow stuff (test/build/lint timings)
 ```
 
-Two paths, one tool. The scan/brief/agent loop covers what has to be
-*authored*; the overlay lifecycle covers what should be *installed*.
+## How it works
 
----
+The engine runs probes in tiers — static → derived → historical →
+executed — and skips the executed tier (latency probes, branch
+protection, *.clean) unless you ask for it. Each probe emits a typed **reading**
+(predicate, count, magnitude, inventory, distribution, or n/a), which
+the scorer reduces to 0–100. Probes are bundled in versioned **corpus**
+packages so the rubric is reproducible.
 
-## What `scan` produces
+See [`docs/design/`](docs/design/) for the full architecture.
+
+## Layout
 
 ```
-.agentry/scan/2026-05-05T14-34-36Z/
-  manifest.json           # gatherer status, durations, outputs
-  catalog.json            # merged catalog snapshot (bundled + overlays)
-  instructions.md         # produced by `agentry brief`
-  structure/              # tree, languages, manifests
-  git/                    # stats, commit messages, hot files, PR samples
-  hygiene/                # LICENSE, README, CI coverage, linters, gitignore audit
-  security/               # secrets-suspects, committed-keys, lockfile age, audit
-  agent-readiness/        # CLAUDE.md / ADRs / specs / configs inventory
-  docs/                   # README head, root headings, claude-md
-  practices/              # bundled practice docs, copied verbatim
+packages/
+  engine/          @esbenwiberg/repofit         — CLI + runtime
+  corpus-default/  @esbenwiberg/corpus-default  — bundled probes
+docs/design/                                    — design corpus
 ```
-
-Bundles are deterministic and diffable. Don't commit them — add
-`.agentry/` to `.gitignore` for the target repo.
-
----
-
-## CI: the drift gate
-
-```yaml
-- run: npx agentry upgrade --check
-```
-
-Exits non-zero on any drift across installed artifacts. Run it in pull
-requests after the team has used `agentry add` to install overlays.
-
----
-
-## The three-layer opinion model
-
-| Layer | Owns | Form |
-|---|---|---|
-| Bundled catalog | Universal practices | Markdown guidance docs (read-only, agent adapts them). |
-| Overlays | Team-canonical artifacts + practice overrides | Byte-perfect files registered via `agentry.overlays.toml`. |
-| Scan + brief + agent | Per-repo tailoring | The user's coding agent authors files; re-scan verifies. |
-
-The bundled catalog ships **practices**. **Overlays** ship byte-perfect
-team artifacts. **Re-scan** is the verification contract. See
-[ADR-0005](docs/adr/0005-scan-driven-core-catalog-as-practices.md) for
-the locked design and [`docs/overlays.md`](docs/overlays.md) for the
-overlay author guide.
-
----
-
-## Status
-
-Pre-release (v0.0.0). Scan + brief MVP shipped, `upgrade --check` drift
-gate is the CI contract, bundled catalog is practice-only. 132 tests
-across the verb surface and unit layer (≈5s). TeamPlanner round-trip
-dogfood and CHANGELOG generation from `.changes/` fragments are
-deferred — see [`docs/STATUS.md`](docs/STATUS.md).
-
----
 
 ## Development
 
 ```bash
 npm install
 npm run typecheck
+npm run lint
 npm run build
-npm test           # builds via pretest, then runs vitest
+npm test
 ```
 
-Test conventions live in [`specs/test-suite/`](specs/test-suite/).
-Contributor conventions live in [`PRACTICES.md`](PRACTICES.md). Locked
-architectural decisions live in [`docs/adr/`](docs/adr/); open design
-notes in [`docs/decisions/`](docs/decisions/).
-
-agentry uses its own conventions on itself — `.agent.toml`, `.githooks/`,
-`.changes/` fragments, `docs/adr/`. The repo is its own dogfood.
-
----
-
-## Why
-
-Over the last few weeks of building TeamPlanner, the highest-leverage
-changes for agentic coding quality weren't framework or model upgrades —
-they were *infrastructure*: nested context files, ADR conventions,
-declarative agent profiles, fitness tests, drift checks, lazy startup
-scripts. `agentry` extracts those patterns into a generic, tool-agnostic
-CLI so any repo can adopt them in minutes.
-
----
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for branch/commit conventions
+and the probe-authoring guide.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT

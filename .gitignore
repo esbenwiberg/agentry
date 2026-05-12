@@ -28,7 +28,11 @@ build/
 coverage/
 .nyc_output/
 
+# Repofit cache
+.repofit/
+
 # Local agent state
 .claude/
+.mcp.json
 CLAUDE.local.md
 AGENTS.local.md

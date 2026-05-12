@@ -1,8 +1,8 @@
-# trim — project config and baseline
+# repofit — project config and baseline
 
 > **Status:** concrete sketch for review. Defines the two files users
-> check into their repos: `trim.config.json` (the policy / gate) and
-> `trim-baseline.json` (the ratchet snapshot). Companion to `trim.md`
+> check into their repos: `repofit.config.json` (the policy / gate) and
+> `repofit-baseline.json` (the ratchet snapshot). Companion to `repofit.md`
 > (architecture).
 
 ---
@@ -11,8 +11,8 @@
 
 | File | Purpose | Edited by | Where |
 |---|---|---|---|
-| `trim.config.json` | Policy: corpus pinning, gate mode, thresholds, weight overrides, waivers, probe knobs | Humans, hand or via `--init` | Committed |
-| `trim-baseline.json` | Snapshot: per-probe and per-dimension scores at the moment they were accepted | `trim check --accept` writes it | Committed |
+| `repofit.config.json` | Policy: corpus pinning, gate mode, thresholds, weight overrides, waivers, probe knobs | Humans, hand or via `--init` | Committed |
+| `repofit-baseline.json` | Snapshot: per-probe and per-dimension scores at the moment they were accepted | `repofit check --accept` writes it | Committed |
 
 Both files are JSON for universal tooling. Engine validates both at load.
 
@@ -20,11 +20,11 @@ Both files are JSON for universal tooling. Engine validates both at load.
 
 ---
 
-## 2. `trim.config.json` — full example
+## 2. `repofit.config.json` — full example
 
 ```jsonc
 {
-  "$schema": "https://trim.dev/schema/config.v1.json",
+  "$schema": "https://repofit.dev/schema/config.v1.json",
   "version": 1,
 
   "corpus": [
@@ -97,7 +97,7 @@ Array, because a project may layer multiple corpus packages (default + .NET-spec
 
 - **Exact versions only**, like a lockfile. No semver ranges. Reproducibility > convenience.
 - Conflicts (same probe ID in multiple corpora) → engine errors at load. Resolve by `disabled: true` on one side.
-- `trim corpus upgrade` deferred — for now, manual edit.
+- `repofit corpus upgrade` deferred — for now, manual edit.
 
 **Status: agreed.**
 
@@ -120,7 +120,7 @@ Array, because a project may layer multiple corpus packages (default + .NET-spec
 
 **`include`** — which probe tiers to run. Defaults to all non-opt-in tiers (`static`, `derived`, `historical`). To enable executed: add `"executed"`. To enable reasoned (v1.x): add `"reasoned"`.
 
-CI typically uses the project default. Local exploration: `trim check --include executed`.
+CI typically uses the project default. Local exploration: `repofit check --include executed`.
 
 **Status: agreed.**
 
@@ -222,7 +222,7 @@ Each probe declares its supported knobs and defaults in its `defineProbe()` conf
 Reasoned tier (v1.x). Providers:
 
 - **`anthropic`** — direct API; reads key from env (`apiKeyEnv`). Never literal key in config.
-- **`claude-code`** — when trim runs inside a Claude Code session, reuse the session's auth/transport via the Claude Agent SDK. No separate API key needed; cost is billed to the host session. Detect via env (`CLAUDECODE=1` or similar) when explicit, or auto.
+- **`claude-code`** — when repofit runs inside a Claude Code session, reuse the session's auth/transport via the Claude Agent SDK. No separate API key needed; cost is billed to the host session. Detect via env (`CLAUDECODE=1` or similar) when explicit, or auto.
 - **`openai`** / **`local`** — slots reserved.
 - **`auto`** (default) — prefer `claude-code` if detected, else fall back to `anthropic` via env. Lets a CI run the same config that a developer uses inside Claude Code.
 
@@ -232,11 +232,11 @@ Exact `claude-code` transport (SDK call vs IPC vs MCP-style bridge) is a v1.x im
 
 ---
 
-## 9. `trim-baseline.json` — full example
+## 9. `repofit-baseline.json` — full example
 
 ```jsonc
 {
-  "$schema": "https://trim.dev/schema/baseline.v1.json",
+  "$schema": "https://repofit.dev/schema/baseline.v1.json",
   "version": 1,
 
   "acceptedAt": "2026-05-11T14:23:00Z",
@@ -302,12 +302,12 @@ Exact `claude-code` transport (SDK call vs IPC vs MCP-style bridge) is a v1.x im
 ## 10. How `--accept` works
 
 ```bash
-trim check --accept
+repofit check --accept
 ```
 
 1. Run probes per the project config.
 2. Compute readings, scores, dimensions, fitness.
-3. **Write `trim-baseline.json`** with the current snapshot.
+3. **Write `repofit-baseline.json`** with the current snapshot.
 4. Print summary: "Baseline updated. fitness: 70 → 72."
 
 If the run would have failed under the current baseline, `--accept` still writes — the user is explicitly accepting the new state. (Optional `--accept --confirm` flag if we want a guard.)
@@ -324,7 +324,7 @@ Three scenarios:
 
 **Probe added to corpus**
 - New probe runs, scores, reports — but **does not gate** until baseline includes it.
-- `trim check` prints: "New probe(s) found: agent.foo. Run --accept to baseline."
+- `repofit check` prints: "New probe(s) found: agent.foo. Run --accept to baseline."
 
 **Probe removed from corpus**
 - Baseline entry becomes stale. Engine ignores it; warns: "Stale baseline entries: agent.bar (probe removed). Run --accept to clean up."
@@ -347,37 +347,37 @@ Three scenarios:
 Day 0 (greenfield adoption):
 
 ```bash
-$ trim check
+$ repofit check
 # No config found. Running with defaults (advisory).
 # fitness: 64
-# (Run `trim check --init` to commit a config.)
+# (Run `repofit check --init` to commit a config.)
 ```
 
 Day 1:
 
 ```bash
-$ trim check --init
-# Writing trim.config.json (corpus pinned at @esbenwiberg/corpus-default@1.0.0).
+$ repofit check --init
+# Writing repofit.config.json (corpus pinned at @esbenwiberg/corpus-default@1.0.0).
 # Gate mode: advisory (until you set a baseline).
-# (Run `trim check --accept` to set the baseline and enable ratchet.)
+# (Run `repofit check --accept` to set the baseline and enable ratchet.)
 
-$ trim check --accept
-# Writing trim-baseline.json. fitness: 64.
+$ repofit check --accept
+# Writing repofit-baseline.json. fitness: 64.
 # Gate mode now: ratchet.
 ```
 
 Day 2+:
 
 ```bash
-$ trim check                       # CI gates against baseline
-$ trim check --include executed    # local: run the slow stuff too
-$ trim check --accept              # after improvement, lock new score
+$ repofit check                       # CI gates against baseline
+$ repofit check --include executed    # local: run the slow stuff too
+$ repofit check --accept              # after improvement, lock new score
 ```
 
 Eventually:
 
 ```jsonc
-// trim.config.json
+// repofit.config.json
 "gate": { "mode": "absolute", "absoluteThreshold": 75 }
 ```
 
@@ -389,7 +389,7 @@ Eventually:
 
 ## 13. Config validation at load
 
-Engine validates `trim.config.json` against its schema. Failures are pointed errors (path + line). Examples:
+Engine validates `repofit.config.json` against its schema. Failures are pointed errors (path + line). Examples:
 
 - Unknown `gate.mode`
 - `corpus[].version` not pinned (semver range used)
@@ -408,7 +408,7 @@ Same discipline for the baseline file — JSON schema validation, fail loud.
 
 1. **Waiver identification**: `probeId + location` only in v1. Brittle under line shifts; document the limitation. Add `findingHash` in v1.x for content-stable matching.
 2. **Baseline granularity**: store **both** per-dimension scores (the gate) and per-probe scores (the explanation). ~30 extra lines for the default corpus; diff-readable.
-3. **Init surface**: `trim check --init` flag, not a separate verb. Keeps verb count at three.
+3. **Init surface**: `repofit check --init` flag, not a separate verb. Keeps verb count at three.
 4. **Multiple corpora**: **last-wins with a load-time warning** when two corpus packages define the same dimension recipe. Mirrors layered config conventions.
 5. **LLM credentials**: env-only for literal keys (`apiKeyEnv` points to env var; never `apiKey` in the file). `provider: "claude-code"` reuses the host Claude Code session's auth via the Claude Agent SDK, billed to that session. `provider: "auto"` prefers claude-code when detected, falls back to anthropic via env.
 
@@ -416,7 +416,7 @@ Same discipline for the baseline file — JSON schema validation, fail loud.
 
 ## 15. Deferred to later versions
 
-- `trim corpus upgrade` automation (v1: manual edit of the version pin).
+- `repofit corpus upgrade` automation (v1: manual edit of the version pin).
 - SARIF reporter (slot reserved).
 - Finding-hash-based waiver matching (v1: location-only).
 - Per-probe severity promotion in dimension overrides (v1.x).
