@@ -1,18 +1,18 @@
 {
   "version": 1,
-  "acceptedAt": "2026-05-13T08:14:25.530Z",
+  "acceptedAt": "2026-05-13T08:30:56.601Z",
   "corpus": [
     {
       "package": "@esbenwiberg/corpus-default",
       "version": "1.0.0"
     }
   ],
-  "fitness": 83.24149659863947,
+  "fitness": 85.89594928880643,
   "dimensions": {
-    "context": 74.64285714285715,
-    "consistency": 80,
+    "context": 75.89285714285715,
+    "consistency": 81.81818181818181,
     "cost": 86.66666666666667,
-    "feedback": 74.89795918367346,
+    "feedback": 85.10204081632652,
     "latency": null,
     "safety": 100
   },
@@ -36,7 +36,7 @@
     "ci.runs-tests": 100,
     "docs.adr-presence": 0,
     "gitignore.comprehensive": 100,
-    "hooks.gates-lint-test-build": 0,
+    "hooks.gates-lint-test-build": 100,
     "secrets.precommit-scan-configured": 100,
     "size.directory-depth": 80,
     "size.large-files": 100,
@@ -44,7 +44,7 @@
     "specs.present": 0,
     "commits.conventional-followed": 100,
     "agent.guidance-quality": 80,
-    "arch.boundaries-clear": 80,
+    "arch.boundaries-clear": 100,
     "arch.doc-quality": 50,
     "docs.adr-quality": null,
     "docs.readme-clarity": 80,
@@ -53,5 +53,5 @@
     "specs.quality": null,
     "tests.cover-public-surface": 50
   },
-  "commit": "82742f991b2c5ab5d6870970a251242ede371bce"
+  "commit": "dc0a73eebce13e8cd1cf962b24693c4ec180114c"
 }
