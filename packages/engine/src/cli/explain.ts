@@ -1,9 +1,23 @@
+import { gatherAll } from "../evidence/registry.js";
 import type { LoadedCorpus } from "../loader/corpus.js";
 import { loadDefaultCorpus } from "../loader/corpus.js";
-import type { DimensionAssignment, DimensionRecipe, Probe, ScoreConfig } from "../sdk/types.js";
+import { score } from "../scorer/index.js";
+import type {
+  Band,
+  DimensionAssignment,
+  DimensionRecipe,
+  Probe,
+  Reading,
+  ScoreConfig,
+} from "../sdk/types.js";
+import { errorMessage } from "../util/error-message.js";
 
 export type ExplainOptions = {
   id: string;
+  run?: boolean;
+  cwd?: string;
+  noCache?: boolean;
+  judgeTransport?: "api" | "cli";
 };
 
 export async function explain(opts: ExplainOptions): Promise<{ stdout: string; exitCode: number }> {
@@ -11,7 +25,9 @@ export async function explain(opts: ExplainOptions): Promise<{ stdout: string; e
 
   const probe = corpus.probes.find((p) => p.id === opts.id);
   if (probe) {
-    return { stdout: explainProbe(probe, corpus), exitCode: 0 };
+    let trace: string[] = [];
+    if (opts.run) trace = await runAndTrace(probe, opts);
+    return { stdout: explainProbe(probe, corpus, trace), exitCode: 0 };
   }
 
   const dimension = corpus.dimensions.find((d) => d.id === opts.id);
@@ -26,7 +42,153 @@ export async function explain(opts: ExplainOptions): Promise<{ stdout: string; e
   };
 }
 
-function explainProbe(probe: Probe, corpus: LoadedCorpus): string {
+async function runAndTrace(probe: Probe, opts: ExplainOptions): Promise<string[]> {
+  const cwd = opts.cwd ?? process.cwd();
+  try {
+    const evidence = await gatherAll({
+      cwd,
+      judge: { noCache: opts.noCache, transport: opts.judgeTransport },
+    });
+    const reading = await probe.detect(evidence);
+    return traceReadingAndScore(reading, probe.score);
+  } catch (err) {
+    return [`(failed to run: ${errorMessage(err)})`];
+  }
+}
+
+function traceReadingAndScore(reading: Reading, config: ScoreConfig): string[] {
+  const lines: string[] = [];
+
+  if (reading.kind === "na") {
+    lines.push(`reading  na — ${reading.reason}`);
+    lines.push("score    — (na probes drop from aggregation)");
+    return lines;
+  }
+
+  if (reading.kind === "error") {
+    lines.push(`reading  error — ${reading.error}`);
+    lines.push("score    — (errors surface but don't score)");
+    return lines;
+  }
+
+  lines.push(...formatReading(reading));
+  lines.push("");
+  lines.push(...formatDerivation(reading, config));
+  return lines;
+}
+
+function formatReading(reading: Reading): string[] {
+  switch (reading.kind) {
+    case "predicate":
+      return [`reading  predicate · value=${reading.value}`];
+    case "count":
+      return [`reading  count · value=${reading.value}`];
+    case "magnitude":
+      return [`reading  magnitude · value=${reading.value} ${reading.unit}`];
+    case "inventory": {
+      const counts = countSeverities(reading.items);
+      return [
+        `reading  inventory · ${reading.items.length} items (${formatCounts(counts)})`,
+        ...reading.items
+          .slice(0, 5)
+          .map((it) => `         · [${it.severity}] ${it.location.path}: ${it.message}`),
+        ...(reading.items.length > 5 ? [`         · …${reading.items.length - 5} more`] : []),
+      ];
+    }
+    case "distribution":
+      return [
+        `reading  distribution · ${reading.samples.length} samples (min=${Math.min(...reading.samples)}, max=${Math.max(...reading.samples)})`,
+      ];
+    case "judge":
+      return [
+        `reading  judge · score=${reading.score}, model=${reading.model}`,
+        ...Object.entries(reading.perCriterion).map(
+          ([id, s]) => `         · ${id.padEnd(24)} ${s}`,
+        ),
+        "",
+        "rationale",
+        ...indent(wrap(reading.rationale, 68), "  "),
+      ];
+    default:
+      return [];
+  }
+}
+
+function formatDerivation(reading: Reading, config: ScoreConfig): string[] {
+  let computed: number | null;
+  try {
+    computed = score(reading, config);
+  } catch (err) {
+    return [`score    (scorer error: ${errorMessage(err)})`];
+  }
+
+  if (config.kind === "predicate" && reading.kind === "predicate") {
+    const truth = reading.value ? 100 : 0;
+    const flipped = config.direction === "positive" ? truth : 100 - truth;
+    return [
+      `score    ${flipped}`,
+      `         direction=${config.direction}, value=${reading.value} → ${flipped}`,
+    ];
+  }
+
+  if ((config.kind === "count" || config.kind === "magnitude") && reading.kind === config.kind) {
+    const value = reading.value;
+    const band = matchedBand(value, config.bands);
+    return [`score    ${computed}`, `         value=${value} → ${describeBand(band)}`];
+  }
+
+  if (config.kind === "inventory" && reading.kind === "inventory") {
+    const total = reading.items.reduce(
+      (sum, it) => sum + (config.severityWeights[it.severity] ?? 0),
+      0,
+    );
+    const band = matchedBand(total, config.bands);
+    return [
+      `score    ${computed}`,
+      `         severity-weighted total=${total} → ${describeBand(band)}`,
+    ];
+  }
+
+  if (config.kind === "distribution" && reading.kind === "distribution") {
+    return [
+      `score    ${computed}`,
+      `         stat=${config.stat} over ${reading.samples.length} samples → ${computed}`,
+    ];
+  }
+
+  if (config.kind === "judge" && reading.kind === "judge") {
+    return [`score    ${computed}  (judge score passes through)`];
+  }
+
+  return [`score    ${computed}`];
+}
+
+function matchedBand(value: number, bands: Band[]): Band {
+  for (const band of bands) {
+    if (band.upTo === undefined) return band;
+    if (value <= band.upTo) return band;
+  }
+  return bands[bands.length - 1] as Band;
+}
+
+function describeBand(band: Band): string {
+  const range = band.upTo === undefined ? "default" : `≤ ${band.upTo}`;
+  return `band (${range}) → ${band.score}`;
+}
+
+function countSeverities(items: ReadonlyArray<{ severity: string }>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const it of items) out[it.severity] = (out[it.severity] ?? 0) + 1;
+  return out;
+}
+
+function formatCounts(counts: Record<string, number>): string {
+  return Object.entries(counts)
+    .map(([sev, n]) => `${sev}=${n}`)
+    .join(", ");
+}
+
+function explainProbe(probe: Probe, corpus: LoadedCorpus, trace: string[]): string {
   const lines: string[] = [];
   lines.push("");
   lines.push(`Probe       ${probe.id}  v${probe.version}`);
@@ -42,6 +204,11 @@ function explainProbe(probe: Probe, corpus: LoadedCorpus): string {
   lines.push("");
   lines.push(`Evidence consumed`);
   lines.push(`  ${probe.evidence.join(", ")}`);
+  if (trace.length > 0) {
+    lines.push("");
+    lines.push("Run on this repo");
+    lines.push(...indent(trace, "  "));
+  }
   if (probe.fixtures.length > 0) {
     lines.push("");
     lines.push(`Fixtures (${probe.fixtures.length})`);
@@ -50,9 +217,11 @@ function explainProbe(probe: Probe, corpus: LoadedCorpus): string {
       lines.push(`  ${f.name.padEnd(20)}  expect score: ${expected}`);
     }
   }
-  lines.push("");
-  lines.push("To debug");
-  lines.push(`  repofit check --probe ${probe.id}`);
+  if (trace.length === 0) {
+    lines.push("");
+    lines.push("To run against this repo");
+    lines.push(`  repofit explain ${probe.id} --run`);
+  }
   lines.push("");
   return lines.join("\n");
 }

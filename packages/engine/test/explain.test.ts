@@ -25,4 +25,29 @@ describe("explain", () => {
     expect(stdout).toContain("no probe or dimension 'no.such.thing'");
     expect(stdout).toContain("Known ids:");
   });
+
+  test("--run shows a 'Run on this repo' section with reading + score derivation", async () => {
+    // agent.guidance-present is a static predicate probe with no side effects;
+    // safe to actually run against the repofit repo itself.
+    const { stdout, exitCode } = await explain({
+      id: "agent.guidance-present",
+      run: true,
+      cwd: process.cwd(),
+    });
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Run on this repo");
+    expect(stdout).toMatch(/reading\s+predicate · value=(true|false)/);
+    expect(stdout).toMatch(/score\s+(0|100)/);
+    expect(stdout).toContain("direction=positive");
+    // The hint to re-run with --run should disappear once we already ran.
+    expect(stdout).not.toContain("To run against this repo");
+  });
+
+  test("without --run, the trace section is omitted and the hint is shown", async () => {
+    const { stdout, exitCode } = await explain({ id: "agent.guidance-present" });
+    expect(exitCode).toBe(0);
+    expect(stdout).not.toContain("Run on this repo");
+    expect(stdout).toContain("To run against this repo");
+    expect(stdout).toContain("repofit explain agent.guidance-present --run");
+  });
 });

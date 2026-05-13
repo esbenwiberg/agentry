@@ -108,15 +108,46 @@ program
 program
   .command("explain <id>")
   .description("Show the rationale, scoring, and fixtures for a probe or dimension.")
-  .action(async (id: string) => {
-    try {
-      const { stdout, exitCode } = await explain({ id });
-      process.stdout.write(stdout);
-      process.exit(exitCode);
-    } catch (err) {
-      console.error(`repofit: ${errorMessage(err)}`);
-      process.exit(2);
-    }
-  });
+  .option(
+    "--run",
+    "Also run the probe against the current repo and show the reading + score derivation.",
+  )
+  .option("--cwd <path>", "Working directory (only with --run).", process.cwd())
+  .option("--no-cache", "Skip the persistent judge cache (only with --run, for reasoned probes).")
+  .option(
+    "--judge-transport <mode>",
+    "Force judge transport: 'api' or 'cli' (only with --run, for reasoned probes).",
+  )
+  .action(
+    async (
+      id: string,
+      opts: { run?: boolean; cwd: string; cache: boolean; judgeTransport?: string },
+    ) => {
+      if (
+        opts.judgeTransport !== undefined &&
+        opts.judgeTransport !== "api" &&
+        opts.judgeTransport !== "cli"
+      ) {
+        console.error(
+          `repofit: --judge-transport must be 'api' or 'cli' (got '${opts.judgeTransport}')`,
+        );
+        process.exit(2);
+      }
+      try {
+        const { stdout, exitCode } = await explain({
+          id,
+          run: opts.run,
+          cwd: opts.cwd,
+          noCache: opts.cache === false,
+          judgeTransport: opts.judgeTransport as "api" | "cli" | undefined,
+        });
+        process.stdout.write(stdout);
+        process.exit(exitCode);
+      } catch (err) {
+        console.error(`repofit: ${errorMessage(err)}`);
+        process.exit(2);
+      }
+    },
+  );
 
 await program.parseAsync(process.argv);
