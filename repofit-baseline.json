@@ -1,20 +1,20 @@
 {
   "version": 1,
-  "acceptedAt": "2026-05-13T12:44:14.563Z",
+  "acceptedAt": "2026-05-13T12:49:56.661Z",
   "corpus": [
     {
       "package": "@esbenwiberg/corpus-default",
       "version": "1.0.0"
     }
   ],
-  "fitness": 86.33333333333334,
+  "fitness": 93.55555555555556,
   "dimensions": {
-    "context": 76.66666666666667,
+    "context": 87.77777777777777,
     "consistency": 100,
     "cost": 80,
     "feedback": 100,
     "latency": null,
-    "safety": 75
+    "safety": 100
   },
   "probes": {
     "agent.guidance-nested": 60,
@@ -23,8 +23,8 @@
     "arch.doc-present": 100,
     "changelog.strategy-declared": 100,
     "ci.configured": 100,
-    "dead.code-configured": 0,
-    "deps.audit-configured": 0,
+    "dead.code-configured": 100,
+    "deps.audit-configured": 100,
     "deps.lockfile-present": 100,
     "docs.contributing-present": 100,
     "docs.readme-present": 100,
@@ -49,5 +49,5 @@
     "specs.present": 100,
     "commits.conventional-followed": 100
   },
-  "commit": "71a1a7a15da3fc6ad95e0db9143a12dec714c409"
+  "commit": "ef70de36930fd08b0b9b3589f99b30d39a859252"
 }
