@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "acceptedAt": "2026-05-13T12:49:56.661Z",
+  "acceptedAt": "2026-05-13T12:57:40.143Z",
   "corpus": [
     {
       "package": "@esbenwiberg/corpus-default",
       "version": "1.0.0"
     }
   ],
-  "fitness": 93.55555555555556,
+  "fitness": 93.03610466872482,
   "dimensions": {
-    "context": 87.77777777777777,
-    "consistency": 100,
+    "context": 84.22535211267606,
+    "consistency": 98.57142857142857,
     "cost": 80,
-    "feedback": 100,
-    "latency": null,
+    "feedback": 95.41984732824426,
+    "latency": 100,
     "safety": 100
   },
   "probes": {
@@ -47,7 +47,24 @@
     "size.large-files": 80,
     "size.repo-token-estimate": 80,
     "specs.present": 100,
-    "commits.conventional-followed": 100
+    "commits.conventional-followed": 100,
+    "format.clean": 100,
+    "git.branch-protection": null,
+    "latency.build": 100,
+    "latency.lint": 100,
+    "latency.test-suite": 100,
+    "latency.typecheck": 100,
+    "lint.clean": 100,
+    "types.clean": 100,
+    "agent.guidance-quality": 100,
+    "arch.boundaries-clear": 80,
+    "arch.doc-quality": 50,
+    "docs.adr-quality": null,
+    "docs.readme-clarity": 80,
+    "errors.actionability": 80,
+    "runtime.dev-loop-bootable": 80,
+    "specs.quality": 80,
+    "tests.cover-public-surface": 80
   },
-  "commit": "ef70de36930fd08b0b9b3589f99b30d39a859252"
+  "commit": "f9bb79dbde82d38728b793c3a1bec2a19c905cd4"
 }
