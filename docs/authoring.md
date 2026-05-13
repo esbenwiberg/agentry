@@ -250,6 +250,35 @@ export const dimensions = [myDimension];
 - **dimensions** — Don't over-claim. A probe rarely belongs to more than two dimensions, and if it does, give the secondary a smaller weight.
 - **fixtures** — Cover the happy path, the failure path, and the `na` path. Three is the floor; more is good.
 
+## Suppressing findings (waivers)
+
+Sometimes a probe flags a finding that is correct but can't be fixed — vendored code, generated files, intentional design choices. Waivers let you suppress specific findings with a stated reason, without disabling the whole probe.
+
+A waiver is keyed by `(probeId, location)`. Today the engine applies waivers to `inventory` and `count` readings — the kinds that produce per-file findings. Predicate/magnitude/distribution/judge readings don't carry per-location findings, so a waiver against them is inert.
+
+```bash
+# Add: takes the probe id and the file path the probe flagged, plus a reason.
+repofit waive add size.large-files vendor/big.json \
+  --reason "vendor data, see ADR-7"
+
+# Optional expiration date (ISO YYYY-MM-DD). After this date the waiver is invalid.
+repofit waive add size.large-files vendor/big.json \
+  --reason "tracking upstream cleanup" \
+  --expires 2026-09-01
+
+# List: shows a stable 12-char hash per waiver, used by `rm`.
+repofit waive ls
+#   abc123def456  size.large-files  vendor/big.json
+#                 vendor data, see ADR-7
+
+# Remove by hash.
+repofit waive rm abc123def456
+```
+
+Waivers live in `repofit.config.json` under the top-level `waivers` array. The schema is `{ probeId, location, reason, expires? }`. You can edit the file by hand if you prefer — the CLI is just a convenience.
+
+**Best practice:** require a non-trivial `--reason` in code review. Waivers without context become technical debt no one remembers.
+
 ## See also
 
 - [Probe schema](design/probe-schema.md) — the full type reference.

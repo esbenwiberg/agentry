@@ -6,6 +6,7 @@ import { errorMessage } from "../util/error-message.js";
 import { check, type OutputMode } from "./check.js";
 import { explain } from "./explain.js";
 import { probeNew } from "./probe-new.js";
+import { waiveAdd, waiveLs, waiveRm } from "./waive.js";
 
 const VALID_TIERS = new Set<Tier>(TIERS);
 
@@ -170,6 +171,69 @@ probe
   .action(async (id: string, opts: { kind?: string; dir?: string }) => {
     try {
       const { stdout, exitCode } = await probeNew({ id, kind: opts.kind, dir: opts.dir });
+      process.stdout.write(stdout);
+      process.exit(exitCode);
+    } catch (err) {
+      console.error(`repofit: ${errorMessage(err)}`);
+      process.exit(2);
+    }
+  });
+
+const waive = program
+  .command("waive")
+  .description("Manage waivers — suppress specific findings with a stated reason.");
+
+waive
+  .command("add <probeId> <location>")
+  .description("Add a waiver. `location` is the file path the probe flagged.")
+  .requiredOption("--reason <text>", "Why this finding is waived (required).")
+  .option("--expires <date>", "Optional ISO date (YYYY-MM-DD) after which the waiver is invalid.")
+  .option("--cwd <path>", "Working directory (must contain repofit.config.json).", process.cwd())
+  .action(
+    async (
+      probeId: string,
+      location: string,
+      opts: { reason: string; expires?: string; cwd: string },
+    ) => {
+      try {
+        const { stdout, exitCode } = await waiveAdd({
+          cwd: opts.cwd,
+          probeId,
+          location,
+          reason: opts.reason,
+          expires: opts.expires,
+        });
+        process.stdout.write(stdout);
+        process.exit(exitCode);
+      } catch (err) {
+        console.error(`repofit: ${errorMessage(err)}`);
+        process.exit(2);
+      }
+    },
+  );
+
+waive
+  .command("ls")
+  .description("List configured waivers with their stable hashes.")
+  .option("--cwd <path>", "Working directory (must contain repofit.config.json).", process.cwd())
+  .action(async (opts: { cwd: string }) => {
+    try {
+      const { stdout, exitCode } = await waiveLs({ cwd: opts.cwd });
+      process.stdout.write(stdout);
+      process.exit(exitCode);
+    } catch (err) {
+      console.error(`repofit: ${errorMessage(err)}`);
+      process.exit(2);
+    }
+  });
+
+waive
+  .command("rm <hash>")
+  .description("Remove a waiver by its hash (from `repofit waive ls`).")
+  .option("--cwd <path>", "Working directory (must contain repofit.config.json).", process.cwd())
+  .action(async (hash: string, opts: { cwd: string }) => {
+    try {
+      const { stdout, exitCode } = await waiveRm({ cwd: opts.cwd, hash });
       process.stdout.write(stdout);
       process.exit(exitCode);
     } catch (err) {
