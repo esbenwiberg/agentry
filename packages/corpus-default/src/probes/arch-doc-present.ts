@@ -24,6 +24,9 @@ export default defineProbe({
     more likely to violate an invisible boundary.
   `,
 
+  remediation:
+    "Add an `ARCHITECTURE.md` at the repo root, or set up `docs/architecture/` or `docs/design/`. Describe the major components, how they interact, and the invariants an agent should preserve. Even a one-pager beats nothing.",
+
   async detect(ev) {
     return { kind: "predicate", value: DOC_PATHS.some((p) => ev.files.has(p)) };
   },

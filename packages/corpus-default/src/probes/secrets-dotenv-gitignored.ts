@@ -15,6 +15,9 @@ export default defineProbe({
     one-line check.
   `,
 
+  remediation:
+    "Add `.env` (and ideally `.env.*` to cover `.env.local`, `.env.production`, etc.) to your `.gitignore`. Keep an `.env.example` file checked in with placeholder values so newcomers know which variables are expected.",
+
   async detect(ev) {
     if (!ev.gitignore.present) return { kind: "na", reason: "no .gitignore" };
     return { kind: "predicate", value: ev.gitignore.ignores(".env") };

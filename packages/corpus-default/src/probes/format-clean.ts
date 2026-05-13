@@ -16,6 +16,9 @@ export default defineProbe({
     \`npm run format -- --check\`) and reports clean only on exit zero.
   `,
 
+  remediation:
+    "Run your formatter and commit the result: `npm run format` (or `biome format --write .`, `prettier --write .`). Add a pre-commit hook or a CI gate that re-checks formatting so the tree stays clean. A dirty formatter is just noisy diffs and rebase pain.",
+
   async detect(ev) {
     if (!ev.node_package.present) return { kind: "na", reason: "no package.json" };
     const scripts = ev.node_package.scripts;

@@ -71,6 +71,9 @@ export default defineProbe({
     (.NET), ArchUnit (Java), import-linter (Python), and Go arch tools.
   `,
 
+  remediation:
+    "Add architecture fitness tests for your stack. JS/TS: `dependency-cruiser` (most flexible), `eslint-plugin-boundaries`, or `ts-arch`. .NET: `NetArchTest` or `ArchUnitNET`. Java/Kotlin: `ArchUnit`. Python: `import-linter`. Go: `go-cleanarch` or similar. Start with one rule (e.g., 'no cycles' or 'layer X cannot import layer Y') and grow from there.",
+
   async detect(ev) {
     if (CONFIG_FILES.some((p) => ev.files.has(p))) {
       return { kind: "predicate", value: true };

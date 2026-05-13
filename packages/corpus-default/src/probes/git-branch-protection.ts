@@ -14,6 +14,9 @@ export default defineProbe({
     external-tier probe — proves the contract, not every corner case.
   `,
 
+  remediation:
+    "Enable branch protection on your default branch. GitHub: repo → Settings → Branches → 'Add rule' for `main`. Require: at least one approving review, status checks (CI) green, linear history. This prevents direct pushes to main and is the gate that keeps agent-generated PRs from going in unreviewed.",
+
   async detect(ev) {
     const result = await ev.github_api.branchProtection();
     if (result.kind === "unavailable") return { kind: "na", reason: result.reason };

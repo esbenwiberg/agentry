@@ -16,6 +16,9 @@ export default defineProbe({
     when it exits zero.
   `,
 
+  remediation:
+    "Run `npm run lint` (or the equivalent for your language) and fix or autofix every warning until it exits clean. Add a pre-commit hook or CI gate so the tree stays green. A linter that's configured but ignored is worse than no linter — it trains everyone to ignore warnings.",
+
   async detect(ev) {
     if (!ev.node_package.present) return { kind: "na", reason: "no package.json" };
     const script = ev.node_package.scripts.lint;

@@ -23,6 +23,9 @@ export default defineProbe({
     reviewer) decide whether each one is justified.
   `,
 
+  remediation:
+    "Remove dangerous flags from npm scripts where possible: prefer `rimraf dist` over `rm -rf dist`, drop `--no-verify` (fix the hook instead), avoid `--force` and `sudo`, and never pipe `curl … | bash`. If a script genuinely needs one of these (e.g., `rm -rf dist` is fine for a clean step), add a comment explaining why so reviewers and agents skip the alarm.",
+
   async detect(ev) {
     if (!ev.node_package.present) return { kind: "na", reason: "no package.json" };
     const items: InventoryItem[] = [];

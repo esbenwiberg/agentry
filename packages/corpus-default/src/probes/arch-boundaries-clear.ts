@@ -88,6 +88,9 @@ export default defineProbe({
     legible from names alone. Cached.
   `,
 
+  remediation:
+    "Rename generic top-level folders (utils/, common/, core/, helpers/, misc/, lib/) to names that describe a concept (auth/, scoring/, reporters/). Add an 'Architecture' or 'Where to find things' section to your README that maps major areas of the code. The goal: an agent landing in the repo can guess where to add new code from names alone.",
+
   async detect(ev) {
     const stats = ev.size_stats;
     if (stats.source === "none" || stats.files.length === 0) {

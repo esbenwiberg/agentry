@@ -60,6 +60,9 @@ export default defineProbe({
     what to build, how, and how to know when it's done. Cached.
   `,
 
+  remediation:
+    "Each spec should cover four sections: (1) Description — what the feature is and who it's for, (2) Design — data shape, API surface, key flows, (3) Acceptance — concrete checkable criteria ('given X, then Y'), (4) consistent shape across specs (same headings, similar depth). The goal: an agent reads one spec and can build the feature without further questions.",
+
   async detect(ev) {
     const specPaths: string[] = [];
     for (const f of ev.size_stats.files) {

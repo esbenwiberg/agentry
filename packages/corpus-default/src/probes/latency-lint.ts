@@ -14,6 +14,9 @@ export default defineProbe({
     rest of the executed-latency family.
   `,
 
+  remediation:
+    "Switch to a fast linter or trim the ruleset. Biome (Rust-based) is dramatically faster than ESLint with type-aware rules. Cache lint results (`eslint --cache`, `biome check --since`). Lint should finish in seconds — if it's slow, agents skip it.",
+
   async detect(ev) {
     if (!ev.node_package.present) return { kind: "na", reason: "no package.json" };
     const script = ev.node_package.scripts.lint;

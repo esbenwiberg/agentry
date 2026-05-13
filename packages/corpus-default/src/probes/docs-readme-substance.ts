@@ -24,6 +24,9 @@ export default defineProbe({
     project's name don't.
   `,
 
+  remediation:
+    "Add the canonical README sections an agent will look for: `## Install`, `## Usage` (or Quickstart), `## Build`, `## Test`, `## Architecture` (or Overview), `## Contributing`, `## License`. Each only needs a paragraph or two — together they cover every common 'how do I…' question.",
+
   async detect(ev) {
     const raw = await ev.files.readText("README.md");
     if (raw === undefined) return { kind: "na", reason: "no README.md" };

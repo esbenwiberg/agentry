@@ -18,6 +18,9 @@ export default defineProbe({
     offenders.
   `,
 
+  remediation:
+    "Split files over ~2000 lines or ~100KB. Common patterns: extract one cohesive class/module per file, move generated code out of the repo (or store under a `generated/` directory excluded from typical edits), break up monolithic config files. Smaller files mean cheaper agent context and less time spent navigating.",
+
   async detect(ev) {
     if (ev.size_stats.source === "none") {
       return { kind: "na", reason: "no git working tree" };

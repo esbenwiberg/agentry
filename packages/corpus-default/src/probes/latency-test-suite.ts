@@ -15,6 +15,9 @@ export default defineProbe({
     reported, not first-run compile cost.
   `,
 
+  remediation:
+    "Speed up the test suite: parallelize (Vitest/Jest default to it), separate the fast unit pass from slow integration/e2e tiers, mock external services, share test setup. The fast pass should finish in under a minute. Slower tiers can run in CI but should be opt-in locally.",
+
   async detect(ev) {
     if (!ev.node_package.present) return { kind: "na", reason: "no package.json" };
     const script = ev.node_package.scripts.test;

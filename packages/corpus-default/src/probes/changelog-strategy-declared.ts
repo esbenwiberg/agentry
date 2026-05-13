@@ -29,6 +29,9 @@ export default defineProbe({
     actual release flow.
   `,
 
+  remediation:
+    "Pick a changelog strategy and commit at least one artifact for it: a hand-edited `CHANGELOG.md`, a fragments directory like `.changeset/`, or per-release notes under `docs/release/`. The shape doesn't matter — what matters is that an agent can see the pattern and follow it.",
+
   async detect(ev) {
     if (STRATEGY_FILES.some((p) => ev.files.has(p))) {
       return { kind: "predicate", value: true };

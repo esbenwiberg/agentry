@@ -44,6 +44,9 @@ export default defineProbe({
     decisions, with rationale, that are still current. Cached.
   `,
 
+  remediation:
+    "Make your ADRs actually decide something. Each should name: (1) the decision made, (2) the alternatives considered, (3) why this option won (the binding constraint or tradeoff), (4) status (Accepted / Superseded with pointer / Deprecated) and a date. Empty templates and 'Proposed — TBD' don't count.",
+
   async detect(ev) {
     const adrPaths = ev.size_stats.files
       .map((f) => f.path)

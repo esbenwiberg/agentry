@@ -14,6 +14,9 @@ export default defineProbe({
     context has been written down for agents to read.
   `,
 
+  remediation:
+    "Expand your CLAUDE.md/AGENTS.md beyond a stub. Aim for at least 40 lines covering: project purpose, build/test/run commands, directory layout, key conventions, and any non-obvious constraints. A short, focused 120-line file beats a sprawling one — but a 5-line file isn't enough for an agent to orient.",
+
   async detect(ev) {
     const total = ev.agent_config.guidance.reduce((sum, g) => sum + g.lines, 0);
     return { kind: "magnitude", value: total, unit: "lines" };

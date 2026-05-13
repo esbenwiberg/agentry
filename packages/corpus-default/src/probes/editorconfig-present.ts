@@ -10,5 +10,7 @@ export default fileExists({
     guess from surrounding code and may produce diffs that flicker
     formatting across files.
   `,
+  remediation:
+    "Add an `.editorconfig` at the repo root with at minimum `indent_style`, `indent_size`, `end_of_line`, and `insert_final_newline`. See https://editorconfig.org for the format.",
   path: ".editorconfig",
 });

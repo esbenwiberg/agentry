@@ -24,6 +24,9 @@ export default defineProbe({
     paths from each bucket; missing buckets surface as a missed probe.
   `,
 
+  remediation:
+    "Expand `.gitignore` to cover the standard buckets: env files (`.env`, `.env.local`), build artifacts (`dist/`, `build/`, `out/`), `node_modules/`, OS junk (`.DS_Store`, `Thumbs.db`), and editor state (`.idea/`, `.vscode/`). github.com/github/gitignore has community-maintained templates per language.",
+
   async detect(ev) {
     if (!ev.gitignore.present) return { kind: "predicate", value: false };
     let covered = 0;

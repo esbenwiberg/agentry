@@ -14,6 +14,9 @@ export default defineProbe({
     is present. N/A on repos without TS configuration.
   `,
 
+  remediation:
+    "Speed up typecheck: use TS project references with incremental builds (`composite: true`, `incremental: true`), narrow `include`/`exclude` to source files only, skip lib checks (`skipLibCheck: true` if not already). For monorepos, set up referenced subprojects so unchanged packages aren't re-typechecked.",
+
   async detect(ev) {
     if (!ev.node_package.present && !ev.files.has("tsconfig.json")) {
       return { kind: "na", reason: "no TS configuration" };

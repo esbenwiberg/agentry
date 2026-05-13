@@ -45,6 +45,9 @@ export default defineProbe({
     re-incur a model call.
   `,
 
+  remediation:
+    "Tighten your README. Top: one sentence saying what this project is. Then concrete sections: Install, Usage/Quickstart, Build, Test — each with copy-pasteable commands that actually work. Keep paths and commands current with the code. Aim for clarity over completeness.",
+
   async detect(ev) {
     const raw = await ev.files.readText("README.md");
     if (raw === undefined) {

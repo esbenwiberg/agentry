@@ -18,6 +18,9 @@ export default defineProbe({
     expect.
   `,
 
+  remediation:
+    "Adopt Conventional Commits (`type(scope): subject`, where type is feat/fix/docs/style/refactor/perf/test/build/ci/chore/revert/breaking/security). Enforce with a commit-msg hook (e.g., commitlint, or a shell `.githooks/commit-msg`). Document the format in CONTRIBUTING.md or CLAUDE.md so agents can imitate it.",
+
   async detect(ev) {
     if (!ev.commit_history.available) {
       return { kind: "na", reason: "no git history available" };

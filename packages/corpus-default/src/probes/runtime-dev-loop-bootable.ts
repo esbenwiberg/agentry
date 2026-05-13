@@ -134,6 +134,9 @@ export default defineProbe({
     whether they compose into a story an agent could follow alone.
   `,
 
+  remediation:
+    "Give the agent a one-or-two-command path to a running app: `docker compose up`, `npm run dev`, `make dev`, or a devcontainer. Ship seed data or fixtures so the app does something interesting on first boot. Provide a smoke test, e2e suite, or health endpoint to self-verify changes. Document the loop in README under '## Development' or '## Running locally'.",
+
   async detect(ev) {
     const allPaths = ev.size_stats.files.map((f) => f.path);
     const bootFilesFound = BOOT_FILES.filter((p) => ev.files.has(p));

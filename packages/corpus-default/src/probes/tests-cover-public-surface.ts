@@ -58,6 +58,9 @@ export default defineProbe({
     Cached, so a clean run is free.
   `,
 
+  remediation:
+    "Test by named export, not just end-to-end. For each major public function/class, add a test file that imports it by name and exercises its contract. Co-locate tests (`foo.ts` + `foo.test.ts`) or mirror the source layout in a parallel `test/` tree — both let an agent find the test for a symbol it just touched.",
+
   async detect(ev) {
     const allPaths = ev.size_stats.files
       .map((f) => f.path)

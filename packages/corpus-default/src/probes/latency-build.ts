@@ -14,6 +14,9 @@ export default defineProbe({
     actively painful.
   `,
 
+  remediation:
+    "Make the build fast enough that the agent runs it after every change. Incremental TS builds, esbuild/swc instead of pure tsc emit, parallel package builds in a monorepo. Aim for under 30 seconds on a clean machine; over 5 minutes is a productivity tax that compounds every cycle.",
+
   async detect(ev) {
     if (!ev.node_package.present) return { kind: "na", reason: "no package.json" };
     const script = ev.node_package.scripts.build;

@@ -49,6 +49,9 @@ export default defineProbe({
     probe version) re-incur a model call.
   `,
 
+  remediation:
+    "Make your CLAUDE.md/AGENTS.md specific to THIS project: real paths, real commands, real conventions. Cover build, test, run, and where the major code lives. Generic platitudes ('write clean code') score poorly; concrete project-specific instructions score well. Tip: include the exact commands an agent should run for typecheck, test, lint, and dev server.",
+
   async detect(ev) {
     const guidance = ev.agent_config.guidance;
     if (guidance.length === 0) {

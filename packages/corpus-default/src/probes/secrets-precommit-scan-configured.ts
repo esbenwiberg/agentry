@@ -43,6 +43,9 @@ export default defineProbe({
     are followed one level deep so the scanner is still recognised.
   `,
 
+  remediation:
+    "Add a secret scanner that runs on every commit. Easiest paths: `gitleaks` (single binary, fast), `secretlint` (npm, configurable), `trufflehog`, or `detect-secrets`. Wire it into a pre-commit hook (`.husky/pre-commit`, `.githooks/pre-commit`, or `.pre-commit-config.yaml`) and/or a CI job. Either alone is fine — both is better.",
+
   async detect(ev) {
     const allFiles = ev.size_stats.files.map((f) => f.path);
     const visited = new Set<string>();

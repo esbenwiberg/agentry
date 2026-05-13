@@ -46,6 +46,9 @@ export default defineProbe({
     whether common feedback loops are present — for diagnostic quality.
   `,
 
+  remediation:
+    "Use tools that emit file:line:col diagnostics (TSC strict, Biome, ESLint, Vitest, Pytest, rustc). Remove `--silent` / `--quiet` / `2>/dev/null` from scripts. Avoid parallel runners that interleave output during failure investigation. Wire up the full feedback loop: typecheck, lint, test, build — each with a clear script name.",
+
   async detect(ev) {
     if (!ev.node_package.present) {
       return { kind: "na", reason: "no package.json" };

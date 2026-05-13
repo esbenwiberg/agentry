@@ -45,6 +45,9 @@ export default defineProbe({
     an agent shouldn't break, and stay current with the code. Cached.
   `,
 
+  remediation:
+    "Flesh out your architecture doc: name the major components and their responsibilities, describe how they communicate, and state the invariants an agent must not break (allowed dependency directions, public-vs-internal boundaries). Then update it whenever the shape changes — a stale architecture doc misleads worse than no doc.",
+
   async detect(ev) {
     const candidates: string[] = [];
     for (const p of SINGLE_FILES) {

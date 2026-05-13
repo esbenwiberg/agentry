@@ -28,6 +28,9 @@ export default defineProbe({
     we add adapters for those platforms.
   `,
 
+  remediation:
+    "Add a test step to your CI workflow. GitHub Actions: a `run: npm test` (or `pytest`, `go test ./...`, `cargo test`, `dotnet test`) step in `.github/workflows/ci.yml`. Green-on-main with tests run is what lets an agent (and a reviewer) trust the tree.",
+
   async detect(ev) {
     if (!ev.ci_workflows.present) {
       return { kind: "predicate", value: false };

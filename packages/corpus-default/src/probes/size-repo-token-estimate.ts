@@ -16,6 +16,9 @@ export default defineProbe({
     you "this repo will cost you" before you commit to it.
   `,
 
+  remediation:
+    "If the repo is genuinely too big, split it: move independent subsystems to separate repos, or move generated/vendored content out of source control (use a release artifact, lockfile reference, or `.gitattributes` `linguist-generated=true`). For a working repo you can't split, accept the score — the probe just flags the agent's per-context cost.",
+
   async detect(ev) {
     if (ev.size_stats.source === "none") {
       return { kind: "na", reason: "no git working tree" };
