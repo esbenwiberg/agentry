@@ -50,6 +50,18 @@ repofit --ci             # one-line verdict + GitHub Actions annotations
 repofit --include executed  # also run the slow stuff (test/build/lint timings)
 ```
 
+## CI integrations
+
+First-party wrappers for the common platforms:
+
+- [GitHub Actions](integrations/github-action/) — `esbenwiberg/repofit/integrations/github-action@v1`
+- [Azure DevOps Pipelines](integrations/azure-pipelines/) — step template
+
+Both gate the PR against the committed baseline and publish the JSON + HTML
+reports as build artifacts. See [`integrations/`](integrations/) for the full
+list and the underlying `repofit --ci` invocation if your platform isn't
+listed.
+
 ## How it works
 
 The engine runs probes in tiers — static → derived → historical →

@@ -1,0 +1,132 @@
+# Azure DevOps Pipelines step template for repofit.
+#
+# Usage:
+#   steps:
+#     - template: integrations/azure-pipelines/repofit.yml
+#       parameters:
+#         version: latest
+#         failOn: error
+#
+# Or from another repo:
+#   resources:
+#     repositories:
+#       - repository: repofit
+#         type: github
+#         name: esbenwiberg/repofit
+#         endpoint: <your-github-service-connection>
+#   steps:
+#     - template: integrations/azure-pipelines/repofit.yml@repofit
+#       parameters:
+#         version: '1.0.0'
+
+parameters:
+  # Version of @esbenwiberg/repofit to install. 'latest', a semver (e.g. '1.0.0'),
+  # or a range/tag accepted by npx.
+  - name: version
+    type: string
+    default: latest
+
+  # Node.js version to install via NodeTool@0. repofit requires Node 22+.
+  - name: nodeVersion
+    type: string
+    default: "22"
+
+  # Working directory to run repofit against. Defaults to the source root.
+  - name: cwd
+    type: string
+    default: $(Build.SourcesDirectory)
+
+  # Comma-separated opt-in tiers (e.g. 'executed' or 'executed,reasoned').
+  - name: include
+    type: string
+    default: ""
+
+  # Path (relative to cwd) to write the JSON report.
+  - name: artifact
+    type: string
+    default: repofit-report.json
+
+  # Path (relative to cwd) to write the HTML report. Set to '' to skip HTML.
+  - name: html
+    type: string
+    default: repofit-report.html
+
+  # Publish JSON/HTML reports as pipeline artifacts.
+  - name: publishArtifacts
+    type: boolean
+    default: true
+
+  # Pipeline artifact name for the JSON+HTML bundle.
+  - name: artifactName
+    type: string
+    default: repofit-report
+
+  # Verdict severity that fails the step:
+  #   'warn'  — any drift or failure fails the step
+  #   'error' — only hard gate failures (exit >=2) fail the step
+  #   'never' — never fail the step
+  - name: failOn
+    type: string
+    default: error
+    values:
+      - warn
+      - error
+      - never
+
+steps:
+  - task: NodeTool@0
+    displayName: "repofit: use Node ${{ parameters.nodeVersion }}"
+    inputs:
+      versionSpec: "${{ parameters.nodeVersion }}"
+
+  - bash: |
+      set +e
+      ARGS="--ci --artifact '${{ parameters.artifact }}' --html '${{ parameters.html }}'"
+      if [ -n "${{ parameters.include }}" ]; then
+        ARGS="$ARGS --include '${{ parameters.include }}'"
+      fi
+      eval npx --yes "@esbenwiberg/repofit@${{ parameters.version }}" $ARGS
+      STATUS=$?
+      echo "##vso[task.setvariable variable=repofitStatus;isOutput=true]$STATUS"
+
+      case "${{ parameters.failOn }}" in
+        never) exit 0 ;;
+        warn)  exit $STATUS ;;
+        error)
+          # repofit exits 0 on pass, 1 on drift/advisory, 2 on hard fail.
+          # In "error" mode we only fail on 2+.
+          if [ "$STATUS" -ge 2 ]; then exit "$STATUS"; else exit 0; fi
+          ;;
+      esac
+    name: run
+    displayName: "repofit: check"
+    workingDirectory: ${{ parameters.cwd }}
+
+  - bash: |
+      set -e
+      if [ ! -f "${{ parameters.artifact }}" ]; then
+        echo "##vso[task.setvariable variable=repofitFitness;isOutput=true]"
+        echo "##vso[task.setvariable variable=repofitVerdict;isOutput=true]unknown"
+        exit 0
+      fi
+      FITNESS=$(node -e "console.log(JSON.parse(require('node:fs').readFileSync('${{ parameters.artifact }}','utf8')).fitness ?? '')")
+      VERDICT=$(node -e "console.log(JSON.parse(require('node:fs').readFileSync('${{ parameters.artifact }}','utf8')).verdict?.outcome ?? 'unknown')")
+      echo "repofit fitness: $FITNESS"
+      echo "repofit verdict: $VERDICT"
+      echo "##vso[task.setvariable variable=repofitFitness;isOutput=true]$FITNESS"
+      echo "##vso[task.setvariable variable=repofitVerdict;isOutput=true]$VERDICT"
+    name: parse
+    displayName: "repofit: parse report"
+    condition: always()
+    workingDirectory: ${{ parameters.cwd }}
+
+  - publish: ${{ parameters.cwd }}/${{ parameters.artifact }}
+    displayName: "repofit: publish JSON report"
+    artifact: ${{ parameters.artifactName }}-json
+    condition: and(always(), eq('${{ parameters.publishArtifacts }}', 'true'))
+
+  - ${{ if ne(parameters.html, '') }}:
+      - publish: ${{ parameters.cwd }}/${{ parameters.html }}
+        displayName: "repofit: publish HTML report"
+        artifact: ${{ parameters.artifactName }}-html
+        condition: and(always(), eq('${{ parameters.publishArtifacts }}', 'true'))
