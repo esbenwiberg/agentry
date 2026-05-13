@@ -11,6 +11,7 @@ import docsReadmePresentFixer from "./fixers/docs-readme-present.js";
 import docsReadmePresentLlmFixer from "./fixers/docs-readme-present-llm.js";
 import editorconfigPresentFixer from "./fixers/editorconfig-present.js";
 import gitignoreComprehensiveFixer from "./fixers/gitignore-comprehensive.js";
+import agentGuidanceFresh from "./probes/agent-guidance-fresh.js";
 import agentGuidanceNested from "./probes/agent-guidance-nested.js";
 import agentGuidancePresent from "./probes/agent-guidance-present.js";
 import agentGuidanceQuality from "./probes/agent-guidance-quality.js";
@@ -29,6 +30,7 @@ import depsLockfilePresent from "./probes/deps-lockfile-present.js";
 import docsAdrPresence from "./probes/docs-adr-presence.js";
 import docsAdrQuality from "./probes/docs-adr-quality.js";
 import docsContributingPresent from "./probes/docs-contributing-present.js";
+import docsLinksResolved from "./probes/docs-links-resolved.js";
 import docsReadmeClarity from "./probes/docs-readme-clarity.js";
 import docsReadmePresent from "./probes/docs-readme-present.js";
 import docsReadmeSubstance from "./probes/docs-readme-substance.js";
@@ -46,6 +48,7 @@ import latencyTestSuite from "./probes/latency-test-suite.js";
 import latencyTypecheck from "./probes/latency-typecheck.js";
 import lintClean from "./probes/lint-clean.js";
 import lintConfigured from "./probes/lint-configured.js";
+import readmeCommandsRunnable from "./probes/readme-commands-runnable.js";
 import runtimeDevLoopBootable from "./probes/runtime-dev-loop-bootable.js";
 import safetyDangerousScriptFlags from "./probes/safety-dangerous-script-flags.js";
 import secretsDotenvGitignored from "./probes/secrets-dotenv-gitignored.js";
@@ -68,6 +71,7 @@ export const meta = {
 };
 
 export const probes = [
+  agentGuidanceFresh,
   agentGuidanceNested,
   agentGuidancePresent,
   agentGuidanceQuality,
@@ -86,6 +90,7 @@ export const probes = [
   docsAdrPresence,
   docsAdrQuality,
   docsContributingPresent,
+  docsLinksResolved,
   docsReadmeClarity,
   docsReadmePresent,
   docsReadmeSubstance,
@@ -103,6 +108,7 @@ export const probes = [
   latencyTypecheck,
   lintClean,
   lintConfigured,
+  readmeCommandsRunnable,
   runtimeDevLoopBootable,
   safetyDangerousScriptFlags,
   secretsDotenvGitignored,
