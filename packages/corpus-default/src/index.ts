@@ -23,6 +23,9 @@ import changelogStrategyDeclared from "./probes/changelog-strategy-declared.js";
 import ciConfigured from "./probes/ci-configured.js";
 import ciRunsTests from "./probes/ci-runs-tests.js";
 import commitsConventionalFollowed from "./probes/commits-conventional-followed.js";
+import deadCodeConfigured from "./probes/dead-code-configured.js";
+import depsAuditConfigured from "./probes/deps-audit-configured.js";
+import depsLockfilePresent from "./probes/deps-lockfile-present.js";
 import docsAdrPresence from "./probes/docs-adr-presence.js";
 import docsAdrQuality from "./probes/docs-adr-quality.js";
 import docsContributingPresent from "./probes/docs-contributing-present.js";
@@ -77,6 +80,9 @@ export const probes = [
   ciConfigured,
   ciRunsTests,
   commitsConventionalFollowed,
+  deadCodeConfigured,
+  depsAuditConfigured,
+  depsLockfilePresent,
   docsAdrPresence,
   docsAdrQuality,
   docsContributingPresent,
