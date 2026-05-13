@@ -34,4 +34,12 @@ jobs:
       - name: dead-code scan
         run: npm run knip
       - name: dogfood — repofit gates itself
-        run: npx repofit --ci
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            npx repofit --ci --include executed --include reasoned --judge-transport api
+          else
+            echo "No ANTHROPIC_API_KEY available — falling back to default tier (forks/PRs from forks)."
+            npx repofit --ci
+          fi
