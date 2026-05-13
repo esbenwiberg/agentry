@@ -33,11 +33,7 @@ const GO_DEAD_CODE_HINTS = [
   /\bdeadcode\s+/i,
 ];
 
-const DOTNET_DEAD_CODE_HINTS = [
-  /\broslynator\b/i,
-  /\bjb\s+inspectcode\b/i,
-  /\bIDE005[12]\b/,
-];
+const DOTNET_DEAD_CODE_HINTS = [/\broslynator\b/i, /\bjb\s+inspectcode\b/i, /\bIDE005[12]\b/];
 
 export default defineProbe({
   id: "dead.code-configured",
@@ -77,7 +73,11 @@ export default defineProbe({
     }
 
     const allPaths = ev.size_stats.files.map((f) => f.path);
-    const hasPy = allPaths.some((p) => /(?:^|\/)(?:pyproject\.toml|setup\.cfg|setup\.py|Pipfile|requirements(?:[-.][\w]+)?\.txt)$/i.test(p));
+    const hasPy = allPaths.some((p) =>
+      /(?:^|\/)(?:pyproject\.toml|setup\.cfg|setup\.py|Pipfile|requirements(?:[-.][\w]+)?\.txt)$/i.test(
+        p,
+      ),
+    );
     const hasGo = allPaths.some((p) => /(?:^|\/)go\.mod$/i.test(p));
     const hasRust = allPaths.some((p) => /(?:^|\/)Cargo\.toml$/i.test(p));
     const hasDotnet = allPaths.some((p) => /\.(?:cs|fs|vb)proj$/i.test(p));
@@ -91,7 +91,10 @@ export default defineProbe({
       return { kind: "predicate", value: true };
     }
     if (hasGo) {
-      const golangciRaw = (await ev.files.readText(".golangci.yml")) ?? (await ev.files.readText(".golangci.yaml")) ?? "";
+      const golangciRaw =
+        (await ev.files.readText(".golangci.yml")) ??
+        (await ev.files.readText(".golangci.yaml")) ??
+        "";
       if (GO_DEAD_CODE_HINTS.some((p) => p.test(`${ciBlob}\n${golangciRaw}`))) {
         return { kind: "predicate", value: true };
       }

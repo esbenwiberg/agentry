@@ -29,5 +29,9 @@ jobs:
       - run: npm run lint
       - run: npm run build
       - run: npm test
+      - name: vuln audit
+        run: npm audit --audit-level=high
+      - name: dead-code scan
+        run: npm run knip
       - name: dogfood — repofit gates itself
         run: npx repofit --ci

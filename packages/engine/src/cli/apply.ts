@@ -214,5 +214,3 @@ async function readSafe(p: string): Promise<string | null> {
     return null;
   }
 }
-
-export type { Reading };

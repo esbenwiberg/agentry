@@ -13,15 +13,8 @@ const NODE_AUDIT_HINTS = [
 const PY_AUDIT_HINTS = [/\bpip-audit\b/i, /\bsafety\s+(?:check|scan)\b/i];
 const GO_AUDIT_HINTS = [/\bgovulncheck\b/i];
 const RUST_AUDIT_HINTS = [/\bcargo[-\s]audit\b/i, /\bcargo[-\s]deny\b/i];
-const JAVA_AUDIT_HINTS = [
-  /\bdependency-check\b/i,
-  /\borg\.owasp:dependency-check\b/i,
-  /\bsnyk\b/i,
-];
-const DOTNET_AUDIT_HINTS = [
-  /\bdotnet\s+list\s+package\s+--vulnerable\b/i,
-  /\bdotnet-retire\b/i,
-];
+const JAVA_AUDIT_HINTS = [/\bdependency-check\b/i, /\borg\.owasp:dependency-check\b/i, /\bsnyk\b/i];
+const DOTNET_AUDIT_HINTS = [/\bdotnet\s+list\s+package\s+--vulnerable\b/i, /\bdotnet-retire\b/i];
 const RUBY_AUDIT_HINTS = [/\bbundle(?:r)?[-\s]audit\b/i];
 const GENERIC_AUDIT_HINTS = [
   /\btrivy\s+(?:fs|repo)\b/i,
@@ -135,9 +128,7 @@ export default defineProbe({
         files: [],
         ci_workflows: {
           present: true,
-          workflows: [
-            { path: ".github/workflows/sec.yml", raw: "run: govulncheck ./..." },
-          ],
+          workflows: [{ path: ".github/workflows/sec.yml", raw: "run: govulncheck ./..." }],
         },
       },
       expect: { reading: { kind: "predicate", value: true }, score: 100 },
@@ -149,9 +140,7 @@ export default defineProbe({
         files: [],
         ci_workflows: {
           present: true,
-          workflows: [
-            { path: ".github/workflows/audit.yml", raw: "run: cargo audit" },
-          ],
+          workflows: [{ path: ".github/workflows/audit.yml", raw: "run: cargo audit" }],
         },
       },
       expect: { reading: { kind: "predicate", value: true }, score: 100 },

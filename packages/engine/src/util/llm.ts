@@ -4,8 +4,8 @@ import type { Generate, GenerateOptions } from "../sdk/types.js";
 
 export type LlmTransport = "api" | "cli";
 
-export const DEFAULT_GENERATE_MODEL = "claude-sonnet-4-6";
-export const DEFAULT_MAX_TOKENS = 4096;
+const DEFAULT_GENERATE_MODEL = "claude-sonnet-4-6";
+const DEFAULT_MAX_TOKENS = 4096;
 
 export type CreateGeneratorOptions = {
   transport?: LlmTransport;

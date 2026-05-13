@@ -8,7 +8,7 @@ import type { Reading } from "../sdk/types.js";
 import type { Drift } from "../verdict/drift.js";
 import type { Verdict } from "../verdict/index.js";
 
-export const REPORT_SCHEMA_VERSION = 1;
+const REPORT_SCHEMA_VERSION = 1;
 
 export type ReportInput = {
   cwd: string;

@@ -3,12 +3,7 @@ import { join } from "node:path";
 import type { AgentConfigEvidence, GatherContext, GuidanceFile } from "../../sdk/types.js";
 import { countLines } from "../../util/count-lines.js";
 
-export const GUIDANCE_CANDIDATES = [
-  "CLAUDE.md",
-  "AGENTS.md",
-  ".cursorrules",
-  ".aider.conf.yml",
-] as const;
+const GUIDANCE_CANDIDATES = ["CLAUDE.md", "AGENTS.md", ".cursorrules", ".aider.conf.yml"] as const;
 
 export const agentConfigSubsystem = {
   async gather(ctx: GatherContext): Promise<AgentConfigEvidence> {

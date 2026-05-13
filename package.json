@@ -15,11 +15,14 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "test": "npm run build -w @esbenwiberg/repofit && npm run test --workspaces --if-present",
-    "arch:check": "depcruise --config .dependency-cruiser.cjs packages"
+    "arch:check": "depcruise --config .dependency-cruiser.cjs packages",
+    "knip": "knip",
+    "audit": "npm audit --audit-level=high"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
     "dependency-cruiser": "^17.4.0",
+    "knip": "^6.13.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.6"
   }
