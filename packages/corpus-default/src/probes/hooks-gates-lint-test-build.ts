@@ -12,11 +12,66 @@ const HOOK_PATHS = [
 const SH_PATH = /([A-Za-z0-9_./-]+\.sh)\b/g;
 
 const GATES = [
-  { id: "lint", patterns: [/\blint\b/i, /\bbiome\s+(?:check|lint)\b/i, /\beslint\b/i] },
-  { id: "format", patterns: [/\bformat\b/i, /\bprettier\b/i, /\bbiome\s+format\b/i] },
-  { id: "test", patterns: [/\btest\b/i, /\bvitest\b/i, /\bjest\b/i, /\bpytest\b/i] },
-  { id: "typecheck", patterns: [/\btypecheck\b/i, /\btsc\b/i, /\bmypy\b/i, /\bpyright\b/i] },
-  { id: "build", patterns: [/\bbuild\b/i] },
+  {
+    id: "lint",
+    patterns: [
+      /\blint\b/i,
+      /\bbiome\s+(?:check|lint)\b/i,
+      /\beslint\b/i,
+      /\bruff\s+check\b/i,
+      /\bflake8\b/i,
+      /\bpylint\b/i,
+      /\bgolangci-lint\b/i,
+      /\bgo\s+vet\b/i,
+      /\bcargo\s+clippy\b/i,
+      /\brubocop\b/i,
+      /\bstandardrb\b/i,
+    ],
+  },
+  {
+    id: "format",
+    patterns: [
+      /\bformat\b/i,
+      /\bprettier\b/i,
+      /\bbiome\s+format\b/i,
+      /\bruff\s+format\b/i,
+      /\bblack\b/i,
+      /\bgofmt\b/i,
+      /\bcargo\s+fmt\b/i,
+      /\bdotnet\s+format\b/i,
+    ],
+  },
+  {
+    id: "test",
+    patterns: [
+      /\btest\b/i,
+      /\bvitest\b/i,
+      /\bjest\b/i,
+      /\bpytest\b/i,
+      /\bgo\s+test\b/i,
+      /\bcargo\s+test\b/i,
+      /\bmvn\s+(?:test|verify)\b/i,
+      /\bgradle\s+test\b/i,
+      /\bdotnet\s+test\b/i,
+      /\brspec\b/i,
+      /\bminitest\b/i,
+    ],
+  },
+  {
+    id: "typecheck",
+    patterns: [/\btypecheck\b/i, /\btsc\b/i, /\bmypy\b/i, /\bpyright\b/i],
+  },
+  {
+    id: "build",
+    patterns: [
+      /\bbuild\b/i,
+      /\bgo\s+build\b/i,
+      /\bcargo\s+build\b/i,
+      /\bmvn\s+(?:package|install)\b/i,
+      /\bgradle\s+build\b/i,
+      /\bdotnet\s+build\b/i,
+    ],
+  },
 ];
 
 function basename(p: string): string {
@@ -35,7 +90,7 @@ function resolveSiblings(hookPath: string, ref: string, allFiles: string[]): str
 
 export default defineProbe({
   id: "hooks.gates-lint-test-build",
-  version: "1.0.0",
+  version: "1.1.0",
   dimensions: [{ id: "feedback", weight: 1 }],
   tier: "derived",
   evidence: ["files", "size_stats"],
@@ -127,6 +182,38 @@ export default defineProbe({
         },
       },
       expect: { reading: { kind: "count", value: 3 }, score: 80 },
+    },
+    {
+      name: "all-gates-via-go-toolchain",
+      evidence: {
+        files: {
+          ".githooks/pre-commit":
+            "golangci-lint run && gofmt -l . && go test ./... && go build ./...\n",
+        },
+        size_stats: {
+          source: "git-ls-files",
+          totalBytes: 80,
+          totalFiles: 1,
+          files: [{ path: ".githooks/pre-commit", bytes: 80, lines: 3, depth: 1 }],
+        },
+      },
+      expect: { reading: { kind: "count", value: 4 }, score: 100 },
+    },
+    {
+      name: "all-gates-via-cargo",
+      evidence: {
+        files: {
+          ".githooks/pre-commit":
+            "cargo clippy && cargo fmt --check && cargo test && cargo build\n",
+        },
+        size_stats: {
+          source: "git-ls-files",
+          totalBytes: 80,
+          totalFiles: 1,
+          files: [{ path: ".githooks/pre-commit", bytes: 80, lines: 3, depth: 1 }],
+        },
+      },
+      expect: { reading: { kind: "count", value: 4 }, score: 100 },
     },
     {
       name: "all-gates-via-sourced-helper",
