@@ -47,6 +47,8 @@ Each probe carries its own rationale and scoring rubric. Run
 repofit                  # human-readable (default)
 repofit --json           # full machine-readable report
 repofit --ci             # one-line verdict + GitHub Actions annotations
+repofit --html report.html   # self-contained HTML report
+repofit --sarif report.sarif # SARIF 2.1.0 for GitHub code scanning
 repofit --include executed  # also run the slow stuff (test/build/lint timings)
 ```
 

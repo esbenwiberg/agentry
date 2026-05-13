@@ -68,7 +68,8 @@ connection that has read access to GitHub.
 | `include`          | string  | *(empty)*                        | Comma-separated opt-in tiers: `executed`, `reasoned`, or both.             |
 | `artifact`         | string  | `repofit-report.json`            | Path to write the JSON report to (relative to `cwd`).                      |
 | `html`             | string  | `repofit-report.html`            | Path to write the HTML report to. Set to `''` to skip.                     |
-| `publishArtifacts` | boolean | `true`                           | Publish the JSON/HTML reports as pipeline artifacts.                       |
+| `sarif`            | string  | `repofit-report.sarif`           | Path to write the SARIF 2.1.0 report. Set to `''` to skip.                 |
+| `publishArtifacts` | boolean | `true`                           | Publish the JSON/HTML/SARIF reports as pipeline artifacts.                 |
 | `artifactName`     | string  | `repofit-report`                 | Base name for the published artifacts (`-json` / `-html` are appended).    |
 | `failOn`           | string  | `error`                          | When to fail the step: `warn` \| `error` \| `never`.                       |
 

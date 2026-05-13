@@ -41,6 +41,7 @@ program
   .option("--ci", "Emit a CI-friendly verdict line; respects GITHUB_ACTIONS env.")
   .option("--artifact <path>", "With --ci, also write the JSON report to this path.")
   .option("--html <path>", "Write a self-contained HTML report to this path.")
+  .option("--sarif <path>", "Write a SARIF 2.1.0 report to this path (for GitHub code scanning).")
   .option(
     "--include <tier>",
     "Opt-in tier (executed, reasoned). Comma-separate or repeat to add multiple.",
@@ -63,6 +64,7 @@ program
       ci?: boolean;
       artifact?: string;
       html?: string;
+      sarif?: string;
       include: Tier[];
       cache: boolean;
       judgeTransport?: string;
@@ -94,6 +96,7 @@ program
           output,
           artifact: opts.artifact,
           html: opts.html,
+          sarif: opts.sarif,
           include: opts.include,
           noCache: opts.cache === false,
           judgeTransport: opts.judgeTransport as "api" | "cli" | undefined,

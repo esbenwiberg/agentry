@@ -30,6 +30,18 @@ inputs:
     description: "Path to write the HTML report to. Will be uploaded as a workflow artifact when set."
     required: false
     default: "repofit-report.html"
+  sarif:
+    description: "Path to write the SARIF 2.1.0 report to. Set to '' to skip."
+    required: false
+    default: "repofit-report.sarif"
+  upload-sarif:
+    description: "Upload the SARIF report to GitHub code scanning (true/false)."
+    required: false
+    default: "true"
+  sarif-category:
+    description: "Category for the SARIF upload (lets multiple repofit runs coexist per PR)."
+    required: false
+    default: "repofit"
   upload-artifacts:
     description: "Upload JSON/HTML reports as workflow artifacts (true/false)."
     required: false
@@ -52,6 +64,9 @@ outputs:
   report-html:
     description: "Path to the HTML report (relative to working-directory)."
     value: ${{ inputs.html }}
+  report-sarif:
+    description: "Path to the SARIF report (relative to working-directory)."
+    value: ${{ inputs.sarif }}
 
 runs:
   using: "composite"
@@ -80,6 +95,9 @@ runs:
       run: |
         set +e
         ARGS="--ci --artifact ${{ inputs.artifact }} --html ${{ inputs.html }}"
+        if [ -n "${{ inputs.sarif }}" ]; then
+          ARGS="$ARGS --sarif ${{ inputs.sarif }}"
+        fi
         if [ -n "${{ inputs.include }}" ]; then
           # commander accepts repeated --include or a single comma-separated value
           ARGS="$ARGS --include ${{ inputs.include }}"
@@ -133,3 +151,11 @@ runs:
         name: repofit-report-html
         path: ${{ steps.cwd.outputs.dir }}/${{ inputs.html }}
         if-no-files-found: ignore
+
+    - name: Upload SARIF to GitHub code scanning
+      if: always() && inputs.upload-sarif == 'true' && inputs.sarif != ''
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ steps.cwd.outputs.dir }}/${{ inputs.sarif }}
+        category: ${{ inputs.sarif-category }}
+      continue-on-error: true

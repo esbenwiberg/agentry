@@ -42,8 +42,38 @@ job on hard gate failures, and uploads `repofit-report.json` +
 | `include`          | *(empty)*              | Comma-separated opt-in tiers: `executed`, `reasoned`, or both.               |
 | `artifact`         | `repofit-report.json`  | Path to write the JSON report to (relative to `cwd`).                        |
 | `html`             | `repofit-report.html`  | Path to write the HTML report to. Set to `""` to skip.                       |
+| `sarif`            | `repofit-report.sarif` | Path to write the SARIF 2.1.0 report to. Set to `""` to skip.                |
+| `upload-sarif`     | `true`                 | Upload the SARIF report to GitHub code scanning.                             |
+| `sarif-category`   | `repofit`              | SARIF category — lets multiple repofit runs coexist per PR.                  |
 | `upload-artifacts` | `true`                 | Whether to upload the JSON/HTML reports as workflow artifacts.               |
 | `fail-on`          | `error`                | Verdict severity that fails the job: `warn` \| `error` \| `never`.           |
+
+### SARIF + GitHub code scanning
+
+By default, the action uploads a SARIF report to GitHub Advanced Security (code
+scanning). Findings appear inline on the PR diff at the probe's location
+(rather than buried in a workflow log). To enable this, your repo needs:
+
+- The `Security events: write` permission (set on the job, or via repo-default
+  workflow permissions).
+- GitHub Advanced Security enabled on the repo (free for public repos; paid
+  add-on for private).
+
+```yaml
+jobs:
+  repofit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write    # required for code-scanning upload
+    steps:
+      - uses: actions/checkout@v4
+      - uses: esbenwiberg/repofit/integrations/github-action@v1
+```
+
+If your repo doesn't have code scanning enabled, the upload step is `continue-on-error`,
+so the job still succeeds — only the inline annotations are missing. Set
+`upload-sarif: false` to skip the upload entirely.
 
 ### `fail-on` semantics
 
