@@ -18,7 +18,7 @@ import { renderMarkdown } from "../reporters/markdown.js";
 import { renderSarif } from "../reporters/sarif.js";
 import { DEFAULT_TIERS, runProbesDetailed } from "../runner/tiered.js";
 import type { Tier } from "../sdk/types.js";
-import { gitHeadCommit } from "../util/git.js";
+import { gitHeadCommit, gitIgnoresPath } from "../util/git.js";
 import { detectDrift } from "../verdict/drift.js";
 import { computeVerdict } from "../verdict/index.js";
 import { writeAcceptedBaseline, writeInitialConfig } from "./bootstrap.js";
@@ -130,6 +130,8 @@ export async function check(opts: CheckOptions): Promise<number> {
     await writeFile(opts.comment, renderMarkdown(reportInput), "utf8");
   }
 
+  await warnUnignoredArtifacts(opts.cwd, [opts.html, opts.sarif, opts.comment]);
+
   if (output === "human") {
     console.log(renderHuman({ aggregated, results, verdict, drift, cost }));
     if (opts.html) console.log(`  html     ${opts.html}`);
@@ -161,4 +163,31 @@ function resolveIncludeTiers(
 
 function fmt(n: number | null): string {
   return n === null ? "—" : n.toFixed(0);
+}
+
+/**
+ * repofit's own report artifacts land in the working tree. If git doesn't
+ * ignore them, tree-scanning probes (format.clean, lint, …) pick them up on
+ * the next run — repofit tripping its own probes on its own output. Warn so
+ * the false signal is obvious and fixable.
+ */
+async function warnUnignoredArtifacts(
+  cwd: string,
+  paths: ReadonlyArray<string | undefined>,
+): Promise<void> {
+  const unignored: string[] = [];
+  for (const path of paths) {
+    if (!path) continue;
+    if ((await gitIgnoresPath(cwd, path)) === false) unignored.push(path);
+  }
+  if (unignored.length === 0) return;
+
+  const noun = unignored.length === 1 ? "an output artifact" : "output artifacts";
+  console.error(`\nwarning: wrote ${noun} that git does not ignore:`);
+  for (const path of unignored) console.error(`  ${path}`);
+  console.error(
+    "These files stay in the working tree, so tree-scanning probes (format.clean,\n" +
+      "lint, …) will read them on the next run — a false signal about your codebase.\n" +
+      "Add them to .gitignore, or write reports into an already-ignored dir (e.g. .repofit/).",
+  );
 }

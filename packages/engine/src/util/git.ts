@@ -24,6 +24,21 @@ export async function detectGithubRemote(
   }
 }
 
+/**
+ * Whether git ignores `path` (relative to `cwd`). Returns `null` when the
+ * answer is unknowable — not a git repo, git missing, or check-ignore errored.
+ */
+export async function gitIgnoresPath(cwd: string, path: string): Promise<boolean | null> {
+  try {
+    await exec("git", ["check-ignore", "-q", "--", path], { cwd });
+    return true;
+  } catch (err) {
+    const code = (err as { code?: unknown }).code;
+    if (code === 1) return false;
+    return null;
+  }
+}
+
 export async function detectDefaultBranch(cwd: string): Promise<string | null> {
   try {
     const { stdout } = await exec("git", ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], {
