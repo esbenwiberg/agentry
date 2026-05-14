@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "acceptedAt": "2026-05-13T13:25:57.057Z",
+  "acceptedAt": "2026-05-14T06:28:52.331Z",
   "corpus": [
     {
       "package": "@esbenwiberg/corpus-default",
       "version": "1.0.0"
     }
   ],
-  "fitness": 92.71284296901196,
+  "fitness": 91.04617630234532,
   "dimensions": {
     "context": 85.81395348837209,
     "consistency": 97.33333333333333,
-    "cost": 80,
+    "cost": 70,
     "feedback": 93.1297709923664,
     "latency": 100,
     "safety": 100
@@ -47,7 +47,7 @@
     "secrets.precommit-scan-configured": 100,
     "size.directory-depth": 80,
     "size.large-files": 80,
-    "size.repo-token-estimate": 80,
+    "size.repo-token-estimate": 50,
     "specs.present": 100,
     "commits.conventional-followed": 100,
     "format.clean": 100,
@@ -69,5 +69,5 @@
     "specs.quality": 80,
     "tests.cover-public-surface": 50
   },
-  "commit": "29560dacb17c1ecfe28e6e08313eaf0efe3180e2"
+  "commit": "d3ab6899d4e6e89ff97152d8d1d2af07e927ea6f"
 }
