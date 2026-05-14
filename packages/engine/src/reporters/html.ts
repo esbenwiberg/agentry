@@ -32,7 +32,7 @@ export function renderHtml(input: ReportInput): string {
     <div>ran ${esc(formatDate(ranAt))}</div>
     ${input.commit ? `<div>commit <code>${esc(input.commit.slice(0, 7))}</code></div>` : ""}
     <div>corpus <code>${esc(input.corpus.name)}@${esc(input.corpus.version)}</code></div>
-    <button class="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode" onclick="repofitToggleTheme()">
+    <button class="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
       <svg class="icon icon-sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
       <svg class="icon icon-moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
     </button>
@@ -531,9 +531,9 @@ function esc(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-const THEME_INIT = `(function(){try{var t=localStorage.getItem('repofit-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`;
+const THEME_INIT = `(()=>{try{const t=localStorage.getItem('repofit-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch{}})();`;
 
-const THEME_TOGGLE = `function repofitToggleTheme(){var r=document.documentElement;var cur=r.getAttribute('data-theme');var sysDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var isDark=cur?cur==='dark':sysDark;var next=isDark?'light':'dark';r.setAttribute('data-theme',next);try{localStorage.setItem('repofit-theme',next);}catch(e){}}`;
+const THEME_TOGGLE = `(()=>{const b=document.querySelector('.theme-toggle');if(!b)return;b.addEventListener('click',()=>{const r=document.documentElement;const cur=r.getAttribute('data-theme');const sysDark=window.matchMedia?.('(prefers-color-scheme: dark)').matches;const next=(cur?cur==='dark':sysDark)?'light':'dark';r.setAttribute('data-theme',next);try{localStorage.setItem('repofit-theme',next);}catch{}});})();`;
 
 const CSS = `
 :root {
