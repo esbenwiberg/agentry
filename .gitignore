@@ -31,6 +31,7 @@ coverage/
 # Repofit cache + generated reports
 .repofit/
 repofit-report.html
+dogfood-report.html
 
 # Local agent state
 .claude/
