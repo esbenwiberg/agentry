@@ -146,6 +146,8 @@ function hydrateSizeStats(raw: unknown): SizeStatsEvidence {
     files: obj.files ?? [],
     totalBytes: obj.totalBytes ?? 0,
     totalFiles: obj.totalFiles ?? obj.files?.length ?? 0,
+    totalBytesEffective: obj.totalBytesEffective,
+    totalFilesEffective: obj.totalFilesEffective,
     source: obj.source ?? "git-ls-files",
   };
 }

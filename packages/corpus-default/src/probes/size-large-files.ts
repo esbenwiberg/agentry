@@ -15,7 +15,9 @@ export default defineProbe({
     Large files punish agents twice: they cost more tokens to load and they
     invite "find the relevant 20 lines in this 3000-line file" reasoning
     detours. Counting files past a width threshold surfaces the worst
-    offenders.
+    offenders. Generated files (lockfiles, files marked
+    \`linguist-generated\`) are excluded — they're large by necessity and
+    no agent should read them end-to-end.
   `,
 
   remediation:
@@ -27,6 +29,7 @@ export default defineProbe({
     }
     const samples: Location[] = [];
     for (const f of ev.size_stats.files) {
+      if (f.generated) continue;
       if (f.lines > LINE_THRESHOLD || f.bytes > BYTE_THRESHOLD) {
         samples.push({ path: f.path });
       }
@@ -54,7 +57,9 @@ export default defineProbe({
           source: "git-ls-files",
           totalBytes: 100,
           totalFiles: 1,
-          files: [{ path: "src/index.ts", bytes: 100, lines: 5, depth: 2 }],
+          totalBytesEffective: 100,
+          totalFilesEffective: 1,
+          files: [{ path: "src/index.ts", bytes: 100, lines: 5, depth: 2, generated: false }],
         },
       },
       expect: { reading: { kind: "count", value: 0, samples: [] }, score: 100 },
@@ -66,7 +71,11 @@ export default defineProbe({
           source: "git-ls-files",
           totalBytes: 5000000,
           totalFiles: 1,
-          files: [{ path: "src/legacy.ts", bytes: 5000000, lines: 3000, depth: 2 }],
+          totalBytesEffective: 5000000,
+          totalFilesEffective: 1,
+          files: [
+            { path: "src/legacy.ts", bytes: 5000000, lines: 3000, depth: 2, generated: false },
+          ],
         },
       },
       expect: {
@@ -75,9 +84,39 @@ export default defineProbe({
       },
     },
     {
+      name: "giant-lockfile-ignored",
+      evidence: {
+        size_stats: {
+          source: "git-ls-files",
+          totalBytes: 200000,
+          totalFiles: 2,
+          totalBytesEffective: 100,
+          totalFilesEffective: 1,
+          files: [
+            { path: "src/index.ts", bytes: 100, lines: 5, depth: 2, generated: false },
+            {
+              path: "package-lock.json",
+              bytes: 199900,
+              lines: 5000,
+              depth: 1,
+              generated: true,
+            },
+          ],
+        },
+      },
+      expect: { reading: { kind: "count", value: 0, samples: [] }, score: 100 },
+    },
+    {
       name: "no-evidence",
       evidence: {
-        size_stats: { source: "none", totalBytes: 0, totalFiles: 0, files: [] },
+        size_stats: {
+          source: "none",
+          totalBytes: 0,
+          totalFiles: 0,
+          totalBytesEffective: 0,
+          totalFilesEffective: 0,
+          files: [],
+        },
       },
       expect: { reading: { kind: "na", reason: "no git working tree" }, score: null },
     },

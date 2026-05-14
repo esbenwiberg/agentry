@@ -13,7 +13,9 @@ export default defineProbe({
     Total tracked bytes divided by a rough chars-per-token constant is a
     crude but stable proxy for "how expensive is full-repo context here?".
     The bands are coarse on purpose: precision matters less than telling
-    you "this repo will cost you" before you commit to it.
+    you "this repo will cost you" before you commit to it. Generated files
+    (lockfiles, \`linguist-generated\`) are excluded from the total — they
+    bloat the byte count without ever entering an agent's context.
   `,
 
   remediation:
@@ -23,7 +25,8 @@ export default defineProbe({
     if (ev.size_stats.source === "none") {
       return { kind: "na", reason: "no git working tree" };
     }
-    const tokens = Math.round(ev.size_stats.totalBytes / CHARS_PER_TOKEN);
+    const effectiveBytes = ev.size_stats.totalBytesEffective ?? ev.size_stats.totalBytes;
+    const tokens = Math.round(effectiveBytes / CHARS_PER_TOKEN);
     return { kind: "magnitude", value: tokens, unit: "tokens" };
   },
 
@@ -47,6 +50,8 @@ export default defineProbe({
           source: "git-ls-files",
           totalBytes: 40_000,
           totalFiles: 5,
+          totalBytesEffective: 40_000,
+          totalFilesEffective: 5,
           files: [],
         },
       },
@@ -59,10 +64,26 @@ export default defineProbe({
           source: "git-ls-files",
           totalBytes: 2_000_000,
           totalFiles: 200,
+          totalBytesEffective: 2_000_000,
+          totalFilesEffective: 200,
           files: [],
         },
       },
       expect: { reading: { kind: "magnitude", value: 500_000, unit: "tokens" }, score: 50 },
+    },
+    {
+      name: "lockfile-doesnt-count",
+      evidence: {
+        size_stats: {
+          source: "git-ls-files",
+          totalBytes: 500_000,
+          totalFiles: 10,
+          totalBytesEffective: 40_000,
+          totalFilesEffective: 9,
+          files: [],
+        },
+      },
+      expect: { reading: { kind: "magnitude", value: 10_000, unit: "tokens" }, score: 100 },
     },
   ],
 });

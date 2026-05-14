@@ -114,12 +114,26 @@ export type SizeStatsFile = {
   bytes: number;
   lines: number;
   depth: number;
+  /**
+   * True if the file is generated (lockfile, build output, marked
+   * `linguist-generated` in `.gitattributes`). Optional for back-compat with
+   * existing fixtures; absent means "not generated".
+   */
+  generated?: boolean;
 };
 
 export type SizeStatsEvidence = {
   files: SizeStatsFile[];
+  /** Raw totals including generated files. */
   totalBytes: number;
   totalFiles: number;
+  /**
+   * Totals excluding generated files — what an agent actually pays to read.
+   * Optional for back-compat; consumers should fall back to `totalBytes`
+   * when absent.
+   */
+  totalBytesEffective?: number;
+  totalFilesEffective?: number;
   source: "git-ls-files" | "walk" | "none";
 };
 
