@@ -1,5 +1,6 @@
 export { type FixtureOutcome, runFixture } from "../fixtures/runner.js";
 export { defineDimension } from "./define-dimension.js";
+export { defineFixer } from "./define-fixer.js";
 export { defineProbe } from "./define-probe.js";
 export type {
   AgentConfigEvidence,
@@ -9,17 +10,28 @@ export type {
   DimensionRecipe,
   EvidenceMap,
   FilesEvidence,
+  FixAction,
+  FixActionAppendLines,
+  FixActionWriteFile,
+  FixContext,
+  Fixer,
+  FixPlan,
   Fixture,
   FixtureExpect,
   GatherContext,
+  Generate,
+  GenerateOptions,
   GitignoreEvidence,
   GuidanceFile,
   InventoryItem,
+  LlmFixContext,
+  LlmFixer,
   Location,
   NodePackageEvidence,
   Probe,
   Reading,
   ScoreConfig,
   Severity,
+  StaticFixer,
   Tier,
 } from "./types.js";

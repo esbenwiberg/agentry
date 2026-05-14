@@ -14,6 +14,9 @@ export default defineProbe({
     configuration.
   `,
 
+  remediation:
+    "Run `npm run typecheck` (or `tsc --noEmit`) and fix every reported error. Don't suppress with `@ts-ignore` / `any` casts without justification — those are a tax the agent pays every time it tries to reason about the surrounding code. Add a pre-commit hook or CI gate so the tree stays type-clean.",
+
   async detect(ev) {
     if (!ev.node_package.present && !ev.files.has("tsconfig.json")) {
       return { kind: "na", reason: "no TS configuration" };

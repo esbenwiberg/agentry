@@ -1,0 +1,217 @@
+name: "repofit"
+description: "Measure how agent-friendly your repository is. Gates a PR against a committed baseline."
+author: "Esben Wiberg"
+branding:
+  icon: "activity"
+  color: "purple"
+
+inputs:
+  version:
+    description: "Version of @esbenwiberg/repofit to install. Use 'latest', a specific version (e.g. '1.0.0'), or a tag/range."
+    required: false
+    default: "latest"
+  node-version:
+    description: "Node.js version to use. repofit requires Node 22+."
+    required: false
+    default: "22"
+  cwd:
+    description: "Working directory to run repofit against (default: ${{ github.workspace }})."
+    required: false
+    default: ""
+  include:
+    description: "Comma-separated opt-in tiers (e.g. 'executed' or 'executed,reasoned')."
+    required: false
+    default: ""
+  artifact:
+    description: "Path to write the JSON report to. Will be uploaded as a workflow artifact."
+    required: false
+    default: "repofit-report.json"
+  html:
+    description: "Path to write the HTML report to. Will be uploaded as a workflow artifact when set."
+    required: false
+    default: "repofit-report.html"
+  sarif:
+    description: "Path to write the SARIF 2.1.0 report to. Set to '' to skip."
+    required: false
+    default: "repofit-report.sarif"
+  upload-sarif:
+    description: "Upload the SARIF report to GitHub code scanning (true/false)."
+    required: false
+    default: "true"
+  sarif-category:
+    description: "Category for the SARIF upload (lets multiple repofit runs coexist per PR)."
+    required: false
+    default: "repofit"
+  comment:
+    description: "Path to write the markdown PR-comment body to. Set to '' to skip."
+    required: false
+    default: "repofit-comment.md"
+  post-comment:
+    description: "Post the rendered markdown as a sticky comment on the PR (true/false). Requires `pull-requests: write`."
+    required: false
+    default: "true"
+  comment-header:
+    description: "Header for the sticky comment (lets multiple repofit configurations coexist on one PR)."
+    required: false
+    default: "repofit"
+  upload-artifacts:
+    description: "Upload JSON/HTML reports as workflow artifacts (true/false)."
+    required: false
+    default: "true"
+  fail-on:
+    description: "Verdict severity that fails the action: 'warn' (any drift), 'error' (gate failure only), or 'never'."
+    required: false
+    default: "error"
+
+outputs:
+  fitness:
+    description: "Overall fitness score (0–100), parsed from the JSON report."
+    value: ${{ steps.parse.outputs.fitness }}
+  verdict:
+    description: "CI verdict: pass, drift, or fail."
+    value: ${{ steps.parse.outputs.verdict }}
+  report-json:
+    description: "Path to the JSON report (relative to working-directory)."
+    value: ${{ inputs.artifact }}
+  report-html:
+    description: "Path to the HTML report (relative to working-directory)."
+    value: ${{ inputs.html }}
+  report-sarif:
+    description: "Path to the SARIF report (relative to working-directory)."
+    value: ${{ inputs.sarif }}
+  report-comment:
+    description: "Path to the markdown PR-comment body (relative to working-directory)."
+    value: ${{ inputs.comment }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Resolve working directory
+      id: cwd
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.cwd }}" ]; then
+          echo "dir=${{ inputs.cwd }}" >> "$GITHUB_OUTPUT"
+        else
+          echo "dir=${{ github.workspace }}" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Run repofit
+      id: run
+      shell: bash
+      working-directory: ${{ steps.cwd.outputs.dir }}
+      env:
+        REPOFIT_FAIL_ON: ${{ inputs.fail-on }}
+      run: |
+        set +e
+        ARGS="--ci --artifact ${{ inputs.artifact }} --html ${{ inputs.html }}"
+        if [ -n "${{ inputs.sarif }}" ]; then
+          ARGS="$ARGS --sarif ${{ inputs.sarif }}"
+        fi
+        if [ -n "${{ inputs.comment }}" ]; then
+          ARGS="$ARGS --comment ${{ inputs.comment }}"
+        fi
+        if [ -n "${{ inputs.include }}" ]; then
+          # commander accepts repeated --include or a single comma-separated value
+          ARGS="$ARGS --include ${{ inputs.include }}"
+        fi
+        npx --yes "@esbenwiberg/repofit@${{ inputs.version }}" $ARGS
+        STATUS=$?
+        echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+
+        case "$REPOFIT_FAIL_ON" in
+          never) exit 0 ;;
+          warn)  exit $STATUS ;;
+          error)
+            # repofit exits 0 on pass, 1 on drift/advisory, 2 on hard fail.
+            # In "error" mode we only fail on 2+.
+            if [ "$STATUS" -ge 2 ]; then exit "$STATUS"; else exit 0; fi
+            ;;
+          *)
+            echo "::error::repofit-action: fail-on must be one of: warn, error, never (got '$REPOFIT_FAIL_ON')"
+            exit 2
+            ;;
+        esac
+
+    - name: Parse report
+      id: parse
+      if: always()
+      shell: bash
+      working-directory: ${{ steps.cwd.outputs.dir }}
+      run: |
+        if [ ! -f "${{ inputs.artifact }}" ]; then
+          echo "fitness=" >> "$GITHUB_OUTPUT"
+          echo "verdict=unknown" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        FITNESS=$(node -e "console.log(JSON.parse(require('node:fs').readFileSync('${{ inputs.artifact }}','utf8')).fitness ?? '')")
+        VERDICT=$(node -e "console.log(JSON.parse(require('node:fs').readFileSync('${{ inputs.artifact }}','utf8')).verdict?.outcome ?? 'unknown')")
+        echo "fitness=$FITNESS" >> "$GITHUB_OUTPUT"
+        echo "verdict=$VERDICT" >> "$GITHUB_OUTPUT"
+
+    - name: Upload JSON report
+      if: always() && inputs.upload-artifacts == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: repofit-report-json
+        path: ${{ steps.cwd.outputs.dir }}/${{ inputs.artifact }}
+        if-no-files-found: ignore
+
+    - name: Upload HTML report
+      if: always() && inputs.upload-artifacts == 'true' && inputs.html != ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: repofit-report-html
+        path: ${{ steps.cwd.outputs.dir }}/${{ inputs.html }}
+        if-no-files-found: ignore
+
+    - name: Upload SARIF to GitHub code scanning
+      if: always() && inputs.upload-sarif == 'true' && inputs.sarif != ''
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ steps.cwd.outputs.dir }}/${{ inputs.sarif }}
+        category: ${{ inputs.sarif-category }}
+      continue-on-error: true
+
+    - name: Post PR comment
+      if: >-
+        always() &&
+        inputs.post-comment == 'true' &&
+        inputs.comment != '' &&
+        github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          const cwd = `${{ steps.cwd.outputs.dir }}`;
+          const file = path.join(cwd, `${{ inputs.comment }}`);
+          if (!fs.existsSync(file)) {
+            core.warning(`repofit: no comment file at ${file}; skipping PR comment.`);
+            return;
+          }
+          const body = fs.readFileSync(file, 'utf8');
+          const header = `${{ inputs.comment-header }}`;
+          const marker = `<!-- repofit-comment:${header} -->`;
+          const wrapped = `${marker}\n${body}`;
+          const { owner, repo } = context.repo;
+          const issue_number = context.issue.number;
+          const { data: comments } = await github.rest.issues.listComments({
+            owner, repo, issue_number, per_page: 100,
+          });
+          const existing = comments.find((c) => c.body && c.body.startsWith(marker));
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner, repo, comment_id: existing.id, body: wrapped,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner, repo, issue_number, body: wrapped,
+            });
+          }
+      continue-on-error: true

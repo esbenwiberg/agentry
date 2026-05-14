@@ -47,8 +47,23 @@ Each probe carries its own rationale and scoring rubric. Run
 repofit                  # human-readable (default)
 repofit --json           # full machine-readable report
 repofit --ci             # one-line verdict + GitHub Actions annotations
+repofit --html report.html   # self-contained HTML report
+repofit --sarif report.sarif # SARIF 2.1.0 for GitHub code scanning
+repofit --comment body.md    # markdown body for a sticky PR comment
 repofit --include executed  # also run the slow stuff (test/build/lint timings)
 ```
+
+## CI integrations
+
+First-party wrappers for the common platforms:
+
+- [GitHub Actions](integrations/github-action/) — `esbenwiberg/repofit/integrations/github-action@v1`
+- [Azure DevOps Pipelines](integrations/azure-pipelines/) — step template
+
+Both gate the PR against the committed baseline and publish the JSON + HTML
+reports as build artifacts. See [`integrations/`](integrations/) for the full
+list and the underlying `repofit --ci` invocation if your platform isn't
+listed.
 
 ## How it works
 
@@ -80,8 +95,22 @@ npm run build
 npm test
 ```
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for branch/commit conventions
-and the probe-authoring guide.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for branch/commit conventions.
+
+## Authoring custom probes
+
+The default corpus covers the basics, but probes are meant to be extended.
+Scaffold a new one with:
+
+```bash
+npx repofit probe new feat.my-thing            # predicate (default)
+npx repofit probe new size.dead-files --kind count
+npx repofit probe new latency.deploy --kind magnitude
+```
+
+See [`docs/authoring.md`](docs/authoring.md) for the full guide — tiers,
+reading kinds, scoring, evidence subsystems, fixtures, and how to register
+probes in a custom corpus.
 
 ## License
 

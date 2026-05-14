@@ -1,3 +1,4 @@
+import { writeFile } from "node:fs/promises";
 import { aggregate } from "../aggregator/index.js";
 import { gatherAll } from "../evidence/registry.js";
 import { BASELINE_FILENAME, loadBaseline } from "../loader/baseline.js";
@@ -10,8 +11,11 @@ import {
 import { loadDefaultCorpus } from "../loader/corpus.js";
 import { effectiveDimensions } from "../loader/effective-dimensions.js";
 import { renderCi } from "../reporters/ci.js";
+import { renderHtml } from "../reporters/html.js";
 import { renderHuman } from "../reporters/human-minimal.js";
 import { type ReportInput, renderJson } from "../reporters/json.js";
+import { renderMarkdown } from "../reporters/markdown.js";
+import { renderSarif } from "../reporters/sarif.js";
 import { DEFAULT_TIERS, runProbesDetailed } from "../runner/tiered.js";
 import type { Tier } from "../sdk/types.js";
 import { gitHeadCommit } from "../util/git.js";
@@ -29,7 +33,12 @@ export type CheckOptions = {
   dirty?: boolean;
   output?: OutputMode;
   artifact?: string | undefined;
+  html?: string | undefined;
+  sarif?: string | undefined;
+  comment?: string | undefined;
   include?: Tier[];
+  noCache?: boolean;
+  judgeTransport?: "api" | "cli";
 };
 
 export async function check(opts: CheckOptions): Promise<number> {
@@ -47,7 +56,10 @@ export async function check(opts: CheckOptions): Promise<number> {
   const [projectConfig, baseline, evidence] = await Promise.all([
     loadProjectConfig(opts.cwd),
     loadBaseline(opts.cwd),
-    gatherAll({ cwd: opts.cwd }),
+    gatherAll({
+      cwd: opts.cwd,
+      judge: { noCache: opts.noCache, transport: opts.judgeTransport },
+    }),
   ]);
   const config: ProjectConfig = projectConfig ?? DEFAULT_CONFIG;
 
@@ -87,11 +99,6 @@ export async function check(opts: CheckOptions): Promise<number> {
   const executedMs = summary.tierWallClockMs.executed;
   const cost = executedMs > 0 ? { executedMs } : undefined;
 
-  if (output === "human") {
-    console.log(renderHuman({ aggregated, results, verdict, drift, cost }));
-    return verdict.pass ? 0 : 1;
-  }
-
   const reportInput: ReportInput = {
     cwd: opts.cwd,
     commit: await gitHeadCommit(opts.cwd),
@@ -101,6 +108,7 @@ export async function check(opts: CheckOptions): Promise<number> {
       ...(config.gate.include ? { include: config.gate.include } : {}),
     },
     aggregated,
+    effectiveDimensions: dimensions,
     results,
     verdict,
     drift,
@@ -109,6 +117,26 @@ export async function check(opts: CheckOptions): Promise<number> {
       : null,
     cost,
   };
+
+  if (opts.html) {
+    await writeFile(opts.html, renderHtml(reportInput), "utf8");
+  }
+
+  if (opts.sarif) {
+    await writeFile(opts.sarif, renderSarif(reportInput), "utf8");
+  }
+
+  if (opts.comment) {
+    await writeFile(opts.comment, renderMarkdown(reportInput), "utf8");
+  }
+
+  if (output === "human") {
+    console.log(renderHuman({ aggregated, results, verdict, drift, cost }));
+    if (opts.html) console.log(`  html     ${opts.html}`);
+    if (opts.sarif) console.log(`  sarif    ${opts.sarif}`);
+    if (opts.comment) console.log(`  comment  ${opts.comment}`);
+    return verdict.pass ? 0 : 1;
+  }
 
   if (output === "json") {
     process.stdout.write(renderJson(reportInput));

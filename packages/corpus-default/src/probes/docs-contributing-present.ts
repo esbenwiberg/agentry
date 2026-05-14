@@ -10,5 +10,7 @@ export default fileExists({
     tests live. Without it, agents fall back to generic defaults that
     rarely match house style.
   `,
+  remediation:
+    "Add `CONTRIBUTING.md` at the repo root. Cover: branch naming, commit message format, how to run tests/lint, the PR/review process, and where tests/specs live.",
   path: "CONTRIBUTING.md",
 });

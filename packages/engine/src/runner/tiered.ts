@@ -130,12 +130,27 @@ async function runOne(
 }
 
 function applyWaivers(reading: Reading, waivers: Waiver[]): Reading {
-  if (reading.kind !== "inventory" || waivers.length === 0) return reading;
-  const items = reading.items.filter(
-    (item) => !waivers.some((w) => matchesWaiver(w, item.location.path)),
-  );
-  if (items.length === reading.items.length) return reading;
-  return { kind: "inventory", items };
+  if (waivers.length === 0) return reading;
+  if (reading.kind === "inventory") {
+    const items = reading.items.filter(
+      (item) => !waivers.some((w) => matchesWaiver(w, item.location.path)),
+    );
+    if (items.length === reading.items.length) return reading;
+    return { kind: "inventory", items };
+  }
+  if (reading.kind === "count") {
+    const samples = reading.samples ?? [];
+    if (samples.length === 0) return reading;
+    const kept = samples.filter((loc) => !waivers.some((w) => matchesWaiver(w, loc.path)));
+    if (kept.length === samples.length) return reading;
+    const drop = samples.length - kept.length;
+    return {
+      kind: "count",
+      value: Math.max(0, reading.value - drop),
+      samples: kept,
+    };
+  }
+  return reading;
 }
 
 function matchesWaiver(waiver: Waiver, path: string): boolean {

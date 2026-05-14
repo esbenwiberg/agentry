@@ -14,6 +14,9 @@ export default defineProbe({
     depth is a robust summary that one shallow tree of fixtures can't skew.
   `,
 
+  remediation:
+    "Flatten the deepest paths. Inspect `find . -type f | awk -F/ '{print NF}' | sort -rn | head` to find the worst offenders. Often the fix is removing one or two layers of redundant grouping (e.g., `src/modules/feature/feature.ts` → `src/feature.ts`). Aim for p95 depth ≤ 6.",
+
   async detect(ev) {
     if (ev.size_stats.source === "none") {
       return { kind: "na", reason: "no git working tree" };

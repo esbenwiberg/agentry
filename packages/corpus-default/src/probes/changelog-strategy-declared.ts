@@ -1,30 +1,47 @@
 import { defineProbe } from "@esbenwiberg/repofit/sdk";
 
-const STRATEGY_PATHS = [
+const STRATEGY_FILES = [
   "CHANGELOG.md",
   "CHANGES.md",
   "RELEASES.md",
+  "RELEASE_NOTES.md",
   ".changeset/config.json",
   ".changes/config.json",
 ];
 
+const RELEASE_NOTES_DIRS = ["docs/release", "docs/releases", "releases", "release-notes"];
+
+const RELEASE_NOTE_FILE = /^(docs\/release|docs\/releases|releases|release-notes)\/[^/]+\.md$/i;
+
 export default defineProbe({
   id: "changelog.strategy-declared",
-  version: "1.0.0",
+  version: "1.1.0",
   dimensions: [{ id: "consistency", weight: 1 }],
   tier: "static",
-  evidence: ["files"],
+  evidence: ["files", "size_stats"],
 
   rationale: `
     A declared changelog strategy tells the agent how release notes are
-    captured here — a hand-edited CHANGELOG, a fragments directory, or a
-    tool like changesets. Without a declared strategy, the agent has to
-    guess, and may invent a process that conflicts with the team's actual
-    release flow.
+    captured here — a hand-edited CHANGELOG, a fragments directory like
+    .changeset, a tool config, or a per-release notes directory
+    (docs/release/, releases/). Without a declared strategy, the agent has
+    to guess, and may invent a process that conflicts with the team's
+    actual release flow.
   `,
 
+  remediation:
+    "Pick a changelog strategy and commit at least one artifact for it: a hand-edited `CHANGELOG.md`, a fragments directory like `.changeset/`, or per-release notes under `docs/release/`. The shape doesn't matter — what matters is that an agent can see the pattern and follow it.",
+
   async detect(ev) {
-    return { kind: "predicate", value: STRATEGY_PATHS.some((p) => ev.files.has(p)) };
+    if (STRATEGY_FILES.some((p) => ev.files.has(p))) {
+      return { kind: "predicate", value: true };
+    }
+    for (const dir of RELEASE_NOTES_DIRS) {
+      if (!ev.files.has(dir)) continue;
+      const hasNote = ev.size_stats.files.some((f) => RELEASE_NOTE_FILE.test(f.path));
+      if (hasNote) return { kind: "predicate", value: true };
+    }
+    return { kind: "predicate", value: false };
   },
 
   score: { kind: "predicate", direction: "positive" },
@@ -32,17 +49,39 @@ export default defineProbe({
   fixtures: [
     {
       name: "changelog-md",
-      evidence: { files: ["CHANGELOG.md"] },
+      evidence: {
+        files: ["CHANGELOG.md"],
+        size_stats: { files: [], totalBytes: 0, totalFiles: 0, source: "git-ls-files" },
+      },
       expect: { reading: { kind: "predicate", value: true }, score: 100 },
     },
     {
       name: "changesets",
-      evidence: { files: [".changeset/config.json"] },
+      evidence: {
+        files: [".changeset/config.json"],
+        size_stats: { files: [], totalBytes: 0, totalFiles: 0, source: "git-ls-files" },
+      },
+      expect: { reading: { kind: "predicate", value: true }, score: 100 },
+    },
+    {
+      name: "release-notes-dir",
+      evidence: {
+        files: ["docs/release", "docs/release/v1.0.0.md"],
+        size_stats: {
+          source: "git-ls-files",
+          totalBytes: 100,
+          totalFiles: 1,
+          files: [{ path: "docs/release/v1.0.0.md", bytes: 100, lines: 10, depth: 2 }],
+        },
+      },
       expect: { reading: { kind: "predicate", value: true }, score: 100 },
     },
     {
       name: "no-strategy",
-      evidence: { files: [] },
+      evidence: {
+        files: [],
+        size_stats: { files: [], totalBytes: 0, totalFiles: 0, source: "git-ls-files" },
+      },
       expect: { reading: { kind: "predicate", value: false }, score: 0 },
     },
   ],

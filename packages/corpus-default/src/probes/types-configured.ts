@@ -14,6 +14,9 @@ export default defineProbe({
     proxy for whether this loop exists at all.
   `,
 
+  remediation:
+    'Add a typecheck loop. JS/TS projects: `npm install -D typescript`, add `tsconfig.json` with `"strict": true`, and add `"typecheck": "tsc --noEmit"` to `package.json` scripts. Other languages have analogues (mypy/pyright for Python, `go vet` for Go, `cargo check` for Rust) — configure whichever your stack supports.',
+
   async detect(ev) {
     const hasTsconfig = ev.files.has("tsconfig.json");
     const hasTypescriptDep =

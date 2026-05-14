@@ -18,6 +18,9 @@ export default defineProbe({
     knowledge.
   `,
 
+  remediation:
+    "Start writing ADRs (Architecture Decision Records) under `docs/adr/`. Each one captures one decision: the context, the options, what you chose, and why. Even short ADRs (50–200 words) prevent future debates from re-litigating settled choices. Templates: see adr.github.io or `Nygard`-style.",
+
   async detect(ev) {
     if (ev.size_stats.source === "none") {
       return { kind: "na", reason: "no git working tree" };
