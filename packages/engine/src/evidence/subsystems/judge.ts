@@ -49,21 +49,27 @@ export const judgeSubsystem = {
       return OPENAI_TRANSPORTS.has(transport) ? DEFAULT_JUDGE_MODEL_OPENAI : DEFAULT_JUDGE_MODEL;
     }
 
+    const provisionalDefaultModel =
+      explicitModel ??
+      (transportPref && OPENAI_TRANSPORTS.has(transportPref)
+        ? DEFAULT_JUDGE_MODEL_OPENAI
+        : DEFAULT_JUDGE_MODEL);
+
     return {
-      defaultModel:
-        explicitModel ??
-        (transportPref && OPENAI_TRANSPORTS.has(transportPref)
-          ? DEFAULT_JUDGE_MODEL_OPENAI
-          : DEFAULT_JUDGE_MODEL),
+      defaultModel: provisionalDefaultModel,
       async score(req: JudgeRequest): Promise<JudgeResult> {
-        const transport = await resolveTransport();
-        const model = req.model ?? modelForTransport(transport);
-        const cacheKey = computeCacheKey(req, model);
+        // Resolve the model used for the cache key WITHOUT resolving transport,
+        // so a cache hit short-circuits before we require an API key / CLI.
+        const provisionalModel = req.model ?? provisionalDefaultModel;
+        const cacheKey = computeCacheKey(req, provisionalModel);
 
         if (!noCache) {
           const cached = await readCache(cacheDir, cacheKey);
           if (cached) return { ...cached, fromCache: true };
         }
+
+        const transport = await resolveTransport();
+        const model = req.model ?? modelForTransport(transport);
 
         let result: Omit<JudgeResult, "fromCache">;
         if (transport === "api") {
@@ -79,7 +85,8 @@ export const judgeSubsystem = {
         }
 
         if (!noCache) {
-          await writeCache(cacheDir, cacheKey, result);
+          const writeKey = model === provisionalModel ? cacheKey : computeCacheKey(req, model);
+          await writeCache(cacheDir, writeKey, result);
         }
 
         return { ...result, fromCache: false };

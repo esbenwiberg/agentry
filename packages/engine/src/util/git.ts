@@ -49,3 +49,20 @@ export async function detectDefaultBranch(cwd: string): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * `git ls-files`-tracked paths relative to `cwd`. Returns `null` when git
+ * isn't available or the directory isn't a git repo — callers fall back to
+ * "no evidence" rather than guessing from a filesystem walk.
+ */
+export async function listTrackedFiles(cwd: string): Promise<string[] | null> {
+  try {
+    const { stdout } = await exec("git", ["ls-files", "-z"], { cwd, maxBuffer: 32 * 1024 * 1024 });
+    return stdout
+      .split("\0")
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
+  } catch {
+    return null;
+  }
+}

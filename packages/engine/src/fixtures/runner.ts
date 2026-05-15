@@ -9,11 +9,13 @@ import type {
   CommandSpec,
   CommandsEvidence,
   CommitHistoryEvidence,
+  DotnetProjectEvidence,
   EvidenceMap,
   FilesEvidence,
   Fixture,
   GithubApiEvidence,
   GitignoreEvidence,
+  GoModuleEvidence,
   GuidanceFile,
   JudgeBand,
   JudgeEvidence,
@@ -21,6 +23,7 @@ import type {
   JudgeResult,
   NodePackageEvidence,
   Probe,
+  PythonProjectEvidence,
   Reading,
   SizeStatsEvidence,
 } from "../sdk/types.js";
@@ -66,6 +69,9 @@ function hydrateFixtureEvidence(raw: Record<string, unknown>): EvidenceMap {
     files: hydrateFiles(raw.files),
     agent_config: hydrateAgentConfig(raw.agent_config),
     node_package: hydrateNodePackage(raw.node_package),
+    python_project: hydratePythonProject(raw.python_project),
+    dotnet_project: hydrateDotnetProject(raw.dotnet_project),
+    go_module: hydrateGoModule(raw.go_module),
     gitignore: hydrateGitignore(raw.gitignore),
     size_stats: hydrateSizeStats(raw.size_stats),
     ci_workflows: hydrateCiWorkflows(raw.ci_workflows),
@@ -120,6 +126,56 @@ function hydrateNodePackage(raw: unknown): NodePackageEvidence {
     devDependencies: obj.devDependencies ?? {},
     scripts: obj.scripts ?? {},
     raw: obj.raw ?? null,
+  };
+}
+
+function hydratePythonProject(raw: unknown): PythonProjectEvidence {
+  if (!raw || typeof raw !== "object") {
+    return {
+      present: false,
+      pyproject: null,
+      requirementsFiles: [],
+      hasPoetryLock: false,
+      hasUvLock: false,
+      hasPipfileLock: false,
+      hasSetupCfg: false,
+      hasSetupPy: false,
+    };
+  }
+  const obj = raw as Partial<PythonProjectEvidence>;
+  return {
+    present: obj.present ?? true,
+    pyproject: obj.pyproject ?? null,
+    requirementsFiles: obj.requirementsFiles ?? [],
+    hasPoetryLock: obj.hasPoetryLock ?? false,
+    hasUvLock: obj.hasUvLock ?? false,
+    hasPipfileLock: obj.hasPipfileLock ?? false,
+    hasSetupCfg: obj.hasSetupCfg ?? false,
+    hasSetupPy: obj.hasSetupPy ?? false,
+  };
+}
+
+function hydrateDotnetProject(raw: unknown): DotnetProjectEvidence {
+  if (!raw || typeof raw !== "object") {
+    return { present: false, solutions: [], projects: [], centralPackageManagement: null };
+  }
+  const obj = raw as Partial<DotnetProjectEvidence>;
+  return {
+    present: obj.present ?? true,
+    solutions: obj.solutions ?? [],
+    projects: obj.projects ?? [],
+    centralPackageManagement: obj.centralPackageManagement ?? null,
+  };
+}
+
+function hydrateGoModule(raw: unknown): GoModuleEvidence {
+  if (!raw || typeof raw !== "object") {
+    return { present: false, modules: [] };
+  }
+  const obj = raw as Partial<GoModuleEvidence>;
+  return {
+    present: obj.present ?? true,
+    modules: obj.modules ?? [],
   };
 }
 

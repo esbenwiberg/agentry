@@ -3,7 +3,7 @@ import { readFile, stat } from "node:fs/promises";
 import { basename, join, relative } from "node:path";
 import type { GatherContext, SizeStatsEvidence, SizeStatsFile } from "../../sdk/types.js";
 import { countLines } from "../../util/count-lines.js";
-import { exec } from "../../util/exec.js";
+import { listTrackedFiles } from "../../util/git.js";
 
 const SIZE_PROBE_LIMIT = 5000;
 const BYTE_THRESHOLD_FOR_LINE_COUNT = 2 * 1024 * 1024;
@@ -66,18 +66,6 @@ export const sizeStatsSubsystem = {
     };
   },
 };
-
-async function listTrackedFiles(cwd: string): Promise<string[] | null> {
-  try {
-    const { stdout } = await exec("git", ["ls-files", "-z"], { cwd, maxBuffer: 32 * 1024 * 1024 });
-    return stdout
-      .split("\0")
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0);
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Returns the subset of `paths` that git reports as `linguist-generated=true`
