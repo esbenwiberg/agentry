@@ -38,7 +38,7 @@ export type CheckOptions = {
   comment?: string | undefined;
   include?: Tier[];
   noCache?: boolean;
-  judgeTransport?: "api" | "cli";
+  judgeTransport?: "api" | "cli" | "openai" | "codex";
 };
 
 export async function check(opts: CheckOptions): Promise<number> {
