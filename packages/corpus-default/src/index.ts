@@ -20,9 +20,14 @@ import archBoundariesClear from "./probes/arch-boundaries-clear.js";
 import archDocPresent from "./probes/arch-doc-present.js";
 import archDocQuality from "./probes/arch-doc-quality.js";
 import archFitnessTestsConfigured from "./probes/arch-fitness-tests-configured.js";
+import buildClean from "./probes/build-clean.js";
+import buildConfigured from "./probes/build-configured.js";
 import changelogStrategyDeclared from "./probes/changelog-strategy-declared.js";
 import ciConfigured from "./probes/ci-configured.js";
+import ciRunsBuild from "./probes/ci-runs-build.js";
+import ciRunsLint from "./probes/ci-runs-lint.js";
 import ciRunsTests from "./probes/ci-runs-tests.js";
+import ciRunsTypecheck from "./probes/ci-runs-typecheck.js";
 import commitsConventionalFollowed from "./probes/commits-conventional-followed.js";
 import deadCodeConfigured from "./probes/dead-code-configured.js";
 import depsAuditConfigured from "./probes/deps-audit-configured.js";
@@ -53,11 +58,13 @@ import runtimeDevLoopBootable from "./probes/runtime-dev-loop-bootable.js";
 import safetyDangerousScriptFlags from "./probes/safety-dangerous-script-flags.js";
 import secretsDotenvGitignored from "./probes/secrets-dotenv-gitignored.js";
 import secretsPrecommitScanConfigured from "./probes/secrets-precommit-scan-configured.js";
+import secretsScanClean from "./probes/secrets-scan-clean.js";
 import sizeDirectoryDepth from "./probes/size-directory-depth.js";
 import sizeLargeFiles from "./probes/size-large-files.js";
 import sizeRepoTokenEstimate from "./probes/size-repo-token-estimate.js";
 import specsPresent from "./probes/specs-present.js";
 import specsQuality from "./probes/specs-quality.js";
+import testsClean from "./probes/tests-clean.js";
 import testsCoverPublicSurface from "./probes/tests-cover-public-surface.js";
 import testsRunnerConfigured from "./probes/tests-runner-configured.js";
 import typesClean from "./probes/types-clean.js";
@@ -80,9 +87,14 @@ export const probes = [
   archDocPresent,
   archDocQuality,
   archFitnessTestsConfigured,
+  buildClean,
+  buildConfigured,
   changelogStrategyDeclared,
   ciConfigured,
+  ciRunsBuild,
+  ciRunsLint,
   ciRunsTests,
+  ciRunsTypecheck,
   commitsConventionalFollowed,
   deadCodeConfigured,
   depsAuditConfigured,
@@ -113,11 +125,13 @@ export const probes = [
   safetyDangerousScriptFlags,
   secretsDotenvGitignored,
   secretsPrecommitScanConfigured,
+  secretsScanClean,
   sizeDirectoryDepth,
   sizeLargeFiles,
   sizeRepoTokenEstimate,
   specsPresent,
   specsQuality,
+  testsClean,
   testsCoverPublicSurface,
   testsRunnerConfigured,
   typesClean,
