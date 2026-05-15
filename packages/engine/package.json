@@ -22,10 +22,13 @@
     "./sdk/recipes": {
       "types": "./dist/sdk/recipes/index.d.ts",
       "default": "./dist/sdk/recipes/index.js"
-    }
+    },
+    "./schemas/config.v1.json": "./schemas/config.v1.json",
+    "./schemas/baseline.v1.json": "./schemas/baseline.v1.json"
   },
   "files": [
     "dist/",
+    "schemas/",
     "LICENSE",
     "README.md"
   ],
