@@ -1,7 +1,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { gatherAll } from "../evidence/registry.js";
-import { type LoadedCorpus, loadDefaultCorpus } from "../loader/corpus.js";
+import { loadProjectConfig } from "../loader/config.js";
+import { type LoadedCorpus, loadCorpora } from "../loader/corpus.js";
 import { DEFAULT_TIERS, runProbes } from "../runner/tiered.js";
 import type { FixAction, Fixer, FixPlan, Generate, Probe, Reading } from "../sdk/types.js";
 import { createGenerator } from "../util/llm.js";
@@ -22,7 +23,8 @@ type PlannedFix = {
 };
 
 export async function apply(opts: ApplyOptions): Promise<{ stdout: string; exitCode: number }> {
-  const corpus = await loadDefaultCorpus();
+  const config = await loadProjectConfig(opts.cwd);
+  const corpus = await loadCorpora({ packages: config?.corpus?.map((c) => c.package) });
   const fixersByProbe = indexFixers(corpus, opts.withLlm ?? false);
 
   const probes = filterProbes(corpus, opts.probeId, fixersByProbe);
