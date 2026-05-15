@@ -301,9 +301,7 @@ async function callJudgeOpenAI(
   try {
     input = JSON.parse(toolCall.function.arguments);
   } catch (err) {
-    throw new Error(
-      `judge(openai): failed to parse tool arguments: ${(err as Error).message}`,
-    );
+    throw new Error(`judge(openai): failed to parse tool arguments: ${(err as Error).message}`);
   }
 
   const parsed = parseJudgeInput(input, criteriaIds);
@@ -380,7 +378,9 @@ async function callJudgeCodex(
   try {
     input = JSON.parse(jsonMatch[0]);
   } catch (err) {
-    throw new Error(`judge(codex): failed to parse JSON from codex output: ${(err as Error).message}`);
+    throw new Error(
+      `judge(codex): failed to parse JSON from codex output: ${(err as Error).message}`,
+    );
   }
 
   const parsed = parseJudgeInput(input, criteriaIds);

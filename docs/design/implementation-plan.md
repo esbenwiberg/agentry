@@ -1,7 +1,9 @@
 # repofit — implementation plan
 
-> **Status:** draft for review. Sequences the work from empty repo to
-> v1.0.0. Companion to all prior design docs. **Coding has not started.**
+> **Status:** historical. This document sequenced the work from empty repo
+> to v1.0.0; phases 0 → 7 are complete. Kept as a record of the original
+> plan; current scope lives in [`docs/release/`](../release/) and ADRs
+> under [`docs/adr/`](../adr/).
 
 ---
 
@@ -9,27 +11,28 @@
 
 A user can:
 
-1. `npx @esbenwiberg/repofit check` on a real TS or .NET repo and get a real score.
+1. `npx @esbenwiberg/repofit check` on a real repo and get a real score.
 2. Run `--init` to commit `repofit.config.json`.
 3. Run `--accept` to commit `repofit-baseline.json`.
 4. Add `repofit check --ci` to GitHub Actions and have PRs gated.
 5. Read clear human reports and consume the JSON for tooling.
 6. See clean rationale via `repofit explain <probe>`.
 
-v1 ships:
+v1 shipped:
 - The engine package.
-- The default corpus package (26 always-on probes + 10 opt-in).
+- The default corpus package (58 probes across six dimensions).
 - TypeScript SDK (`defineProbe`, `defineDimension`, recipes).
 - Documentation enough to onboard.
+- The `apply` verb (remediation execution) — *shipped ahead of plan.*
+- The `reasoned` tier with Anthropic / OpenAI / Codex transports — *shipped ahead of plan.*
+- SARIF, HTML, and Markdown reporters in addition to human / json / ci — *shipped ahead of plan.*
 
-v1 does **not** ship:
-- The `apply` verb (remediation execution).
-- The `reasoned` tier (LLM-backed probes).
-- SARIF reporter.
-- Reporter plugin contract.
+v1 did **not** ship:
+- Reporter plugin contract (built-in reporters only).
+- JSON schemas for `repofit.config.json` / `repofit-baseline.json`.
 - Anything else marked deferred across the design docs.
 
-**Status: agreed.**
+**Status: shipped.**
 
 ---
 
