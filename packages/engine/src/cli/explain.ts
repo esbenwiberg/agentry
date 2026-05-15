@@ -1,6 +1,6 @@
 import { gatherAll } from "../evidence/registry.js";
-import type { LoadedCorpus } from "../loader/corpus.js";
-import { loadDefaultCorpus } from "../loader/corpus.js";
+import { loadProjectConfig } from "../loader/config.js";
+import { type LoadedCorpus, loadCorpora } from "../loader/corpus.js";
 import { score } from "../scorer/index.js";
 import type {
   Band,
@@ -21,7 +21,8 @@ export type ExplainOptions = {
 };
 
 export async function explain(opts: ExplainOptions): Promise<{ stdout: string; exitCode: number }> {
-  const corpus = await loadDefaultCorpus();
+  const config = opts.cwd ? await loadProjectConfig(opts.cwd) : null;
+  const corpus = await loadCorpora({ packages: config?.corpus?.map((c) => c.package) });
 
   const probe = corpus.probes.find((p) => p.id === opts.id);
   if (probe) {

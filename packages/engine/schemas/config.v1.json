@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://repofit.dev/schema/config.v1.json",
+  "title": "repofit project config",
+  "description": "Schema for repofit.config.json (version 1).",
+  "type": "object",
+  "required": ["version", "gate"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Config schema version. Currently 1."
+    },
+    "corpus": {
+      "type": "array",
+      "description": "Corpus packages to load, in order. Later entries override earlier ones on probe/dimension/fixer id.",
+      "items": {
+        "type": "object",
+        "required": ["package", "version"],
+        "additionalProperties": false,
+        "properties": {
+          "package": {
+            "type": "string",
+            "minLength": 1,
+            "description": "npm package name (e.g. @esbenwiberg/corpus-default)."
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^~^*x]+$",
+            "description": "Pinned version. Semver ranges (~, ^, *, x) are not allowed."
+          }
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "required": ["mode"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["ratchet", "absolute", "advisory"],
+          "description": "ratchet = no regression vs baseline. absolute = per-dimension thresholds. advisory = report only."
+        },
+        "absoluteThreshold": {
+          "type": "number",
+          "description": "Used by gate.mode=absolute as a fallback for dimensions without their own threshold."
+        },
+        "include": {
+          "type": "array",
+          "description": "Probe tiers to include in addition to the defaults (static, derived, historical).",
+          "items": {
+            "type": "string",
+            "enum": ["static", "derived", "historical", "executed", "reasoned"]
+          }
+        }
+      }
+    },
+    "dimensions": {
+      "type": "object",
+      "description": "Per-dimension overrides keyed by dimension id.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "weight": { "type": "number" },
+          "threshold": { "type": "number" },
+          "gating": { "type": "boolean" },
+          "gatingThreshold": { "type": "number" },
+          "probes": {
+            "type": "object",
+            "description": "Per-probe overrides within this dimension keyed by probe id.",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "weight": { "type": "number" },
+                "disabled": { "type": "boolean" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "probes": {
+      "type": "object",
+      "description": "Per-probe knobs. Schema depends on the probe.",
+      "additionalProperties": { "type": "object" }
+    },
+    "waivers": {
+      "type": "array",
+      "description": "Findings explicitly accepted; excluded from gate evaluation until expires.",
+      "items": {
+        "type": "object",
+        "required": ["probeId", "location", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "probeId": { "type": "string", "minLength": 1 },
+          "location": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1 },
+          "expires": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})?)?$",
+            "description": "ISO 8601 date (YYYY-MM-DD) or full timestamp."
+          }
+        }
+      }
+    },
+    "reporters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "default": { "type": "string", "enum": ["human", "json"] }
+      }
+    }
+  }
+}

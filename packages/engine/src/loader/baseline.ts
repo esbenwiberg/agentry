@@ -16,6 +16,7 @@ export type Baseline = {
 };
 
 export const BASELINE_FILENAME = "repofit-baseline.json";
+export const BASELINE_SCHEMA_URL = "https://repofit.dev/schema/baseline.v1.json";
 
 export async function loadBaseline(cwd: string): Promise<Baseline | null> {
   let raw: string;
@@ -38,7 +39,8 @@ export async function loadBaseline(cwd: string): Promise<Baseline | null> {
 
 export async function writeBaseline(cwd: string, baseline: Baseline): Promise<void> {
   const path = join(cwd, BASELINE_FILENAME);
-  await writeFile(path, `${JSON.stringify(baseline, null, 2)}\n`, "utf8");
+  const withSchema = { $schema: BASELINE_SCHEMA_URL, ...baseline };
+  await writeFile(path, `${JSON.stringify(withSchema, null, 2)}\n`, "utf8");
 }
 
 export function validateBaseline(raw: unknown): Baseline {

@@ -8,7 +8,7 @@ import {
   loadProjectConfig,
   type ProjectConfig,
 } from "../loader/config.js";
-import { loadDefaultCorpus } from "../loader/corpus.js";
+import { type LoadedCorpus, loadCorpora } from "../loader/corpus.js";
 import { effectiveDimensions } from "../loader/effective-dimensions.js";
 import { renderCi } from "../reporters/ci.js";
 import { renderHtml } from "../reporters/html.js";
@@ -42,10 +42,9 @@ export type CheckOptions = {
 };
 
 export async function check(opts: CheckOptions): Promise<number> {
-  const corpus = await loadDefaultCorpus();
-
   if (opts.init) {
-    const created = await writeInitialConfig({ cwd: opts.cwd, corpus });
+    const defaultCorpus = await loadCorpora();
+    const created = await writeInitialConfig({ cwd: opts.cwd, corpus: defaultCorpus });
     console.log(
       `wrote ${CONFIG_FILENAME} (corpus pinned: ${created.corpus?.[0]?.package}@${created.corpus?.[0]?.version})`,
     );
@@ -62,6 +61,8 @@ export async function check(opts: CheckOptions): Promise<number> {
     }),
   ]);
   const config: ProjectConfig = projectConfig ?? DEFAULT_CONFIG;
+  const corpus = await loadCorpora({ packages: config.corpus?.map((c) => c.package) });
+  reportCorpusOverrides(corpus, opts.output);
 
   const probes = opts.probe ? corpus.probes.filter((p) => p.id === opts.probe) : corpus.probes;
   if (opts.probe && probes.length === 0) {
@@ -163,6 +164,14 @@ function resolveIncludeTiers(
 
 function fmt(n: number | null): string {
   return n === null ? "—" : n.toFixed(0);
+}
+
+function reportCorpusOverrides(corpus: LoadedCorpus, output: OutputMode | undefined): void {
+  if (output === "json" || corpus.overrides.length === 0) return;
+  const ids = corpus.overrides.map((o) => `${o.kind} ${o.id} (${o.from} → ${o.to})`);
+  const head = ids.length === 1 ? "corpus override:" : `corpus overrides (${ids.length}):`;
+  console.error(head);
+  for (const line of ids) console.error(`  ${line}`);
 }
 
 /**

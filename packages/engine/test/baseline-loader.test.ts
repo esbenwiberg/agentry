@@ -54,7 +54,10 @@ describe("baseline loader", () => {
     await writeBaseline(tmp, baseline);
     const raw = readFileSync(join(tmp, BASELINE_FILENAME), "utf8");
     expect(raw.endsWith("\n")).toBe(true);
-    expect(JSON.parse(raw)).toEqual(baseline);
+    const parsed = JSON.parse(raw);
+    expect(parsed.$schema).toBe("https://repofit.dev/schema/baseline.v1.json");
+    const { $schema, ...rest } = parsed;
+    expect(rest).toEqual(baseline);
   });
 
   test("rejects wrong version", () => {

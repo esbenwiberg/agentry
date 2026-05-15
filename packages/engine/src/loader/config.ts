@@ -45,6 +45,7 @@ export type ProjectConfig = {
 };
 
 export const CONFIG_FILENAME = "repofit.config.json";
+export const CONFIG_SCHEMA_URL = "https://repofit.dev/schema/config.v1.json";
 
 export const DEFAULT_CONFIG: ProjectConfig = {
   version: 1,
@@ -74,7 +75,8 @@ export async function loadProjectConfig(cwd: string): Promise<ProjectConfig | nu
 
 export async function writeProjectConfig(cwd: string, config: ProjectConfig): Promise<void> {
   const path = join(cwd, CONFIG_FILENAME);
-  await writeFile(path, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+  const withSchema = { $schema: CONFIG_SCHEMA_URL, ...config };
+  await writeFile(path, `${JSON.stringify(withSchema, null, 2)}\n`, "utf8");
 }
 
 export function validateConfig(raw: unknown): ProjectConfig {
