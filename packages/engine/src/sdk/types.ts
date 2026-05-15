@@ -103,6 +103,62 @@ export type NodePackageEvidence = {
   raw: Record<string, unknown> | null;
 };
 
+export type PyProjectInfo = {
+  path: string;
+  hasBuildSystem: boolean;
+  /**
+   * `[tool.X]` section names found in pyproject.toml. e.g. `["ruff", "mypy",
+   * "pytest"]`. Used by the toolchain abstraction to pick a lint/format/test
+   * command for the Python stack.
+   */
+  tools: string[];
+  projectName?: string;
+};
+
+export type PythonProjectEvidence = {
+  present: boolean;
+  pyproject: PyProjectInfo | null;
+  requirementsFiles: string[];
+  hasPoetryLock: boolean;
+  hasUvLock: boolean;
+  hasPipfileLock: boolean;
+  hasSetupCfg: boolean;
+  hasSetupPy: boolean;
+};
+
+export type DotnetProjectInfo = {
+  path: string;
+  kind: "csproj" | "fsproj" | "vbproj";
+  sdk?: string;
+  targetFrameworks: string[];
+  /** Package name → version. Version is "" when Central Package Management resolves it. */
+  packageReferences: Record<string, string>;
+};
+
+export type CentralPackagesInfo = {
+  path: string;
+  packageVersions: Record<string, string>;
+};
+
+export type DotnetProjectEvidence = {
+  present: boolean;
+  solutions: string[];
+  projects: DotnetProjectInfo[];
+  centralPackageManagement: CentralPackagesInfo | null;
+};
+
+export type GoModuleInfo = {
+  path: string;
+  modulePath?: string;
+  goVersion?: string;
+  dependencies: Record<string, string>;
+};
+
+export type GoModuleEvidence = {
+  present: boolean;
+  modules: GoModuleInfo[];
+};
+
 export type GitignoreEvidence = {
   present: boolean;
   patterns: string[];
@@ -225,6 +281,9 @@ export type EvidenceMap = {
   files: FilesEvidence;
   agent_config: AgentConfigEvidence;
   node_package: NodePackageEvidence;
+  python_project: PythonProjectEvidence;
+  dotnet_project: DotnetProjectEvidence;
+  go_module: GoModuleEvidence;
   gitignore: GitignoreEvidence;
   size_stats: SizeStatsEvidence;
   ci_workflows: CiWorkflowsEvidence;
