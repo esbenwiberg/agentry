@@ -57,7 +57,7 @@ program
   .option("--no-cache", "Skip the persistent judge cache for reasoned-tier probes.")
   .option(
     "--judge-transport <mode>",
-    "Force judge transport: 'api' (ANTHROPIC_API_KEY) or 'cli' (claude CLI). Default: auto.",
+    "Force judge transport: 'api' (ANTHROPIC_API_KEY), 'openai' (OPENAI_API_KEY / OPENAI_BASE_URL), 'cli' (claude CLI), 'codex' (codex CLI). Default: auto.",
   )
   .action(
     async (opts: {
@@ -80,13 +80,10 @@ program
         console.error("repofit: --json and --ci are mutually exclusive.");
         process.exit(2);
       }
-      if (
-        opts.judgeTransport !== undefined &&
-        opts.judgeTransport !== "api" &&
-        opts.judgeTransport !== "cli"
-      ) {
+      const validTransports = ["api", "openai", "cli", "codex"];
+      if (opts.judgeTransport !== undefined && !validTransports.includes(opts.judgeTransport)) {
         console.error(
-          `repofit: --judge-transport must be 'api' or 'cli' (got '${opts.judgeTransport}')`,
+          `repofit: --judge-transport must be one of ${validTransports.map((t) => `'${t}'`).join(", ")} (got '${opts.judgeTransport}')`,
         );
         process.exit(2);
       }
@@ -107,7 +104,7 @@ program
           comment: opts.comment,
           include: opts.include,
           noCache: opts.cache === false,
-          judgeTransport: opts.judgeTransport as "api" | "cli" | undefined,
+          judgeTransport: opts.judgeTransport as "api" | "cli" | "openai" | "codex" | undefined,
         });
         process.exit(exitCode);
       } catch (err) {
@@ -128,20 +125,17 @@ program
   .option("--no-cache", "Skip the persistent judge cache (only with --run, for reasoned probes).")
   .option(
     "--judge-transport <mode>",
-    "Force judge transport: 'api' or 'cli' (only with --run, for reasoned probes).",
+    "Force judge transport: 'api', 'openai', 'cli', or 'codex' (only with --run, for reasoned probes).",
   )
   .action(
     async (
       id: string,
       opts: { run?: boolean; cwd: string; cache: boolean; judgeTransport?: string },
     ) => {
-      if (
-        opts.judgeTransport !== undefined &&
-        opts.judgeTransport !== "api" &&
-        opts.judgeTransport !== "cli"
-      ) {
+      const validTransports = ["api", "openai", "cli", "codex"];
+      if (opts.judgeTransport !== undefined && !validTransports.includes(opts.judgeTransport)) {
         console.error(
-          `repofit: --judge-transport must be 'api' or 'cli' (got '${opts.judgeTransport}')`,
+          `repofit: --judge-transport must be one of ${validTransports.map((t) => `'${t}'`).join(", ")} (got '${opts.judgeTransport}')`,
         );
         process.exit(2);
       }
@@ -151,7 +145,7 @@ program
           run: opts.run,
           cwd: opts.cwd,
           noCache: opts.cache === false,
-          judgeTransport: opts.judgeTransport as "api" | "cli" | undefined,
+          judgeTransport: opts.judgeTransport as "api" | "cli" | "openai" | "codex" | undefined,
         });
         process.stdout.write(stdout);
         process.exit(exitCode);

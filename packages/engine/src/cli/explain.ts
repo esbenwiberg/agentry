@@ -17,7 +17,7 @@ export type ExplainOptions = {
   run?: boolean;
   cwd?: string;
   noCache?: boolean;
-  judgeTransport?: "api" | "cli";
+  judgeTransport?: "api" | "cli" | "openai" | "codex";
 };
 
 export async function explain(opts: ExplainOptions): Promise<{ stdout: string; exitCode: number }> {

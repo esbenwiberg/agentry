@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import {
   type GatherContext,
   JUDGE_BANDS,
@@ -13,7 +14,10 @@ import {
 } from "../../sdk/types.js";
 
 export const DEFAULT_JUDGE_MODEL = "claude-haiku-4-5";
-export type JudgeTransport = "api" | "cli";
+export const DEFAULT_JUDGE_MODEL_OPENAI = "gpt-4o-mini";
+export type JudgeTransport = "api" | "cli" | "openai" | "codex";
+
+const OPENAI_TRANSPORTS = new Set<JudgeTransport>(["openai", "codex"]);
 
 const SYSTEM_PROMPT = [
   "You are a strict, terse evaluator that scores repository artifacts against a rubric.",
@@ -27,15 +31,33 @@ export const judgeSubsystem = {
   gather(ctx: GatherContext): JudgeEvidence {
     const cacheDir = join(ctx.cwd, ".repofit", "cache", "judge");
     const noCache = ctx.judge?.noCache ?? false;
-    const defaultModel = ctx.judge?.model ?? DEFAULT_JUDGE_MODEL;
+    const explicitModel = ctx.judge?.model ?? null;
     const transportPref = ctx.judge?.transport;
     let cachedTransport: JudgeTransport | null = null;
     let apiClient: Anthropic | null = null;
+    let openaiClient: OpenAI | null = null;
+
+    async function resolveTransport(): Promise<JudgeTransport> {
+      if (!cachedTransport) {
+        cachedTransport = await selectTransport(transportPref);
+      }
+      return cachedTransport;
+    }
+
+    function modelForTransport(transport: JudgeTransport): string {
+      if (explicitModel) return explicitModel;
+      return OPENAI_TRANSPORTS.has(transport) ? DEFAULT_JUDGE_MODEL_OPENAI : DEFAULT_JUDGE_MODEL;
+    }
 
     return {
-      defaultModel,
+      defaultModel:
+        explicitModel ??
+        (transportPref && OPENAI_TRANSPORTS.has(transportPref)
+          ? DEFAULT_JUDGE_MODEL_OPENAI
+          : DEFAULT_JUDGE_MODEL),
       async score(req: JudgeRequest): Promise<JudgeResult> {
-        const model = req.model ?? defaultModel;
+        const transport = await resolveTransport();
+        const model = req.model ?? modelForTransport(transport);
         const cacheKey = computeCacheKey(req, model);
 
         if (!noCache) {
@@ -43,14 +65,15 @@ export const judgeSubsystem = {
           if (cached) return { ...cached, fromCache: true };
         }
 
-        if (!cachedTransport) {
-          cachedTransport = await selectTransport(transportPref);
-        }
-
         let result: Omit<JudgeResult, "fromCache">;
-        if (cachedTransport === "api") {
+        if (transport === "api") {
           if (!apiClient) apiClient = new Anthropic();
           result = await callJudgeApi(apiClient, req, model);
+        } else if (transport === "openai") {
+          if (!openaiClient) openaiClient = new OpenAI({ baseURL: process.env.OPENAI_BASE_URL });
+          result = await callJudgeOpenAI(openaiClient, req, model);
+        } else if (transport === "codex") {
+          result = await callJudgeCodex(req, model);
         } else {
           result = await callJudgeCli(req, model);
         }
@@ -72,23 +95,48 @@ async function selectTransport(pref: JudgeTransport | undefined): Promise<JudgeT
     }
     return "api";
   }
+  if (pref === "openai") {
+    if (!process.env.OPENAI_API_KEY && !process.env.OPENAI_BASE_URL) {
+      throw new Error(
+        "judge transport `openai` requested but neither OPENAI_API_KEY nor OPENAI_BASE_URL is set.",
+      );
+    }
+    return "openai";
+  }
   if (pref === "cli") {
     if (!(await claudeOnPath())) {
       throw new Error("judge transport `cli` requested but `claude` is not on PATH.");
     }
     return "cli";
   }
-  // auto: prefer API key (cheaper, no Claude Code system-prompt overhead); fall back to CLI.
+  if (pref === "codex") {
+    if (!(await codexOnPath())) {
+      throw new Error("judge transport `codex` requested but `codex` is not on PATH.");
+    }
+    return "codex";
+  }
+  // auto: Anthropic API key → OpenAI API/base URL → claude CLI → codex CLI
   if (process.env.ANTHROPIC_API_KEY) return "api";
+  if (process.env.OPENAI_API_KEY || process.env.OPENAI_BASE_URL) return "openai";
   if (await claudeOnPath()) return "cli";
+  if (await codexOnPath()) return "codex";
   throw new Error(
-    "No judge transport available. Set ANTHROPIC_API_KEY (for CI), or install the `claude` CLI (for local dev), or omit `--include reasoned`.",
+    "No judge transport available. Set ANTHROPIC_API_KEY or OPENAI_API_KEY (for CI), " +
+      "install the `claude` CLI or `codex` CLI (for local dev), or omit `--include reasoned`.",
   );
 }
 
 async function claudeOnPath(): Promise<boolean> {
   return new Promise((resolve) => {
     const child = spawn("claude", ["--version"], { stdio: "ignore" });
+    child.on("error", () => resolve(false));
+    child.on("close", (code) => resolve(code === 0));
+  });
+}
+
+async function codexOnPath(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const child = spawn("codex", ["--version"], { stdio: "ignore" });
     child.on("error", () => resolve(false));
     child.on("close", (code) => resolve(code === 0));
   });
@@ -213,6 +261,55 @@ async function callJudgeApi(
   return finalize(parsed, model);
 }
 
+async function callJudgeOpenAI(
+  client: OpenAI,
+  req: JudgeRequest,
+  model: string,
+): Promise<Omit<JudgeResult, "fromCache">> {
+  const criteriaIds = req.rubric.criteria.map((c) => c.id);
+  const schema = buildSchema(req);
+
+  const response = await client.chat.completions.create({
+    model,
+    max_tokens: 1024,
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: buildUserPrompt(req) },
+    ],
+    tools: [
+      {
+        type: "function",
+        function: {
+          name: "record_judgement",
+          description: "Record per-criterion banded scores and a short rationale.",
+          parameters: schema,
+        },
+      },
+    ],
+    tool_choice: { type: "function", function: { name: "record_judgement" } },
+  });
+
+  const toolCall = response.choices[0]?.message.tool_calls?.[0];
+  if (!toolCall || toolCall.type !== "function") {
+    const stopReason = response.choices[0]?.finish_reason ?? "?";
+    throw new Error(
+      `judge(openai): model did not call record_judgement (finish_reason=${stopReason})`,
+    );
+  }
+
+  let input: unknown;
+  try {
+    input = JSON.parse(toolCall.function.arguments);
+  } catch (err) {
+    throw new Error(
+      `judge(openai): failed to parse tool arguments: ${(err as Error).message}`,
+    );
+  }
+
+  const parsed = parseJudgeInput(input, criteriaIds);
+  return finalize(parsed, model);
+}
+
 async function callJudgeCli(
   req: JudgeRequest,
   model: string,
@@ -256,6 +353,40 @@ async function callJudgeCli(
   return finalize(parsed, model);
 }
 
+async function callJudgeCodex(
+  req: JudgeRequest,
+  model: string,
+): Promise<Omit<JudgeResult, "fromCache">> {
+  const criteriaIds = req.rubric.criteria.map((c) => c.id);
+  const schema = buildSchema(req);
+  const prompt = [
+    SYSTEM_PROMPT,
+    "",
+    buildUserPrompt(req),
+    "",
+    "IMPORTANT: Output ONLY a single valid JSON object (no markdown fences, no explanation) that conforms exactly to this schema:",
+    JSON.stringify(schema, null, 2),
+  ].join("\n");
+
+  const stdout = await spawnCodex(prompt, model);
+
+  // Extract the first JSON object from the output
+  const jsonMatch = stdout.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error("judge(codex): no JSON object found in codex output");
+  }
+
+  let input: unknown;
+  try {
+    input = JSON.parse(jsonMatch[0]);
+  } catch (err) {
+    throw new Error(`judge(codex): failed to parse JSON from codex output: ${(err as Error).message}`);
+  }
+
+  const parsed = parseJudgeInput(input, criteriaIds);
+  return finalize(parsed, model);
+}
+
 function spawnClaude(stdin: string, args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn("claude", args, {
@@ -273,6 +404,33 @@ function spawnClaude(stdin: string, args: string[]): Promise<string> {
     child.on("close", (code) => {
       if (code !== 0) {
         reject(new Error(`claude exited ${code}: ${stderr.trim() || "(no stderr)"}`));
+        return;
+      }
+      resolve(stdout);
+    });
+    child.stdin?.write(stdin);
+    child.stdin?.end();
+  });
+}
+
+function spawnCodex(stdin: string, model: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const args = ["--quiet", "--model", model];
+    const child = spawn("codex", args, {
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout?.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString("utf8");
+    });
+    child.stderr?.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString("utf8");
+    });
+    child.on("error", (err) => reject(err));
+    child.on("close", (code) => {
+      if (code !== 0) {
+        reject(new Error(`codex exited ${code}: ${stderr.trim() || "(no stderr)"}`));
         return;
       }
       resolve(stdout);

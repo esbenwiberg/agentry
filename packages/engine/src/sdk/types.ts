@@ -237,7 +237,7 @@ export type EvidenceMap = {
 export type JudgeOptions = {
   noCache?: boolean;
   model?: string;
-  transport?: "api" | "cli";
+  transport?: "api" | "cli" | "openai" | "codex";
 };
 
 export type GatherContext = {
