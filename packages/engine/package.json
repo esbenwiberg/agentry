@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "bin": {
-    "repofit": "./dist/cli/index.js"
+    "repofit": "dist/cli/index.js"
   },
   "main": "./dist/index.js",
   "exports": {
