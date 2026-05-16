@@ -118,6 +118,7 @@ export async function check(opts: CheckOptions): Promise<number> {
       ? { fitness: baseline.fitness, dimensions: baseline.dimensions, probes: baseline.probes }
       : null,
     cost,
+    toolchain: { stacks: evidence.toolchain.stacks, primary: evidence.toolchain.primary },
   };
 
   if (opts.html) {
@@ -135,7 +136,16 @@ export async function check(opts: CheckOptions): Promise<number> {
   await warnUnignoredArtifacts(opts.cwd, [opts.html, opts.sarif, opts.comment]);
 
   if (output === "human") {
-    console.log(renderHuman({ aggregated, results, verdict, drift, cost }));
+    console.log(
+      renderHuman({
+        aggregated,
+        results,
+        verdict,
+        drift,
+        cost,
+        toolchain: { stacks: evidence.toolchain.stacks, primary: evidence.toolchain.primary },
+      }),
+    );
     if (opts.html) console.log(`  html     ${opts.html}`);
     if (opts.sarif) console.log(`  sarif    ${opts.sarif}`);
     if (opts.comment) console.log(`  comment  ${opts.comment}`);
