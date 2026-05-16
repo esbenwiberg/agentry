@@ -66,6 +66,8 @@ node packages/engine/dist/cli/index.js --version    # → repofit 1.0.0
 | What | Where |
 |---|---|
 | Authoring custom probes (start here for extending the corpus) | [`docs/authoring.md`](docs/authoring.md) |
+| Authoring a custom corpus (packaging + overrides) | [`docs/authoring-corpus.md`](docs/authoring-corpus.md) |
+| Authoring a custom reporter (`defineReporter`) | [`docs/authoring-reporter.md`](docs/authoring-reporter.md) |
 | Design corpus (read before changing the architecture) | [`docs/design/`](docs/design/) — start with `README.md` |
 | Release notes | [`docs/release/`](docs/release/) |
 | Implementation plan (phases 0 → 7, now complete) | [`docs/design/implementation-plan.md`](docs/design/implementation-plan.md) |

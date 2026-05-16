@@ -1,8 +1,14 @@
 # Authoring custom probes
 
-`repofit` ships with a [default corpus](../packages/corpus-default/) of ~45
+`repofit` ships with a [default corpus](../packages/corpus-default/) of 58
 probes, but the framework is meant to be extended. This guide walks through
 authoring your own probes for a custom corpus.
+
+> **Related:**
+> - [Authoring a custom corpus](./authoring-corpus.md) — packaging probes
+>   into an npm package and shadowing stock probes by id.
+> - [Authoring a custom reporter](./authoring-reporter.md) — third-party
+>   reporter plugins via `defineReporter`.
 
 ## When to write a custom probe
 
