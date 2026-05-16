@@ -1,4 +1,7 @@
 import { spawn } from "node:child_process";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import type { Generate, GenerateOptions } from "../sdk/types.js";
@@ -7,6 +10,7 @@ export type LlmTransport = "api" | "cli" | "openai" | "codex";
 
 const DEFAULT_GENERATE_MODEL = "claude-sonnet-4-6";
 const DEFAULT_GENERATE_MODEL_OPENAI = "gpt-4o";
+const DEFAULT_GENERATE_MODEL_CODEX = "codex-cli-default";
 const DEFAULT_MAX_TOKENS = 4096;
 
 export type CreateGeneratorOptions = {
@@ -18,9 +22,11 @@ export async function createGenerator(opts: CreateGeneratorOptions = {}): Promis
   const transport = await selectTransport(opts.transport);
   const defaultModel =
     opts.defaultModel ??
-    (transport === "openai" || transport === "codex"
-      ? DEFAULT_GENERATE_MODEL_OPENAI
-      : DEFAULT_GENERATE_MODEL);
+    (transport === "codex"
+      ? DEFAULT_GENERATE_MODEL_CODEX
+      : transport === "openai"
+        ? DEFAULT_GENERATE_MODEL_OPENAI
+        : DEFAULT_GENERATE_MODEL);
   let apiClient: Anthropic | null = null;
   let openaiClient: OpenAI | null = null;
 
@@ -199,27 +205,37 @@ function spawnClaude(stdin: string, args: string[]): Promise<string> {
   });
 }
 
-function spawnCodex(stdin: string, model: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const args = ["--quiet", "--model", model];
-    const child = spawn("codex", args, { stdio: ["pipe", "pipe", "pipe"] });
-    let stdout = "";
-    let stderr = "";
-    child.stdout?.on("data", (chunk: Buffer) => {
-      stdout += chunk.toString("utf8");
+async function spawnCodex(stdin: string, model: string): Promise<string> {
+  const tempDir = await mkdtemp(join(tmpdir(), "repofit-codex-"));
+  const outputPath = join(tempDir, "last-message.txt");
+  try {
+    return await new Promise((resolve, reject) => {
+      const args = ["--sandbox", "read-only"];
+      if (model !== DEFAULT_GENERATE_MODEL_CODEX) args.push("--model", model);
+      args.push("exec", "--output-last-message", outputPath, "-");
+      const child = spawn("codex", args, { stdio: ["pipe", "pipe", "pipe"] });
+      let stdout = "";
+      let stderr = "";
+      child.stdout?.on("data", (chunk: Buffer) => {
+        stdout += chunk.toString("utf8");
+      });
+      child.stderr?.on("data", (chunk: Buffer) => {
+        stderr += chunk.toString("utf8");
+      });
+      child.on("error", (err) => reject(err));
+      child.on("close", (code) => {
+        if (code !== 0) {
+          reject(new Error(`codex exited ${code}: ${stderr.trim() || "(no stderr)"}`));
+          return;
+        }
+        readFile(outputPath, "utf8")
+          .then(resolve)
+          .catch(() => resolve(stdout));
+      });
+      child.stdin?.write(stdin);
+      child.stdin?.end();
     });
-    child.stderr?.on("data", (chunk: Buffer) => {
-      stderr += chunk.toString("utf8");
-    });
-    child.on("error", (err) => reject(err));
-    child.on("close", (code) => {
-      if (code !== 0) {
-        reject(new Error(`codex exited ${code}: ${stderr.trim() || "(no stderr)"}`));
-        return;
-      }
-      resolve(stdout);
-    });
-    child.stdin?.write(stdin);
-    child.stdin?.end();
-  });
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
 }

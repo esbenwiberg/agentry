@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
@@ -15,9 +16,10 @@ import {
 
 export const DEFAULT_JUDGE_MODEL = "claude-haiku-4-5";
 export const DEFAULT_JUDGE_MODEL_OPENAI = "gpt-4o-mini";
+export const DEFAULT_JUDGE_MODEL_CODEX = "codex-cli-default";
 export type JudgeTransport = "api" | "cli" | "openai" | "codex";
 
-const OPENAI_TRANSPORTS = new Set<JudgeTransport>(["openai", "codex"]);
+const OPENAI_TRANSPORTS = new Set<JudgeTransport>(["openai"]);
 
 const SYSTEM_PROMPT = [
   "You are a strict, terse evaluator that scores repository artifacts against a rubric.",
@@ -46,11 +48,13 @@ export const judgeSubsystem = {
 
     function modelForTransport(transport: JudgeTransport): string {
       if (explicitModel) return explicitModel;
+      if (transport === "codex") return DEFAULT_JUDGE_MODEL_CODEX;
       return OPENAI_TRANSPORTS.has(transport) ? DEFAULT_JUDGE_MODEL_OPENAI : DEFAULT_JUDGE_MODEL;
     }
 
     const provisionalDefaultModel =
       explicitModel ??
+      (transportPref === "codex" ? DEFAULT_JUDGE_MODEL_CODEX : undefined) ??
       (transportPref && OPENAI_TRANSPORTS.has(transportPref)
         ? DEFAULT_JUDGE_MODEL_OPENAI
         : DEFAULT_JUDGE_MODEL);
@@ -420,31 +424,41 @@ function spawnClaude(stdin: string, args: string[]): Promise<string> {
   });
 }
 
-function spawnCodex(stdin: string, model: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const args = ["--quiet", "--model", model];
-    const child = spawn("codex", args, {
-      stdio: ["pipe", "pipe", "pipe"],
+async function spawnCodex(stdin: string, model: string): Promise<string> {
+  const tempDir = await mkdtemp(join(tmpdir(), "repofit-codex-"));
+  const outputPath = join(tempDir, "last-message.txt");
+  try {
+    return await new Promise((resolve, reject) => {
+      const args = ["--sandbox", "read-only"];
+      if (model !== DEFAULT_JUDGE_MODEL_CODEX) args.push("--model", model);
+      args.push("exec", "--output-last-message", outputPath, "-");
+      const child = spawn("codex", args, {
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+      let stdout = "";
+      let stderr = "";
+      child.stdout?.on("data", (chunk: Buffer) => {
+        stdout += chunk.toString("utf8");
+      });
+      child.stderr?.on("data", (chunk: Buffer) => {
+        stderr += chunk.toString("utf8");
+      });
+      child.on("error", (err) => reject(err));
+      child.on("close", (code) => {
+        if (code !== 0) {
+          reject(new Error(`codex exited ${code}: ${stderr.trim() || "(no stderr)"}`));
+          return;
+        }
+        readFile(outputPath, "utf8")
+          .then(resolve)
+          .catch(() => resolve(stdout));
+      });
+      child.stdin?.write(stdin);
+      child.stdin?.end();
     });
-    let stdout = "";
-    let stderr = "";
-    child.stdout?.on("data", (chunk: Buffer) => {
-      stdout += chunk.toString("utf8");
-    });
-    child.stderr?.on("data", (chunk: Buffer) => {
-      stderr += chunk.toString("utf8");
-    });
-    child.on("error", (err) => reject(err));
-    child.on("close", (code) => {
-      if (code !== 0) {
-        reject(new Error(`codex exited ${code}: ${stderr.trim() || "(no stderr)"}`));
-        return;
-      }
-      resolve(stdout);
-    });
-    child.stdin?.write(stdin);
-    child.stdin?.end();
-  });
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
 }
 
 function finalize(
