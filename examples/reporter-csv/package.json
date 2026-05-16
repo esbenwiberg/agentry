@@ -1,0 +1,12 @@
+{
+  "name": "@example/repofit-reporter-csv",
+  "version": "0.1.0",
+  "description": "Example third-party repofit reporter. Emits one row per probe in CSV.",
+  "type": "module",
+  "private": true,
+  "main": "./src/index.ts",
+  "license": "MIT",
+  "peerDependencies": {
+    "@esbenwiberg/repofit": "*"
+  }
+}

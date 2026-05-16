@@ -2,6 +2,7 @@ export { type FixtureOutcome, runFixture } from "../fixtures/runner.js";
 export { defineDimension } from "./define-dimension.js";
 export { defineFixer } from "./define-fixer.js";
 export { defineProbe } from "./define-probe.js";
+export { defineReporter } from "./define-reporter.js";
 export type {
   AgentConfigEvidence,
   Band,
@@ -37,6 +38,8 @@ export type {
   PyProjectInfo,
   PythonProjectEvidence,
   Reading,
+  Reporter,
+  ReporterContext,
   ScoreConfig,
   Severity,
   StaticFixer,
