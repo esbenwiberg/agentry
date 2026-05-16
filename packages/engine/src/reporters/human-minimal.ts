@@ -1,5 +1,6 @@
 import type { Aggregated } from "../aggregator/index.js";
 import type { ProbeResult } from "../runner/tiered.js";
+import type { ToolchainStack } from "../sdk/types.js";
 import type { Drift } from "../verdict/drift.js";
 import type { Verdict } from "../verdict/index.js";
 
@@ -9,15 +10,22 @@ export type RenderInput = {
   verdict: Verdict;
   drift: Drift;
   cost?: { executedMs: number };
+  toolchain?: { stacks: ToolchainStack[]; primary: ToolchainStack | null };
 };
 
 export function renderHuman(input: RenderInput): string {
-  const { aggregated, results, verdict, drift, cost } = input;
+  const { aggregated, results, verdict, drift, cost, toolchain } = input;
   const lines: string[] = [];
 
   lines.push("");
   lines.push(`repofit  ·  ${results.length} probe${results.length === 1 ? "" : "s"}`);
   lines.push("");
+
+  const stackBanner = renderStackBanner(toolchain, results);
+  if (stackBanner) {
+    lines.push(...stackBanner);
+    lines.push("");
+  }
 
   for (const dim of aggregated.dimensions) {
     const scoreText = dim.score === null ? "  —  " : dim.score.toFixed(0).padStart(5, " ");
@@ -69,6 +77,33 @@ function needsAttention(r: ProbeResult): boolean {
   if (r.reading.kind === "na" || r.reading.kind === "error") return false;
   if (r.reading.kind === "predicate") return !r.reading.value;
   return r.score !== null && r.score < 100;
+}
+
+/**
+ * When no supported stack was detected, list the toolchain-related n/a
+ * probes and tell the user how to unblock them — either declare commands
+ * in repofit.config.json, or load a corpus that supports their stack.
+ */
+function renderStackBanner(
+  toolchain: RenderInput["toolchain"],
+  results: ProbeResult[],
+): string[] | null {
+  if (!toolchain) return null;
+  if (toolchain.primary !== null) return null;
+
+  const skipped = results.filter(
+    (r) =>
+      r.reading.kind === "na" && /command|stack/.test((r.reading as { reason: string }).reason),
+  );
+  if (skipped.length === 0) return null;
+
+  const probeList = skipped.map((r) => r.probe.id).join(", ");
+  return [
+    "  no supported stack detected (Node / Python / .NET / Go)",
+    `  ${skipped.length} probe${skipped.length === 1 ? "" : "s"} skipped: ${probeList}`,
+    "  declare commands in repofit.config.json#toolchain.commands, or load a",
+    "  corpus that supports your stack (see authoring docs)",
+  ];
 }
 
 function readingVerdict(r: ProbeResult): string {

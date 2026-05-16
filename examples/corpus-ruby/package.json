@@ -1,0 +1,12 @@
+{
+  "name": "@example/repofit-corpus-ruby",
+  "version": "0.1.0",
+  "description": "Example third-party corpus adding Ruby support to repofit. Replaces lint.clean and ships rspec.clean.",
+  "type": "module",
+  "private": true,
+  "main": "./src/index.ts",
+  "license": "MIT",
+  "peerDependencies": {
+    "@esbenwiberg/repofit": "*"
+  }
+}

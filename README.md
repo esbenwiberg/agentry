@@ -64,6 +64,43 @@ Six dimensions, weighted into one fitness score:
 Each probe carries its own rationale and scoring rubric. Run
 `repofit explain <probe-id>` for the full story behind any reading.
 
+## Supported stacks
+
+repofit officially supports **Node + TypeScript**, **.NET**, **Python**, and
+**Go**. For these stacks the bundled corpus auto-detects manifests and
+resolves a sensible default command per phase:
+
+| Phase     | Node                            | Python                       | .NET                                 | Go                              |
+| --------- | ------------------------------- | ---------------------------- | ------------------------------------ | ------------------------------- |
+| build     | `npm run build` (script)        | `python -m build`            | `dotnet build`                       | `go build ./...`                |
+| test      | `npm test`                      | `pytest`                     | `dotnet test`                        | `go test ./...`                 |
+| lint      | `npm run lint` (script)         | `ruff check .`               | `dotnet format --verify-no-changes`  | `golangci-lint run` / `go vet`  |
+| typecheck | `npm run typecheck` / `npx tsc` | `mypy .`                     | (built into build)                   | (built into build)              |
+| format    | `npm run format[:check]`        | `ruff format --check .`      | (same tool as lint)                  | `gofmt -l .`                    |
+
+Detection is conservative — multiple Python linters configured (e.g. ruff
+and flake8) yields `n/a` rather than a wrong guess. To override, set
+`toolchain.commands.<phase>` in `repofit.config.json`:
+
+```json
+{
+  "toolchain": {
+    "commands": {
+      "lint": ["sh", "-c", "npm run lint && ruff check ."]
+    }
+  }
+}
+```
+
+**Other stacks** — repofit still runs every stack-agnostic probe (docs,
+git hygiene, CI, secrets, branch protection, ADRs, file sizes). To add
+probes for an unsupported stack, either declare commands in config or
+publish a custom corpus package with stack-specific probes and load it
+alongside the default — see [`examples/corpus-ruby/`](examples/corpus-ruby/)
+for a worked example. The config takes an ordered array; later entries
+override earlier ones on probe id, so a community corpus can shadow any
+stock probe.
+
 ## Architecture
 
 The engine runs probes in tiers — static → derived → historical → executed —
