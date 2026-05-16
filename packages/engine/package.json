@@ -1,6 +1,6 @@
 {
   "name": "@esbenwiberg/repofit",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Measure how agent-friendly your repo is.",
   "type": "module",
   "engines": {
