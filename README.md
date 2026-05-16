@@ -156,10 +156,37 @@ npm install
 npm run typecheck   # tsc --noEmit on both packages
 npm run lint        # biome check
 npm run build       # emit dist/ for both packages
+npm run smoke       # build the CLI and verify it starts
 ```
 
 Requires Node 22+. The build is plain `tsc` on each workspace package —
 no bundler.
+
+## Development
+
+The local loop for this CLI is:
+
+```bash
+npm install
+npm run demo
+npm run smoke
+node packages/engine/dist/cli/index.js check --json
+```
+
+`npm run demo` builds both workspaces and runs a targeted probe against this
+repo, so the CLI produces a real reading without requiring external services.
+`npm run smoke` compiles the engine and runs the built CLI's `--version`
+entrypoint. For probe behavior, use the fixture suite and targeted scans:
+
+```bash
+npm test
+node packages/engine/dist/cli/index.js explain agent.guidance-present
+node packages/engine/dist/cli/index.js check --probe agent.guidance-present --json
+```
+
+Fixtures in `packages/corpus-default/test/fixtures.test.ts` exercise every
+declared probe fixture. The `examples/` packages are copyable sample data for
+third-party corpus and reporter authors.
 
 ## Test
 

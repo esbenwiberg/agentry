@@ -2,20 +2,20 @@ import { defineProbe } from "@esbenwiberg/repofit/sdk";
 
 export default defineProbe({
   id: "size.directory-depth",
-  version: "1.0.0",
+  version: "1.1.0",
   dimensions: [{ id: "cost", weight: 1 }],
   tier: "derived",
   evidence: ["size_stats"],
 
   rationale: `
-    Deeply-nested paths punish agent navigation: more tokens per file
-    reference, more cognitive overhead resolving "where does this live?",
-    and a higher chance of typos in path-driven tool calls. The p95 of path
-    depth is a robust summary that one shallow tree of fixtures can't skew.
+    Very deeply nested paths add navigation cost: more tokens per file
+    reference, more overhead resolving "where does this live?", and a higher
+    chance of typos in path-driven tool calls. The p95 of path depth is a
+    robust summary that one shallow tree of fixtures can't skew.
   `,
 
   remediation:
-    "Flatten the deepest paths. Inspect `find . -type f | awk -F/ '{print NF}' | sort -rn | head` to find the worst offenders. Often the fix is removing one or two layers of redundant grouping (e.g., `src/modules/feature/feature.ts` → `src/feature.ts`). Aim for p95 depth ≤ 6.",
+    "If p95 path depth is high, inspect `git ls-files | awk -F/ '{ print NF \" \" $0 }' | sort -nr | head` to find the deepest tracked paths. Flatten redundant grouping when it is only ceremony, but do not collapse meaningful package/module boundaries. Aim for p95 depth ≤ 6.",
 
   async detect(ev) {
     if (ev.size_stats.source === "none") {
@@ -32,10 +32,10 @@ export default defineProbe({
     kind: "distribution",
     stat: "p95",
     bands: [
-      { upTo: 4, score: 100 },
-      { upTo: 6, score: 80 },
-      { upTo: 8, score: 50 },
-      { upTo: 10, score: 20 },
+      { upTo: 6, score: 100 },
+      { upTo: 8, score: 80 },
+      { upTo: 10, score: 50 },
+      { upTo: 12, score: 20 },
       { score: 0 },
     ],
   },
@@ -80,7 +80,7 @@ export default defineProbe({
           ],
         },
       },
-      expect: { reading: { kind: "distribution", samples: [10, 12] }, score: 0 },
+      expect: { reading: { kind: "distribution", samples: [10, 12] }, score: 20 },
     },
   ],
 });

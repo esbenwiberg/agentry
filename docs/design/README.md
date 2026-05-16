@@ -1,12 +1,27 @@
-# repofit — design
+# repofit — design corpus
 
-> **Status:** design review, no code yet. Successor architecture to
-> agentry, captured during a multi-session design conversation. The
-> agentry codebase that currently ships is unaffected until/unless an
-> ADR is opened to formally pivot.
+> **Status:** current architectural memory for repofit v1.x. The original
+> design work has shipped; docs in this folder are maintained as living design
+> notes, while final project decisions are captured in [`docs/adr/`](../adr/).
 
-This folder is the durable memory of the design conversation. Seven
-documents, each owning one concern; cross-linked where needed.
+This folder is the durable design corpus for the repo. It records the system
+shape behind the current npm workspaces implementation:
+
+- `packages/engine` owns the CLI, loaders, evidence gatherers, runner, scorer,
+  aggregator, verdict logic, reporters, and public SDK.
+- `packages/corpus-default` owns bundled dimensions, probes, and fixers. It
+  consumes only public engine APIs.
+- `docs/adr` owns accepted architectural decisions. Use ADRs for decisions that
+  constrain future changes; use this folder for mutable explanatory design.
+- `examples` and `integrations` demonstrate extension points and CI wrappers;
+  they should not import engine internals.
+
+The main dependency rule is one-way: the engine is probe-agnostic, corpus
+packages depend on the engine SDK, and examples/integrations sit at the edge.
+Do not move stock probes into the engine or make the engine depend on
+`corpus-default`.
+
+Seven documents own one concern each; cross-linked where needed.
 
 ---
 
@@ -29,38 +44,37 @@ previous ones.
 
 ## Status of the design
 
-Substantively complete for v1. The user-facing surface (verbs, config,
-baseline, reports) is locked. The author-facing surface (probe schema,
-recipes, dimensions) is locked. The internal engine surface (tiers,
-evidence subsystems, scorers, aggregators) is locked enough to start
-coding.
+The v1 architecture has shipped. Some individual documents still preserve
+draft-era phrasing and open questions for historical context, so prefer the
+newer ADRs and release notes when there is a conflict.
 
-Genuinely open items remaining (none block Phase 0):
-- SARIF reporter timing — v1.x or later? Schema slot reserved.
-- Plugin distribution — npm by default; do we want a registry index?
-- Reasoned-tier `claude-code` provider transport mechanism (SDK call vs IPC vs MCP) — schema slot reserved; mechanism is a v1.x implementation detail.
-- Per-doc minor open items remain inside `reports.md` and others; check the relevant file's open-questions section.
+Current invariants:
+
+- `packages/engine/src/sdk` is the public API. Changes there affect third-party
+  corpus and reporter authors.
+- Evidence gatherers live in the engine and are reusable; probes consume cached
+  evidence instead of doing their own filesystem or process discovery.
+- Probe IDs are stable contracts. Rename only with a breaking release.
+- Generated or vendored files should be excluded from cost probes with
+  `.gitattributes linguist-generated=true` or built-in generated-file handling.
+- Ratchet baselines are committed policy artifacts. Update them only after an
+  intentional scan change or repo improvement.
 
 ---
 
 ## Relationship to agentry
 
-repofit is framed as a **successor architecture** to agentry's
-scan/brief/add/upgrade/remove/coach/list model. Where agentry manages
-artifacts (overlays, practices, briefs), repofit measures fitness against
-a probe corpus and gates on score.
-
-Until an ADR in `../adr/` formally pivots the project, agentry remains
-the shipping codebase and repofit is design-only. Whether/when to write
-that ADR is a decision the maintainer makes; the design here is ready
-to be acted on whenever that happens.
+repofit began as a successor architecture to agentry's
+scan/brief/add/upgrade/remove/coach/list model. The successor now exists as
+this repository: repofit measures repository fitness against a probe corpus and
+gates on score.
 
 ---
 
 ## How to evolve this folder
 
-These docs are working design notes, not ADRs. They are expected to
-change as decisions are revisited.
+These docs are working design notes, not ADRs. They are expected to change as
+decisions are revisited.
 
 - **Update in place** when a decision firms up — mark `Status:
   agreed`. Don't preserve dead phrasing for history; git keeps that.

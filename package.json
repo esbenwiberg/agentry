@@ -10,11 +10,14 @@
   ],
   "scripts": {
     "build": "npm run build -w @esbenwiberg/repofit && npm run build -w @esbenwiberg/corpus-default",
+    "dev": "npm run demo",
+    "demo": "npm run build && node packages/engine/dist/cli/index.js check --probe agent.guidance-present",
     "typecheck": "npm run build -w @esbenwiberg/repofit && npm run typecheck --workspaces --if-present",
     "lint": "biome check .",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "test": "npm run build -w @esbenwiberg/repofit && npm run test --workspaces --if-present",
+    "smoke": "npm run build -w @esbenwiberg/repofit && node packages/engine/dist/cli/index.js --version",
     "arch:check": "depcruise --config .dependency-cruiser.cjs packages",
     "knip": "knip",
     "audit": "npm audit --audit-level=high"

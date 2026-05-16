@@ -4,7 +4,7 @@ const CHARS_PER_TOKEN = 4;
 
 export default defineProbe({
   id: "size.repo-token-estimate",
-  version: "1.0.0",
+  version: "1.1.0",
   dimensions: [{ id: "cost", weight: 1 }],
   tier: "derived",
   evidence: ["size_stats"],
@@ -12,14 +12,14 @@ export default defineProbe({
   rationale: `
     Total tracked bytes divided by a rough chars-per-token constant is a
     crude but stable proxy for "how expensive is full-repo context here?".
-    The bands are coarse on purpose: precision matters less than telling
-    you "this repo will cost you" before you commit to it. Generated files
-    (lockfiles, \`linguist-generated\`) are excluded from the total — they
-    bloat the byte count without ever entering an agent's context.
+    The bands are coarse on purpose: precision matters less than separating
+    cheap, moderate, expensive, and genuinely huge full-repo context loads.
+    Generated files (lockfiles, \`linguist-generated\`) are excluded from the
+    total — they bloat the byte count without ever entering an agent's context.
   `,
 
   remediation:
-    "If the repo is genuinely too big, split it: move independent subsystems to separate repos, or move generated/vendored content out of source control (use a release artifact, lockfile reference, or `.gitattributes` `linguist-generated=true`). For a working repo you can't split, accept the score — the probe just flags the agent's per-context cost.",
+    "If full-repo context is costly, first check whether generated or vendored content is being counted and mark it with `.gitattributes` `linguist-generated=true` when appropriate. For genuinely large repos, split independent subsystems or avoid full-repo context in agent workflows. A moderate score is advisory — it means broad context costs more, not that the repo is inherently too big.",
 
   async detect(ev) {
     if (ev.size_stats.source === "none") {
@@ -35,7 +35,8 @@ export default defineProbe({
     direction: "negative",
     bands: [
       { upTo: 50_000, score: 100 },
-      { upTo: 200_000, score: 80 },
+      { upTo: 300_000, score: 80 },
+      { upTo: 600_000, score: 70 },
       { upTo: 1_000_000, score: 50 },
       { upTo: 5_000_000, score: 20 },
       { score: 0 },
@@ -69,7 +70,7 @@ export default defineProbe({
           files: [],
         },
       },
-      expect: { reading: { kind: "magnitude", value: 500_000, unit: "tokens" }, score: 50 },
+      expect: { reading: { kind: "magnitude", value: 500_000, unit: "tokens" }, score: 70 },
     },
     {
       name: "lockfile-doesnt-count",
