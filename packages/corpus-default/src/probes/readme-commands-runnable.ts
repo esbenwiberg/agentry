@@ -1,9 +1,12 @@
+import type { NodePackageEvidence, ToolchainEvidence } from "@esbenwiberg/repofit/sdk";
 import { defineProbe } from "@esbenwiberg/repofit/sdk";
 
 const CODE_FENCE_RE = /```(?:sh|bash|shell|zsh|console|bashrc)?\s*\n([\s\S]*?)```/g;
-const CMD_LINE_RE = /^[ \t]*\$?[ \t]*(npm|pnpm|yarn|bun)[ \t]+(\S+)(?:[ \t]+(\S+))?/gm;
 
-const PACKAGE_MANAGER_BUILTINS = new Set([
+const NODE_CMD_RE = /^[ \t]*\$?[ \t]*(npm|pnpm|yarn|bun)[ \t]+(\S+)(?:[ \t]+(\S+))?/gm;
+const GENERIC_CMD_RE = /^[ \t]*\$?[ \t]*([A-Za-z][\w-]*)\b/gm;
+
+const NODE_BUILTINS = new Set([
   "install",
   "i",
   "add",
@@ -51,47 +54,83 @@ const PACKAGE_MANAGER_BUILTINS = new Set([
   "import",
 ]);
 
-type CmdRef = { line: number; raw: string; script: string; runnable: boolean };
+// First-word commands that are universally runnable for the matching stack.
+// We trust these aren't going to mislead an agent.
+const STACK_RUNNABLE_PREFIXES: Record<string, readonly string[]> = {
+  python: [
+    "python",
+    "python3",
+    "pytest",
+    "ruff",
+    "mypy",
+    "pyright",
+    "black",
+    "flake8",
+    "pylint",
+    "isort",
+    "pip",
+    "uv",
+    "poetry",
+    "pdm",
+    "hatch",
+    "pipenv",
+  ],
+  dotnet: ["dotnet"],
+  go: ["go", "gofmt", "goimports", "golangci-lint", "staticcheck"],
+};
+
+type CmdRef = {
+  line: number;
+  raw: string;
+  // First word — `npm`, `pnpm`, `pytest`, `dotnet`, `go`, etc.
+  head: string;
+  // For npm/pnpm/yarn/bun: the script name (or builtin verb). Empty otherwise.
+  script: string;
+  runnable: boolean;
+};
 
 export default defineProbe({
   id: "readme.commands-runnable",
-  version: "1.0.0",
+  version: "2.0.0",
   dimensions: [{ id: "context", weight: 1 }],
   tier: "static",
-  evidence: ["files", "node_package"],
+  evidence: ["files", "node_package", "toolchain"],
 
   rationale: `
     The README is the first thing an agent reads when it lands. If the
-    commands it lists ('npm run dev', 'npm test', 'pnpm build') don't
-    exist as scripts in package.json, the agent will copy them and
+    commands it lists don't actually work, the agent will copy them and
     immediately fail. This probe extracts package-manager invocations
-    from fenced code blocks in README.md and checks each against the
-    actual script list. Package-manager builtins (install, ci, test,
-    audit, etc.) always count as runnable; 'npm run X' and 'npm X' must
-    resolve to a real script.
+    (\`npm run X\`, \`pnpm test\`), Python tool calls (\`pytest\`,
+    \`ruff check\`), .NET commands (\`dotnet build\`), and Go commands
+    (\`go test\`) from fenced code blocks in README.md and checks each
+    against the actual scripts / detected toolchain. Package-manager
+    builtins and standard SDK commands (\`dotnet build\`,
+    \`go test ./...\`) always count as runnable.
   `,
 
   remediation:
-    'For each broken reference, either add the script to package.json (e.g., `"dev": "vite"`) or update the README to use a command that actually works. Keep code blocks copy-pasteable — if the agent has to interpret \'replace X with your-script\', it will guess wrong.',
+    "For each broken reference, either configure the missing tool/script or update the README to use a command that actually works. Keep code blocks copy-pasteable — if the agent has to interpret 'replace X with your-script', it will guess wrong.",
 
   async detect(ev) {
-    if (!ev.node_package.present) {
-      return { kind: "na", reason: "no package.json (this probe is npm-script aware only)" };
-    }
     const readme = await ev.files.readText("README.md");
     if (!readme) {
       return { kind: "na", reason: "no README.md" };
     }
+    if (!ev.toolchain.primary && !ev.node_package.present) {
+      return {
+        kind: "na",
+        reason: "no supported stack detected — can't tell if README commands are runnable",
+      };
+    }
 
     const refs = extractRefs(readme);
     if (refs.length === 0) {
-      return { kind: "na", reason: "no package-manager commands referenced in README" };
+      return { kind: "na", reason: "no commands referenced in README" };
     }
 
-    const scripts = ev.node_package.scripts;
     let runnable = 0;
     for (const ref of refs) {
-      ref.runnable = isRunnable(ref.script, scripts);
+      ref.runnable = isRunnable(ref, ev.node_package, ev.toolchain);
       if (ref.runnable) runnable += 1;
     }
     const pct = Math.round((runnable / refs.length) * 100);
@@ -111,36 +150,45 @@ export default defineProbe({
 
   fixtures: [
     {
-      name: "no-package-json",
-      evidence: { node_package: { present: false }, files: [] },
-      expect: {
-        reading: { kind: "na", reason: "no package.json (this probe is npm-script aware only)" },
-        score: null,
-      },
-    },
-    {
       name: "no-readme",
       evidence: { node_package: { present: true }, files: [] },
       expect: { reading: { kind: "na", reason: "no README.md" }, score: null },
     },
     {
-      name: "readme-with-no-commands",
+      name: "no-stack",
       evidence: {
-        node_package: { present: true, scripts: { build: "tsc" } },
-        files: { "README.md": "# Hello\n\nThis is a project.\n" },
+        node_package: { present: false },
+        toolchain: { primary: null },
+        files: { "README.md": "# x\n\n```\nnpm test\n```\n" },
       },
       expect: {
-        reading: { kind: "na", reason: "no package-manager commands referenced in README" },
+        reading: {
+          kind: "na",
+          reason: "no supported stack detected — can't tell if README commands are runnable",
+        },
         score: null,
       },
     },
     {
-      name: "all-commands-runnable",
+      name: "readme-with-no-commands",
+      evidence: {
+        node_package: { present: true, scripts: { build: "tsc" } },
+        toolchain: { stacks: ["node"], primary: "node", commands: {} },
+        files: { "README.md": "# Hello\n\nThis is a project.\n" },
+      },
+      expect: {
+        reading: { kind: "na", reason: "no commands referenced in README" },
+        score: null,
+      },
+    },
+    {
+      name: "node-all-runnable",
       evidence: {
         node_package: {
           present: true,
           scripts: { build: "tsc", test: "vitest", dev: "vite" },
         },
+        toolchain: { stacks: ["node"], primary: "node", commands: {} },
         files: {
           "README.md":
             "# X\n\n## Build\n\n```sh\nnpm install\nnpm run build\nnpm test\nnpm run dev\n```\n",
@@ -149,12 +197,10 @@ export default defineProbe({
       expect: { reading: { kind: "magnitude", value: 100, unit: "%" }, score: 100 },
     },
     {
-      name: "one-broken-command",
+      name: "node-one-broken",
       evidence: {
-        node_package: {
-          present: true,
-          scripts: { build: "tsc", test: "vitest" },
-        },
+        node_package: { present: true, scripts: { build: "tsc", test: "vitest" } },
+        toolchain: { stacks: ["node"], primary: "node", commands: {} },
         files: {
           "README.md": "# X\n\n```bash\nnpm install\nnpm run build\nnpm run start\nnpm test\n```\n",
         },
@@ -162,22 +208,56 @@ export default defineProbe({
       expect: { reading: { kind: "magnitude", value: 75, unit: "%" }, score: 50 },
     },
     {
-      name: "mostly-broken",
+      name: "python-pytest-runnable",
       evidence: {
-        node_package: { present: true, scripts: { test: "vitest" } },
+        toolchain: { stacks: ["python"], primary: "python", commands: {} },
+        files: { "README.md": "# X\n\n```sh\npytest\nruff check .\nmypy .\n```\n" },
+      },
+      expect: { reading: { kind: "magnitude", value: 100, unit: "%" }, score: 100 },
+    },
+    {
+      name: "dotnet-all-runnable",
+      evidence: {
+        toolchain: { stacks: ["dotnet"], primary: "dotnet", commands: {} },
+        files: { "README.md": "# X\n\n```sh\ndotnet build\ndotnet test\ndotnet run\n```\n" },
+      },
+      expect: { reading: { kind: "magnitude", value: 100, unit: "%" }, score: 100 },
+    },
+    {
+      name: "go-all-runnable",
+      evidence: {
+        toolchain: { stacks: ["go"], primary: "go", commands: {} },
         files: {
-          "README.md": "# X\n\n```\nnpm run dev\nnpm run build\nnpm run lint\nnpm test\n```\n",
+          "README.md": "# X\n\n```sh\ngo build ./...\ngo test ./...\ngolangci-lint run\n```\n",
         },
       },
-      expect: { reading: { kind: "magnitude", value: 25, unit: "%" }, score: 20 },
+      expect: { reading: { kind: "magnitude", value: 100, unit: "%" }, score: 100 },
+    },
+    {
+      name: "dotnet-only-with-pytest-mention",
+      evidence: {
+        toolchain: { stacks: ["dotnet"], primary: "dotnet", commands: {} },
+        files: { "README.md": "# X\n\n```\ndotnet build\npytest\n```\n" },
+      },
+      expect: { reading: { kind: "magnitude", value: 50, unit: "%" }, score: 50 },
+    },
+    {
+      name: "unknown-words-ignored",
+      evidence: {
+        toolchain: { stacks: ["node"], primary: "node", commands: {} },
+        node_package: { present: true, scripts: { build: "tsc" } },
+        files: {
+          "README.md":
+            "# X\n\n```\nnpm run build\nsome-fictional-binary --flag\npackages/foo/\n```\n",
+        },
+      },
+      expect: { reading: { kind: "magnitude", value: 100, unit: "%" }, score: 100 },
     },
     {
       name: "pnpm-and-yarn-mix",
       evidence: {
-        node_package: {
-          present: true,
-          scripts: { build: "tsc", test: "vitest" },
-        },
+        node_package: { present: true, scripts: { build: "tsc", test: "vitest" } },
+        toolchain: { stacks: ["node"], primary: "node", commands: {} },
         files: {
           "README.md": "# X\n\n```sh\npnpm install\npnpm build\nyarn test\nbun run build\n```\n",
         },
@@ -187,33 +267,62 @@ export default defineProbe({
   ],
 });
 
+// Tools we'll treat as "candidate commands" worth scoring. Anything else in
+// a code fence (directory paths, sample output, fictional binaries like
+// `repofit`, prose) is ignored — counted neither as runnable nor broken.
+const STACK_TOOLS = new Set<string>([...Object.values(STACK_RUNNABLE_PREFIXES).flat()]);
+
 function extractRefs(readme: string): CmdRef[] {
   const refs: CmdRef[] = [];
   CODE_FENCE_RE.lastIndex = 0;
   for (const fence of readme.matchAll(CODE_FENCE_RE)) {
     const block = fence[1] ?? "";
     const blockStart = (fence.index ?? 0) + (fence[0]?.indexOf(block) ?? 0);
-    CMD_LINE_RE.lastIndex = 0;
-    for (const m of block.matchAll(CMD_LINE_RE)) {
+
+    // First pass: node package-manager commands (we capture the script slot).
+    NODE_CMD_RE.lastIndex = 0;
+    const nodeHits = new Set<number>();
+    for (const m of block.matchAll(NODE_CMD_RE)) {
+      const head = m[1];
       const verb = m[2];
       const next = m[3];
-      if (!verb) continue;
+      if (!head || !verb) continue;
       const script = verb === "run" ? (next ?? "") : verb;
       if (script.length === 0) continue;
       const offset = (m.index ?? 0) + blockStart;
       const line = (readme.slice(0, offset).match(/\n/g)?.length ?? 0) + 1;
-      refs.push({
-        line,
-        raw: m[0],
-        script,
-        runnable: false,
-      });
+      nodeHits.add(line);
+      refs.push({ line, raw: m[0], head, script, runnable: false });
+    }
+
+    // Second pass: stack-specific tool invocations (pytest, dotnet, go, …).
+    // We ONLY capture known stack tools to avoid false positives on prose,
+    // file paths, or fictional command names that happen to start a line.
+    GENERIC_CMD_RE.lastIndex = 0;
+    for (const m of block.matchAll(GENERIC_CMD_RE)) {
+      const head = m[1];
+      if (!head) continue;
+      if (!STACK_TOOLS.has(head)) continue;
+      const offset = (m.index ?? 0) + blockStart;
+      const line = (readme.slice(0, offset).match(/\n/g)?.length ?? 0) + 1;
+      if (nodeHits.has(line)) continue;
+      refs.push({ line, raw: m[0], head, script: "", runnable: false });
     }
   }
   return refs;
 }
 
-function isRunnable(name: string, scripts: Record<string, string>): boolean {
-  if (PACKAGE_MANAGER_BUILTINS.has(name)) return true;
-  return name in scripts;
+function isRunnable(ref: CmdRef, node: NodePackageEvidence, toolchain: ToolchainEvidence): boolean {
+  // Node package-manager commands
+  if (ref.head === "npm" || ref.head === "pnpm" || ref.head === "yarn" || ref.head === "bun") {
+    if (NODE_BUILTINS.has(ref.script)) return true;
+    if (!node.present) return false;
+    return ref.script in node.scripts;
+  }
+  // Stack-specific tool invocations.
+  for (const stack of toolchain.stacks) {
+    const prefixes = STACK_RUNNABLE_PREFIXES[stack];
+    if (prefixes?.includes(ref.head)) return true;
+  }
+  return false;
 }
