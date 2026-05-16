@@ -52,15 +52,16 @@ export async function check(opts: CheckOptions): Promise<number> {
     return 0;
   }
 
-  const [projectConfig, baseline, evidence] = await Promise.all([
+  const [projectConfig, baseline] = await Promise.all([
     loadProjectConfig(opts.cwd),
     loadBaseline(opts.cwd),
-    gatherAll({
-      cwd: opts.cwd,
-      judge: { noCache: opts.noCache, transport: opts.judgeTransport },
-    }),
   ]);
   const config: ProjectConfig = projectConfig ?? DEFAULT_CONFIG;
+  const evidence = await gatherAll({
+    cwd: opts.cwd,
+    judge: { noCache: opts.noCache, transport: opts.judgeTransport },
+    toolchain: config.toolchain,
+  });
   const corpus = await loadCorpora({ packages: config.corpus?.map((c) => c.package) });
   reportCorpusOverrides(corpus, opts.output);
 

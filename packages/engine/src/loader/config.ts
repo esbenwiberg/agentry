@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { TIERS, type Tier } from "../sdk/types.js";
+import { TIERS, type Tier, type ToolchainPhase, type ToolchainStack } from "../sdk/types.js";
 import { errorMessage } from "../util/error-message.js";
 import { isObject } from "../util/is-object.js";
 
@@ -34,10 +34,20 @@ export type GateConfig = {
   include?: Tier[];
 };
 
+export type CommandsOverride = Partial<Record<ToolchainPhase, string[]>>;
+
+export type ToolchainConfig = {
+  /** Force the primary stack instead of relying on detection. */
+  primaryStack?: ToolchainStack;
+  /** Per-phase argv overrides. Bypass detection entirely for that phase. */
+  commands?: CommandsOverride;
+};
+
 export type ProjectConfig = {
   version: 1;
   corpus?: CorpusPin[];
   gate: GateConfig;
+  toolchain?: ToolchainConfig;
   dimensions?: Record<string, DimensionConfigOverride>;
   probes?: Record<string, Record<string, unknown>>;
   waivers?: Waiver[];
@@ -89,6 +99,7 @@ export function validateConfig(raw: unknown): ProjectConfig {
   const out: ProjectConfig = { version: 1, gate };
 
   if (raw.corpus !== undefined) out.corpus = validateCorpus(raw.corpus, "/corpus");
+  if (raw.toolchain !== undefined) out.toolchain = validateToolchain(raw.toolchain, "/toolchain");
   if (raw.dimensions !== undefined)
     out.dimensions = validateDimensions(raw.dimensions, "/dimensions");
   if (raw.probes !== undefined) out.probes = validateProbeKnobs(raw.probes, "/probes");
@@ -144,6 +155,57 @@ function validateCorpus(raw: unknown, path: string): CorpusPin[] {
     }
     return { package: entry.package, version: entry.version };
   });
+}
+
+const VALID_TOOLCHAIN_STACKS: readonly ToolchainStack[] = ["node", "python", "dotnet", "go"];
+const VALID_TOOLCHAIN_PHASES: readonly ToolchainPhase[] = [
+  "build",
+  "test",
+  "lint",
+  "typecheck",
+  "format",
+];
+
+function validateToolchain(raw: unknown, path: string): ToolchainConfig {
+  if (!isObject(raw)) throw configError(path, "must be an object");
+  const out: ToolchainConfig = {};
+  if (raw.primaryStack !== undefined) {
+    if (
+      typeof raw.primaryStack !== "string" ||
+      !VALID_TOOLCHAIN_STACKS.includes(raw.primaryStack as ToolchainStack)
+    ) {
+      throw configError(
+        `${path}/primaryStack`,
+        `must be one of ${VALID_TOOLCHAIN_STACKS.join(", ")}, got ${JSON.stringify(raw.primaryStack)}`,
+      );
+    }
+    out.primaryStack = raw.primaryStack as ToolchainStack;
+  }
+  if (raw.commands !== undefined) {
+    if (!isObject(raw.commands)) throw configError(`${path}/commands`, "must be an object");
+    const commands: CommandsOverride = {};
+    for (const [phase, value] of Object.entries(raw.commands)) {
+      if (!VALID_TOOLCHAIN_PHASES.includes(phase as ToolchainPhase)) {
+        throw configError(
+          `${path}/commands/${phase}`,
+          `unknown phase; expected one of ${VALID_TOOLCHAIN_PHASES.join(", ")}`,
+        );
+      }
+      if (!Array.isArray(value) || value.length === 0) {
+        throw configError(`${path}/commands/${phase}`, "must be a non-empty array of argv strings");
+      }
+      const argv: string[] = [];
+      for (const [i, arg] of value.entries()) {
+        if (typeof arg !== "string") {
+          throw configError(`${path}/commands/${phase}/${i}`, "must be a string");
+        }
+        argv.push(arg);
+      }
+      commands[phase as ToolchainPhase] = argv;
+    }
+    out.commands = commands;
+  }
+  return out;
 }
 
 function validateDimensions(raw: unknown, path: string): Record<string, DimensionConfigOverride> {

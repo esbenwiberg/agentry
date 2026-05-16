@@ -3,10 +3,10 @@ import { LATENCY_BANDS } from "./_shared/latency-bands.js";
 
 export default defineProbe({
   id: "latency.lint",
-  version: "1.0.0",
+  version: "2.0.0",
   dimensions: [{ id: "latency", weight: 1 }],
   tier: "executed",
-  evidence: ["node_package", "commands"],
+  evidence: ["toolchain", "commands"],
 
   rationale: `
     Lint should be the cheapest gate — agents rerun it many times per
@@ -15,40 +15,36 @@ export default defineProbe({
   `,
 
   remediation:
-    "Switch to a fast linter or trim the ruleset. Biome (Rust-based) is dramatically faster than ESLint with type-aware rules. Cache lint results (`eslint --cache`, `biome check --since`). Lint should finish in seconds — if it's slow, agents skip it.",
+    "Switch to a fast linter or trim the ruleset. Biome (Rust-based) and ruff (also Rust) are dramatically faster than ESLint / flake8. Cache lint results when possible. Lint should finish in seconds — if it's slow, agents skip it.",
 
   async detect(ev) {
-    if (!ev.node_package.present) return { kind: "na", reason: "no package.json" };
-    const script = ev.node_package.scripts.lint;
-    if (typeof script !== "string" || script.trim().length === 0) {
-      return { kind: "na", reason: "no lint script" };
-    }
-    const run = await ev.commands.run({
-      argv: ["npm", "run", "lint", "--silent"],
-      warmup: 1,
-      timeoutMs: 300_000,
-    });
+    const cmd = ev.toolchain.commands.lint;
+    if (!cmd) return { kind: "na", reason: "no lint command for the primary stack" };
+    const run = await ev.commands.run({ argv: cmd.argv, warmup: 1, timeoutMs: 300_000 });
     if (run.timedOut) return { kind: "na", reason: "lint command timed out" };
     if (run.exitCode !== 0) return { kind: "na", reason: `lint exited ${run.exitCode}` };
     return { kind: "magnitude", value: run.durationMs, unit: "ms" };
   },
 
-  score: {
-    kind: "magnitude",
-    direction: "negative",
-    bands: LATENCY_BANDS,
-  },
+  score: { kind: "magnitude", direction: "negative", bands: LATENCY_BANDS },
 
   fixtures: [
     {
-      name: "no-lint-script",
-      evidence: { node_package: { present: true, scripts: {} } },
-      expect: { reading: { kind: "na", reason: "no lint script" }, score: null },
+      name: "no-lint-command",
+      evidence: { toolchain: { primary: null } },
+      expect: {
+        reading: { kind: "na", reason: "no lint command for the primary stack" },
+        score: null,
+      },
     },
     {
-      name: "fast-lint",
+      name: "fast-node-lint",
       evidence: {
-        node_package: { present: true, scripts: { lint: "biome check ." } },
+        toolchain: {
+          stacks: ["node"],
+          primary: "node",
+          commands: { lint: { source: "node", argv: ["npm", "run", "lint", "--silent"] } },
+        },
         commands: [{ argv: ["npm", "run", "lint", "--silent"], exitCode: 0, durationMs: 800 }],
       },
       expect: { reading: { kind: "magnitude", value: 800, unit: "ms" }, score: 100 },

@@ -12,6 +12,7 @@ import { judgeSubsystem } from "./subsystems/judge.js";
 import { nodePackageSubsystem } from "./subsystems/node-package.js";
 import { pythonProjectSubsystem } from "./subsystems/python-project.js";
 import { sizeStatsSubsystem } from "./subsystems/size-stats.js";
+import { resolve as resolveToolchain } from "./subsystems/toolchain.js";
 
 export async function gatherAll(ctx: GatherContext): Promise<EvidenceMap> {
   const [
@@ -37,6 +38,12 @@ export async function gatherAll(ctx: GatherContext): Promise<EvidenceMap> {
     ciWorkflowsSubsystem.gather(ctx),
     commitHistorySubsystem.gather(ctx),
   ]);
+  const toolchain = resolveToolchain(ctx, {
+    node: nodePackage,
+    python: pythonProject,
+    dotnet: dotnetProject,
+    go: goModule,
+  });
   return {
     files,
     agent_config: agentConfig,
@@ -44,6 +51,7 @@ export async function gatherAll(ctx: GatherContext): Promise<EvidenceMap> {
     python_project: pythonProject,
     dotnet_project: dotnetProject,
     go_module: goModule,
+    toolchain,
     gitignore,
     size_stats: sizeStats,
     ci_workflows: ciWorkflows,
