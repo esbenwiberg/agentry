@@ -59,6 +59,12 @@ program
     "--judge-transport <mode>",
     "Force judge transport: 'api' (ANTHROPIC_API_KEY), 'openai' (OPENAI_API_KEY / OPENAI_BASE_URL), 'cli' (claude CLI), 'codex' (codex CLI). Default: auto.",
   )
+  .option(
+    "--reporter <name=path>",
+    "Dispatch a custom reporter plugin (loaded from repofit.config.json#reporters.plugins) and write its output to the path. Repeat for multiple reporters.",
+    (value: string, prev: string[] = []) => [...prev, value],
+    [] as string[],
+  )
   .action(
     async (opts: {
       probe?: string;
@@ -75,6 +81,7 @@ program
       include: Tier[];
       cache: boolean;
       judgeTransport?: string;
+      reporter: string[];
     }) => {
       if (opts.json && opts.ci) {
         console.error("repofit: --json and --ci are mutually exclusive.");
@@ -105,6 +112,7 @@ program
           include: opts.include,
           noCache: opts.cache === false,
           judgeTransport: opts.judgeTransport as "api" | "cli" | "openai" | "codex" | undefined,
+          reporter: opts.reporter,
         });
         process.exit(exitCode);
       } catch (err) {

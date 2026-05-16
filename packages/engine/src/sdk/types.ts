@@ -394,3 +394,25 @@ export type LlmFixer = {
 };
 
 export type Fixer = StaticFixer | LlmFixer;
+
+/**
+ * Context passed to a third-party reporter's `render` function. `report` is
+ * the structured JSON report — the same shape `repofit check --json` emits,
+ * minus the `$schema` and `tool` fields a custom reporter usually doesn't
+ * care about. `options` is the free-form blob from
+ * `repofit.config.json#reporters[i].options`.
+ */
+export type ReporterContext = {
+  cwd: string;
+  report: unknown;
+  options: Record<string, unknown>;
+};
+
+export type Reporter = {
+  /** Stable id. Invoked via `repofit check --reporter <name>=<path>`. */
+  name: string;
+  /** One-liner shown in CLI help / errors. */
+  describe?: string;
+  /** Produce the reporter's output. Engine writes it to the user-specified path. */
+  render(ctx: ReporterContext): string | Promise<string>;
+};

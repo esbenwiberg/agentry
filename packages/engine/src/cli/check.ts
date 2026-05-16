@@ -10,10 +10,11 @@ import {
 } from "../loader/config.js";
 import { type LoadedCorpus, loadCorpora } from "../loader/corpus.js";
 import { effectiveDimensions } from "../loader/effective-dimensions.js";
+import { loadReporterPlugins } from "../loader/reporters.js";
 import { renderCi } from "../reporters/ci.js";
 import { renderHtml } from "../reporters/html.js";
 import { renderHuman } from "../reporters/human-minimal.js";
-import { type ReportInput, renderJson } from "../reporters/json.js";
+import { buildReport, type ReportInput, renderJson } from "../reporters/json.js";
 import { renderMarkdown } from "../reporters/markdown.js";
 import { renderSarif } from "../reporters/sarif.js";
 import { DEFAULT_TIERS, runProbesDetailed } from "../runner/tiered.js";
@@ -39,6 +40,12 @@ export type CheckOptions = {
   include?: Tier[];
   noCache?: boolean;
   judgeTransport?: "api" | "cli" | "openai" | "codex";
+  /**
+   * Pairs of `name=path` strings dispatched to reporter plugins loaded from
+   * `repofit.config.json#reporters.plugins`. The reporter's render output
+   * is written to the path.
+   */
+  reporter?: string[];
 };
 
 export async function check(opts: CheckOptions): Promise<number> {
@@ -133,7 +140,14 @@ export async function check(opts: CheckOptions): Promise<number> {
     await writeFile(opts.comment, renderMarkdown(reportInput), "utf8");
   }
 
-  await warnUnignoredArtifacts(opts.cwd, [opts.html, opts.sarif, opts.comment]);
+  const reporterOutputs = await runReporterPlugins(opts, reportInput, config);
+
+  await warnUnignoredArtifacts(opts.cwd, [
+    opts.html,
+    opts.sarif,
+    opts.comment,
+    ...reporterOutputs.map((r) => r.path),
+  ]);
 
   if (output === "human") {
     console.log(
@@ -149,6 +163,7 @@ export async function check(opts: CheckOptions): Promise<number> {
     if (opts.html) console.log(`  html     ${opts.html}`);
     if (opts.sarif) console.log(`  sarif    ${opts.sarif}`);
     if (opts.comment) console.log(`  comment  ${opts.comment}`);
+    for (const out of reporterOutputs) console.log(`  ${out.name.padEnd(8)} ${out.path}`);
     return verdict.pass ? 0 : 1;
   }
 
@@ -191,6 +206,45 @@ function reportCorpusOverrides(corpus: LoadedCorpus, output: OutputMode | undefi
  * the next run — repofit tripping its own probes on its own output. Warn so
  * the false signal is obvious and fixable.
  */
+type ReporterDispatch = { name: string; path: string };
+
+async function runReporterPlugins(
+  opts: CheckOptions,
+  reportInput: ReportInput,
+  config: ProjectConfig,
+): Promise<ReporterDispatch[]> {
+  if (!opts.reporter || opts.reporter.length === 0) return [];
+
+  const dispatches: ReporterDispatch[] = [];
+  for (const spec of opts.reporter) {
+    const eq = spec.indexOf("=");
+    if (eq <= 0 || eq === spec.length - 1) {
+      throw new Error(`--reporter expects 'name=path', got '${spec}'`);
+    }
+    dispatches.push({ name: spec.slice(0, eq), path: spec.slice(eq + 1) });
+  }
+
+  const loaded = await loadReporterPlugins(config.reporters?.plugins);
+  const byName = new Map(loaded.map((l) => [l.reporter.name, l]));
+
+  for (const d of dispatches) {
+    const entry = byName.get(d.name);
+    if (!entry) {
+      const known =
+        [...byName.keys()].sort().join(", ") ||
+        "(none — declare in repofit.config.json#reporters.plugins)";
+      throw new Error(`no reporter named '${d.name}' is registered. Known: ${known}`);
+    }
+    const output = await entry.reporter.render({
+      cwd: reportInput.cwd,
+      report: buildReport(reportInput),
+      options: entry.options,
+    });
+    await writeFile(d.path, output, "utf8");
+  }
+  return dispatches;
+}
+
 async function warnUnignoredArtifacts(
   cwd: string,
   paths: ReadonlyArray<string | undefined>,

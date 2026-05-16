@@ -51,7 +51,17 @@ export type ProjectConfig = {
   dimensions?: Record<string, DimensionConfigOverride>;
   probes?: Record<string, Record<string, unknown>>;
   waivers?: Waiver[];
-  reporters?: { default?: "human" | "json" };
+  reporters?: ReportersConfig;
+};
+
+export type ReporterPlugin = {
+  package: string;
+  options?: Record<string, unknown>;
+};
+
+export type ReportersConfig = {
+  default?: "human" | "json";
+  plugins?: ReporterPlugin[];
 };
 
 export const CONFIG_FILENAME = "repofit.config.json";
@@ -303,14 +313,30 @@ function validateWaivers(raw: unknown, path: string): Waiver[] {
   });
 }
 
-function validateReporters(raw: unknown, path: string): { default?: "human" | "json" } {
+function validateReporters(raw: unknown, path: string): ReportersConfig {
   if (!isObject(raw)) throw configError(path, "must be an object");
-  const out: { default?: "human" | "json" } = {};
+  const out: ReportersConfig = {};
   if (raw.default !== undefined) {
     if (raw.default !== "human" && raw.default !== "json") {
       throw configError(`${path}/default`, "must be 'human' or 'json'");
     }
     out.default = raw.default;
+  }
+  if (raw.plugins !== undefined) {
+    if (!Array.isArray(raw.plugins)) throw configError(`${path}/plugins`, "must be an array");
+    out.plugins = raw.plugins.map((entry, i) => {
+      const p = `${path}/plugins/${i}`;
+      if (!isObject(entry)) throw configError(p, "must be an object");
+      if (typeof entry.package !== "string" || entry.package.length === 0) {
+        throw configError(`${p}/package`, "must be a non-empty string");
+      }
+      const plugin: ReporterPlugin = { package: entry.package };
+      if (entry.options !== undefined) {
+        if (!isObject(entry.options)) throw configError(`${p}/options`, "must be an object");
+        plugin.options = entry.options as Record<string, unknown>;
+      }
+      return plugin;
+    });
   }
   return out;
 }
