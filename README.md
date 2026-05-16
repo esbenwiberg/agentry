@@ -39,13 +39,15 @@ improvements.
 ### Output modes
 
 ```bash
-repofit                      # human-readable (default)
-repofit --json               # full machine-readable report
-repofit --ci                 # one-line verdict + GitHub Actions annotations
-repofit --html report.html   # self-contained HTML report
-repofit --sarif report.sarif # SARIF 2.1.0 for GitHub code scanning
-repofit --comment body.md    # markdown body for a sticky PR comment
-repofit --include executed   # also run the slow stuff (test/build/lint timings)
+repofit                         # human-readable (default)
+repofit --json                  # full machine-readable report
+repofit --ci                    # one-line verdict + GitHub Actions annotations
+repofit --html report.html      # self-contained HTML report
+repofit --sarif report.sarif    # SARIF 2.1.0 for GitHub code scanning
+repofit --comment body.md       # markdown body for a sticky PR comment
+repofit --include executed      # also run commands (test/build/lint timings)
+repofit --include reasoned      # also run LLM-judged probes
+repofit --include executed,reasoned
 ```
 
 ## What it scores
@@ -103,12 +105,14 @@ stock probe.
 
 ## Architecture
 
-The engine runs probes in tiers — static → derived → historical → executed —
-and skips the executed tier (latency probes, branch protection, *.clean)
-unless you ask for it. Each probe emits a typed **reading** (predicate,
-count, magnitude, inventory, distribution, or n/a), which the scorer reduces
-to 0–100. Probes are bundled in versioned **corpus** packages so the rubric
-is reproducible.
+The engine runs probes in tiers — static → derived → historical, with
+executed and reasoned tiers opt-in. The default run stays cheap and
+deterministic; `--include executed` runs repository commands, and
+`--include reasoned` invokes an LLM judge for qualitative checks. Each probe
+emits a typed **reading** (predicate, count, magnitude, inventory,
+distribution, judge, error, or n/a), which the scorer reduces to 0–100.
+Probes are bundled in versioned **corpus** packages so the rubric is
+reproducible.
 
 ```
 packages/
@@ -135,7 +139,10 @@ npx repofit probe new latency.deploy --kind magnitude
 
 See [`docs/authoring.md`](docs/authoring.md) for the full guide — tiers,
 reading kinds, scoring, evidence subsystems, fixtures, and how to register
-probes in a custom corpus.
+probes in a custom corpus. See [`docs/authoring-corpus.md`](docs/authoring-corpus.md)
+for packaging and loading a published corpus, and
+[`examples/corpus-ruby/`](examples/corpus-ruby/) for a copyable example that
+adds a new probe and overrides a stock one.
 
 ## CI integrations
 

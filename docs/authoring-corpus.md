@@ -13,7 +13,7 @@ themselves, start with [`authoring.md`](./authoring.md).
 
 | Goal | Custom corpus? |
 |---|---|
-| Add a single probe to a project | No — load the default corpus and add the probe in your repo (rarely worth the effort) |
+| Add one local experiment | Usually no — scaffold it, test it with fixtures, and promote it only if it proves useful |
 | Add stack-specific probes for an unsupported language (Ruby, Java, Rust…) | **Yes** |
 | Replace a stock probe with a stricter / vendor-specific version | **Yes** — override by id |
 | Ship a team-wide bundle of conventions (custom dimensions + probes) | **Yes** |
@@ -24,12 +24,22 @@ new `rspec.clean` probe.
 
 ## Package layout
 
+Start by scaffolding probes with the CLI:
+
+```bash
+npx repofit probe new rspec.clean --dir src/probes
+```
+
+Then export them from a package:
+
 ```
 my-corpus/
 ├── package.json
 ├── tsconfig.json
 └── src/
-    └── index.ts       # exports: meta, probes, dimensions?, fixers?
+    ├── index.ts       # exports: meta, probes, dimensions?, fixers?
+    └── probes/
+        └── rspec-clean.ts
 ```
 
 The engine loads your corpus by `import("<package>")` and reads four named
@@ -85,6 +95,11 @@ control the version:
 
 Both packages must be installed (`npm install --save-dev …`).
 
+The `version` value is a reproducibility pin in config and baselines. It must
+be exact, not a semver range. The loader imports the installed package by
+name, so make sure the installed package version and the pinned version match
+when you update the corpus.
+
 ## Override rules
 
 When two corpora export the same probe id, **later wins**. Same for
@@ -119,6 +134,7 @@ variants of the same probe's fixer can coexist across corpora.
 
 ```bash
 # in your corpus repo
+npx repofit probe new rspec.clean --dir src/probes
 npm run build           # tsc
 npm test                # vitest — runs every probe's fixtures
 
@@ -126,7 +142,7 @@ npm test                # vitest — runs every probe's fixtures
 cd ../my-test-project
 npm install --save-dev /path/to/my-corpus
 # add to repofit.config.json#corpus, then:
-npx repofit
+npx repofit --include executed
 ```
 
 Probe **fixtures** are how you catch regressions before publishing. Every

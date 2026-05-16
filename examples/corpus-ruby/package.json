@@ -4,9 +4,15 @@
   "description": "Example third-party corpus adding Ruby support to repofit. Replaces lint.clean and ships rspec.clean.",
   "type": "module",
   "private": true,
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "license": "MIT",
   "peerDependencies": {
-    "@esbenwiberg/repofit": "*"
+    "@esbenwiberg/repofit": "^1.1.0"
   }
 }

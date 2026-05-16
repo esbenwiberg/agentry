@@ -211,7 +211,8 @@ disapply path.
 
 ## Registering a probe in a corpus
 
-A corpus is a package that exports `probes` and `dimensions`. Layout:
+A corpus is a package that exports `meta`, `probes`, `dimensions`, and
+optionally `fixers`. Layout:
 
 ```
 my-corpus/
@@ -241,12 +242,28 @@ const pkg = createRequire(import.meta.url)("../package.json") as {
 export const meta = { name: pkg.name, version: pkg.version };
 export const probes = [myProbe];
 export const dimensions = [myDimension];
+export const fixers = [];
 ```
 
-> Note: the v1.0.0 CLI loads `@esbenwiberg/corpus-default` directly. Loading a
-> custom corpus by package name from `repofit.config.json` is on the roadmap;
-> for now, build against the SDK in-tree (your custom probes can live in your
-> repo and be tested with `runFixture`).
+Load the corpus from `repofit.config.json` after the default corpus:
+
+```json
+{
+  "corpus": [
+    { "package": "@esbenwiberg/corpus-default", "version": "1.1.0" },
+    { "package": "@you/repofit-corpus", "version": "0.1.0" }
+  ]
+}
+```
+
+Both packages must be installed in the consuming project. Corpora are ordered:
+when two corpora export the same probe id, dimension id, or fixer key, the
+later corpus wins and repofit prints an override notice. Use this intentionally
+to replace a stock probe with a stricter team-specific version.
+
+For the full packaging contract, peer dependency guidance, and local test loop,
+see [Authoring a custom corpus](./authoring-corpus.md). For a worked example,
+see [`examples/corpus-ruby/`](../examples/corpus-ruby/).
 
 ## Style guide
 
@@ -374,5 +391,5 @@ The same probe can have both a static and an LLM fixer registered. Without `--wi
 ## See also
 
 - [Probe schema](design/probe-schema.md) — the full type reference.
-- [`@esbenwiberg/corpus-default`](../packages/corpus-default/) — read the source for ~45 worked examples.
+- [`@esbenwiberg/corpus-default`](../packages/corpus-default/) — read the source for 58 worked examples.
 - `repofit explain <probe-id>` — inspect any probe (yours or built-in).
