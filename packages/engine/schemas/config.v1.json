@@ -59,6 +59,30 @@
         }
       }
     },
+    "toolchain": {
+      "type": "object",
+      "description": "Overrides for stack detection and per-phase command resolution.",
+      "additionalProperties": false,
+      "properties": {
+        "primaryStack": {
+          "type": "string",
+          "enum": ["node", "python", "dotnet", "go"],
+          "description": "Force the primary stack instead of relying on the default (Node > Python > .NET > Go) precedence."
+        },
+        "commands": {
+          "type": "object",
+          "description": "Per-phase argv override. Each value is a non-empty array of strings.",
+          "additionalProperties": false,
+          "properties": {
+            "build": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+            "test": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+            "lint": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+            "typecheck": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+            "format": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+          }
+        }
+      }
+    },
     "dimensions": {
       "type": "object",
       "description": "Per-dimension overrides keyed by dimension id.",

@@ -38,7 +38,7 @@ export async function apply(opts: ApplyOptions): Promise<{ stdout: string; exitC
     return { stdout: "no fixers registered in the corpus.\n", exitCode: 0 };
   }
 
-  const evidence = await gatherAll({ cwd: opts.cwd, judge: {} });
+  const evidence = await gatherAll({ cwd: opts.cwd, judge: {}, toolchain: config?.toolchain });
   const results = await runProbes(probes, evidence, { includeTiers: DEFAULT_TIERS });
 
   const usesLlm = Array.from(fixersByProbe.values()).some((f) => f.mode === "llm");

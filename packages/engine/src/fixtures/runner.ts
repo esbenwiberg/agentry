@@ -26,6 +26,7 @@ import type {
   PythonProjectEvidence,
   Reading,
   SizeStatsEvidence,
+  ToolchainEvidence,
 } from "../sdk/types.js";
 import { errorMessage } from "../util/error-message.js";
 
@@ -72,6 +73,7 @@ function hydrateFixtureEvidence(raw: Record<string, unknown>): EvidenceMap {
     python_project: hydratePythonProject(raw.python_project),
     dotnet_project: hydrateDotnetProject(raw.dotnet_project),
     go_module: hydrateGoModule(raw.go_module),
+    toolchain: hydrateToolchain(raw.toolchain),
     gitignore: hydrateGitignore(raw.gitignore),
     size_stats: hydrateSizeStats(raw.size_stats),
     ci_workflows: hydrateCiWorkflows(raw.ci_workflows),
@@ -176,6 +178,28 @@ function hydrateGoModule(raw: unknown): GoModuleEvidence {
   return {
     present: obj.present ?? true,
     modules: obj.modules ?? [],
+  };
+}
+
+function hydrateToolchain(raw: unknown): ToolchainEvidence {
+  if (!raw || typeof raw !== "object") {
+    return {
+      stacks: [],
+      primary: null,
+      commands: { build: null, test: null, lint: null, typecheck: null, format: null },
+    };
+  }
+  const obj = raw as Partial<ToolchainEvidence>;
+  return {
+    stacks: obj.stacks ?? [],
+    primary: obj.primary ?? null,
+    commands: {
+      build: obj.commands?.build ?? null,
+      test: obj.commands?.test ?? null,
+      lint: obj.commands?.lint ?? null,
+      typecheck: obj.commands?.typecheck ?? null,
+      format: obj.commands?.format ?? null,
+    },
   };
 }
 

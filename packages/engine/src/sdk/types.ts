@@ -159,6 +159,33 @@ export type GoModuleEvidence = {
   modules: GoModuleInfo[];
 };
 
+export type ToolchainStack = "node" | "python" | "dotnet" | "go";
+
+export type ToolchainPhase = "build" | "test" | "lint" | "typecheck" | "format";
+
+export type ToolchainCommand = {
+  /**
+   * Where the command came from. `"explicit"` means a user override in
+   * `repofit.config.json#commands.<phase>`. Otherwise the detected stack
+   * whose default was used.
+   */
+  source: ToolchainStack | "explicit";
+  /** Argv to spawn. */
+  argv: string[];
+};
+
+export type ToolchainEvidence = {
+  /** Supported stacks detected in this repo, in primary-first order. */
+  stacks: ToolchainStack[];
+  /** First entry of `stacks`, or null if none of the supported stacks were detected. */
+  primary: ToolchainStack | null;
+  /**
+   * Resolved command per phase. `null` when no sensible default exists for the
+   * primary stack and no override is configured (probes should treat as n/a).
+   */
+  commands: Record<ToolchainPhase, ToolchainCommand | null>;
+};
+
 export type GitignoreEvidence = {
   present: boolean;
   patterns: string[];
@@ -284,6 +311,7 @@ export type EvidenceMap = {
   python_project: PythonProjectEvidence;
   dotnet_project: DotnetProjectEvidence;
   go_module: GoModuleEvidence;
+  toolchain: ToolchainEvidence;
   gitignore: GitignoreEvidence;
   size_stats: SizeStatsEvidence;
   ci_workflows: CiWorkflowsEvidence;
@@ -299,9 +327,17 @@ export type JudgeOptions = {
   transport?: "api" | "cli" | "openai" | "codex";
 };
 
+export type ToolchainContext = {
+  /** Per-phase argv overrides from `repofit.config.json#commands`. */
+  commands?: Partial<Record<ToolchainPhase, string[]>>;
+  /** Override the auto-detected primary stack. */
+  primaryStack?: ToolchainStack;
+};
+
 export type GatherContext = {
   cwd: string;
   judge?: JudgeOptions;
+  toolchain?: ToolchainContext;
 };
 
 export type FixActionWriteFile = {

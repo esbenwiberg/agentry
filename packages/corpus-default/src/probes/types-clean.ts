@@ -2,40 +2,32 @@ import { defineProbe } from "@esbenwiberg/repofit/sdk";
 
 export default defineProbe({
   id: "types.clean",
-  version: "1.0.0",
+  version: "2.0.0",
   dimensions: [{ id: "feedback", weight: 1 }],
   tier: "executed",
-  evidence: ["node_package", "files", "commands"],
+  evidence: ["toolchain", "commands"],
 
   rationale: `
     Type errors that ship are a clear gate failure. This runs the
-    project's typecheck (script or vanilla \`tsc --noEmit\`) and
-    reports clean only on exit zero. N/A on repos without TS
-    configuration.
+    typecheck command for the primary stack (Node typecheck script or
+    \`tsc --noEmit\`, Python \`mypy .\`) and reports clean only on
+    exit zero. N/A on stacks where typecheck is baked into build
+    (.NET, Go) or no type-checker is configured.
   `,
 
   remediation:
-    "Run `npm run typecheck` (or `tsc --noEmit`) and fix every reported error. Don't suppress with `@ts-ignore` / `any` casts without justification — those are a tax the agent pays every time it tries to reason about the surrounding code. Add a pre-commit hook or CI gate so the tree stays type-clean.",
+    "Run the typecheck for your stack and fix every reported error. Don't suppress with `@ts-ignore` / `# type: ignore` casts without justification — those are a tax the agent pays every time it tries to reason about the surrounding code. Add a pre-commit hook or CI gate so the tree stays type-clean.",
 
   async detect(ev) {
-    if (!ev.node_package.present && !ev.files.has("tsconfig.json")) {
-      return { kind: "na", reason: "no TS configuration" };
+    const cmd = ev.toolchain.commands.typecheck;
+    if (!cmd) {
+      return {
+        kind: "na",
+        reason:
+          "no typecheck command — declare commands.typecheck in repofit.config.json, or configure a type-checker for your stack (e.g. tsc, mypy)",
+      };
     }
-    const scripted =
-      ev.node_package.present &&
-      typeof ev.node_package.scripts.typecheck === "string" &&
-      ev.node_package.scripts.typecheck.trim().length > 0;
-
-    let argv: string[];
-    if (scripted) {
-      argv = ["npm", "run", "typecheck", "--silent"];
-    } else if (ev.files.has("tsconfig.json")) {
-      argv = ["npx", "--no-install", "tsc", "--noEmit"];
-    } else {
-      return { kind: "na", reason: "no typecheck script and no tsconfig.json" };
-    }
-
-    const run = await ev.commands.run({ argv, timeoutMs: 300_000 });
+    const run = await ev.commands.run({ argv: cmd.argv, timeoutMs: 300_000 });
     if (run.timedOut) return { kind: "na", reason: "typecheck timed out" };
     return { kind: "predicate", value: run.exitCode === 0 };
   },
@@ -44,17 +36,27 @@ export default defineProbe({
 
   fixtures: [
     {
-      name: "no-ts-config",
-      evidence: { node_package: { present: true, scripts: {} } },
+      name: "no-typecheck-command",
+      evidence: { toolchain: { primary: null } },
       expect: {
-        reading: { kind: "na", reason: "no typecheck script and no tsconfig.json" },
+        reading: {
+          kind: "na",
+          reason:
+            "no typecheck command — declare commands.typecheck in repofit.config.json, or configure a type-checker for your stack (e.g. tsc, mypy)",
+        },
         score: null,
       },
     },
     {
-      name: "types-clean",
+      name: "node-tsc-clean",
       evidence: {
-        node_package: { present: true, scripts: { typecheck: "tsc --noEmit" } },
+        toolchain: {
+          stacks: ["node"],
+          primary: "node",
+          commands: {
+            typecheck: { source: "node", argv: ["npm", "run", "typecheck", "--silent"] },
+          },
+        },
         commands: [
           { argv: ["npm", "run", "typecheck", "--silent"], exitCode: 0, durationMs: 4500 },
         ],
@@ -62,12 +64,14 @@ export default defineProbe({
       expect: { reading: { kind: "predicate", value: true }, score: 100 },
     },
     {
-      name: "types-dirty",
+      name: "python-mypy-dirty",
       evidence: {
-        node_package: { present: true, scripts: { typecheck: "tsc --noEmit" } },
-        commands: [
-          { argv: ["npm", "run", "typecheck", "--silent"], exitCode: 1, durationMs: 4500 },
-        ],
+        toolchain: {
+          stacks: ["python"],
+          primary: "python",
+          commands: { typecheck: { source: "python", argv: ["mypy", "."] } },
+        },
+        commands: [{ argv: ["mypy", "."], exitCode: 1, durationMs: 2000 }],
       },
       expect: { reading: { kind: "predicate", value: false }, score: 0 },
     },

@@ -46,9 +46,11 @@ export async function explain(opts: ExplainOptions): Promise<{ stdout: string; e
 async function runAndTrace(probe: Probe, opts: ExplainOptions): Promise<string[]> {
   const cwd = opts.cwd ?? process.cwd();
   try {
+    const config = await loadProjectConfig(cwd);
     const evidence = await gatherAll({
       cwd,
       judge: { noCache: opts.noCache, transport: opts.judgeTransport },
+      toolchain: config?.toolchain,
     });
     const reading = await probe.detect(evidence);
     return traceReadingAndScore(reading, probe.score);
