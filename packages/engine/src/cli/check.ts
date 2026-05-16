@@ -1,4 +1,6 @@
 import { writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { aggregate } from "../aggregator/index.js";
 import { gatherAll } from "../evidence/registry.js";
 import { BASELINE_FILENAME, loadBaseline } from "../loader/baseline.js";
@@ -143,6 +145,7 @@ export async function check(opts: CheckOptions): Promise<number> {
   const reporterOutputs = await runReporterPlugins(opts, reportInput, config);
 
   await warnUnignoredArtifacts(opts.cwd, [
+    opts.artifact,
     opts.html,
     opts.sarif,
     opts.comment,
@@ -160,15 +163,29 @@ export async function check(opts: CheckOptions): Promise<number> {
         toolchain: { stacks: evidence.toolchain.stacks, primary: evidence.toolchain.primary },
       }),
     );
-    if (opts.html) console.log(`  html     ${opts.html}`);
-    if (opts.sarif) console.log(`  sarif    ${opts.sarif}`);
-    if (opts.comment) console.log(`  comment  ${opts.comment}`);
-    for (const out of reporterOutputs) console.log(`  ${out.name.padEnd(8)} ${out.path}`);
+    printArtifactLinks(
+      artifactLinks([
+        ["html", opts.html],
+        ["sarif", opts.sarif],
+        ["comment", opts.comment],
+        ...reporterOutputs.map((out) => [out.name, out.path] as const),
+      ]),
+      console.log,
+    );
     return verdict.pass ? 0 : 1;
   }
 
   if (output === "json") {
     process.stdout.write(renderJson(reportInput));
+    printArtifactLinks(
+      artifactLinks([
+        ["html", opts.html],
+        ["sarif", opts.sarif],
+        ["comment", opts.comment],
+        ...reporterOutputs.map((out) => [out.name, out.path] as const),
+      ]),
+      console.error,
+    );
     return verdict.pass ? 0 : 1;
   }
 
@@ -176,6 +193,16 @@ export async function check(opts: CheckOptions): Promise<number> {
   const rendered = await renderCi({ ...reportInput, githubActions, artifactPath: opts.artifact });
   console.log(rendered.stdout);
   for (const line of rendered.annotations) console.log(line);
+  printArtifactLinks(
+    artifactLinks([
+      ["json", rendered.artifactWritten],
+      ["html", opts.html],
+      ["sarif", opts.sarif],
+      ["comment", opts.comment],
+      ...reporterOutputs.map((out) => [out.name, out.path] as const),
+    ]),
+    console.log,
+  );
   return verdict.pass ? 0 : 1;
 }
 
@@ -207,6 +234,25 @@ function reportCorpusOverrides(corpus: LoadedCorpus, output: OutputMode | undefi
  * the false signal is obvious and fixable.
  */
 type ReporterDispatch = { name: string; path: string };
+type ArtifactLink = { label: string; path: string; href: string };
+
+function artifactLinks(
+  entries: ReadonlyArray<readonly [string, string | undefined]>,
+): ArtifactLink[] {
+  return entries.flatMap(([label, path]) =>
+    path ? [{ label, path, href: pathToFileURL(resolve(path)).href }] : [],
+  );
+}
+
+function printArtifactLinks(
+  links: ReadonlyArray<ArtifactLink>,
+  write: (line: string) => void,
+): void {
+  if (links.length === 0) return;
+  write("");
+  write(links.length === 1 ? "report artifact:" : "report artifacts:");
+  for (const link of links) write(`  ${link.label.padEnd(8)} ${link.href}`);
+}
 
 async function runReporterPlugins(
   opts: CheckOptions,
