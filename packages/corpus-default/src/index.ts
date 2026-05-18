@@ -73,6 +73,7 @@ import testsOracleQuality from "./probes/tests-oracle-quality.js";
 import testsRunnerConfigured from "./probes/tests-runner-configured.js";
 import typesClean from "./probes/types-clean.js";
 import typesConfigured from "./probes/types-configured.js";
+import typesEscapeHatches from "./probes/types-escape-hatches.js";
 
 const pkg = createRequire(import.meta.url)("../package.json") as { name: string; version: string };
 
@@ -144,6 +145,7 @@ export const probes = [
   testsRunnerConfigured,
   typesClean,
   typesConfigured,
+  typesEscapeHatches,
 ];
 
 export const dimensions = [
