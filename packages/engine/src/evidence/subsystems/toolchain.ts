@@ -28,6 +28,9 @@ const STACK_PRECEDENCE: ToolchainStack[] = ["node", "python", "dotnet", "go"];
 
 const PHASES: ToolchainPhase[] = ["build", "test", "lint", "typecheck", "format"];
 
+const AGENT_SAFE_TEST_SCRIPTS = ["test:agent", "test:unit", "test:smoke", "test:fast"] as const;
+const E2E_TEST_HINT = /\b(playwright|cypress|testcafe|webdriver|selenium|detox|e2e)\b/i;
+
 export const toolchainSubsystem = {
   async gather(ctx: GatherContext): Promise<ToolchainEvidence> {
     const [node, python, dotnet, go] = await Promise.all([
@@ -129,7 +132,16 @@ function nodeArgv(phase: ToolchainPhase, node: NodePackageEvidence, cwd: string)
     typeof node.scripts[name] === "string" && node.scripts[name].trim().length > 0;
 
   if (phase === "build") return hasScript("build") ? ["npm", "run", "build", "--silent"] : null;
-  if (phase === "test") return hasScript("test") ? ["npm", "test", "--silent"] : null;
+  if (phase === "test") {
+    for (const script of AGENT_SAFE_TEST_SCRIPTS) {
+      if (hasScript(script)) return ["npm", "run", script, "--silent"];
+    }
+    if (!hasScript("test")) return null;
+    // Avoid surprising users by running a full browser/e2e suite in executed mode.
+    // They can still opt into that explicitly with toolchain.commands.test.
+    if (E2E_TEST_HINT.test(node.scripts.test ?? "")) return null;
+    return ["npm", "test", "--silent"];
+  }
   if (phase === "lint") return hasScript("lint") ? ["npm", "run", "lint", "--silent"] : null;
   if (phase === "format") {
     if (hasScript("format:check")) return ["npm", "run", "format:check", "--silent"];

@@ -71,6 +71,7 @@ import sizeRepoTokenEstimate from "./probes/size-repo-token-estimate.js";
 import specsPresent from "./probes/specs-present.js";
 import specsQuality from "./probes/specs-quality.js";
 import specsTestTraceability from "./probes/specs-test-traceability.js";
+import testsAgentSafeCommand from "./probes/tests-agent-safe-command.js";
 import testsClean from "./probes/tests-clean.js";
 import testsCoverPublicSurface from "./probes/tests-cover-public-surface.js";
 import testsDeterministic from "./probes/tests-deterministic.js";
@@ -149,6 +150,7 @@ export const probes = [
   specsPresent,
   specsQuality,
   specsTestTraceability,
+  testsAgentSafeCommand,
   testsClean,
   testsCoverPublicSurface,
   testsDeterministic,

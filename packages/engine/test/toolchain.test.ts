@@ -128,6 +128,35 @@ describe("toolchain.resolve — node defaults", () => {
     const out = resolve({ cwd: "/tmp/nope" }, i);
     expect(out.commands.format?.argv).toEqual(["npm", "run", "format:check", "--silent"]);
   });
+
+  test("node prefers agent-safe test script over npm test", () => {
+    const i = emptyInputs();
+    i.node = {
+      present: true,
+      dependencies: {},
+      devDependencies: {},
+      scripts: { test: "playwright test", "test:agent": "vitest run --runInBand" },
+      raw: {},
+    };
+    const out = resolve({ cwd: "/tmp/nope" }, i);
+    expect(out.commands.test).toEqual({
+      source: "node",
+      argv: ["npm", "run", "test:agent", "--silent"],
+    });
+  });
+
+  test("node e2e-only npm test is not auto-run in executed probes", () => {
+    const i = emptyInputs();
+    i.node = {
+      present: true,
+      dependencies: {},
+      devDependencies: {},
+      scripts: { test: "playwright test" },
+      raw: {},
+    };
+    const out = resolve({ cwd: "/tmp/nope" }, i);
+    expect(out.commands.test).toBeNull();
+  });
 });
 
 describe("toolchain.resolve — python defaults", () => {

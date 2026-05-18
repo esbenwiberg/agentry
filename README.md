@@ -75,13 +75,17 @@ resolves a sensible default command per phase:
 | Phase     | Node                            | Python                       | .NET                                 | Go                              |
 | --------- | ------------------------------- | ---------------------------- | ------------------------------------ | ------------------------------- |
 | build     | `npm run build` (script)        | `python -m build`            | `dotnet build`                       | `go build ./...`                |
-| test      | `npm test`                      | `pytest`                     | `dotnet test`                        | `go test ./...`                 |
+| test      | `npm run test:agent` / `test:unit` / `test:smoke` / `test:fast`, then safe `npm test` | `pytest`                     | `dotnet test`                        | `go test ./...`                 |
 | lint      | `npm run lint` (script)         | `ruff check .`               | `dotnet format --verify-no-changes`  | `golangci-lint run` / `go vet`  |
 | typecheck | `npm run typecheck` / `npx tsc` | `mypy .`                     | (built into build)                   | (built into build)              |
 | format    | `npm run format[:check]`        | `ruff format --check .`      | (same tool as lint)                  | `gofmt -l .`                    |
 
 Detection is conservative — multiple Python linters configured (e.g. ruff
-and flake8) yields `n/a` rather than a wrong guess. To override, set
+and flake8) yields `n/a` rather than a wrong guess. For Node tests, repofit
+will not auto-run an `npm test` script that looks like a full browser/e2e
+suite (`playwright`, `cypress`, `e2e`, etc.); add `test:agent`, `test:unit`,
+`test:smoke`, or `test:fast`, or opt in explicitly with a command override.
+To override, set
 `toolchain.commands.<phase>` in `repofit.config.json`:
 
 ```json
