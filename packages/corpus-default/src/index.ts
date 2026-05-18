@@ -30,6 +30,7 @@ import ciRunsLint from "./probes/ci-runs-lint.js";
 import ciRunsTests from "./probes/ci-runs-tests.js";
 import ciRunsTypecheck from "./probes/ci-runs-typecheck.js";
 import commitsConventionalFollowed from "./probes/commits-conventional-followed.js";
+import contractsMachineReadable from "./probes/contracts-machine-readable.js";
 import deadCodeConfigured from "./probes/dead-code-configured.js";
 import depsAuditConfigured from "./probes/deps-audit-configured.js";
 import depsLockfilePresent from "./probes/deps-lockfile-present.js";
@@ -103,6 +104,7 @@ export const probes = [
   ciRunsTests,
   ciRunsTypecheck,
   commitsConventionalFollowed,
+  contractsMachineReadable,
   deadCodeConfigured,
   depsAuditConfigured,
   depsLockfilePresent,
