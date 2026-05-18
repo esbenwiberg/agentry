@@ -1,11 +1,12 @@
 import { defineProbe } from "@esbenwiberg/repofit/sdk";
+import { effectiveGuidanceLineCount } from "./_shared/guidance-content.js";
 
 export default defineProbe({
   id: "agent.guidance-substance",
-  version: "1.0.0",
+  version: "1.1.0",
   dimensions: [{ id: "context", weight: 1 }],
   tier: "static",
-  evidence: ["agent_config"],
+  evidence: ["agent_config", "files"],
 
   rationale: `
     Guidance files exist on a quality spectrum: a stub CLAUDE.md with three
@@ -18,7 +19,7 @@ export default defineProbe({
     "Expand your CLAUDE.md/AGENTS.md beyond a stub. Aim for at least 40 lines covering: project purpose, build/test/run commands, directory layout, key conventions, and any non-obvious constraints. A short, focused 120-line file beats a sprawling one — but a 5-line file isn't enough for an agent to orient.",
 
   async detect(ev) {
-    const total = ev.agent_config.guidance.reduce((sum, g) => sum + g.lines, 0);
+    const total = await effectiveGuidanceLineCount(ev.agent_config.guidance, ev.files);
     return { kind: "magnitude", value: total, unit: "lines" };
   },
 
@@ -60,6 +61,22 @@ export default defineProbe({
         },
       },
       expect: { reading: { kind: "magnitude", value: 120, unit: "lines" }, score: 80 },
+    },
+    {
+      name: "forwarded-guidance",
+      evidence: {
+        agent_config: {
+          guidance: [
+            { path: "CLAUDE.md", bytes: 11, lines: 1 },
+            { path: "AGENTS.md", bytes: 800, lines: 50 },
+          ],
+        },
+        files: {
+          "CLAUDE.md": "@AGENTS.MD\n",
+          "AGENTS.md": Array.from({ length: 50 }, (_, i) => `line ${i + 1}`).join("\n"),
+        },
+      },
+      expect: { reading: { kind: "magnitude", value: 50, unit: "lines" }, score: 80 },
     },
     {
       name: "rich-guidance",

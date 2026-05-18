@@ -24,15 +24,18 @@ Ship as two packages:
 - `@esbenwiberg/corpus-default` — the default probe corpus, loaded by the
   CLI when no other corpus is configured.
 
-The engine has zero runtime dependency on the default corpus — the loader
-resolves corpora by name from `repofit.config.json`.
+The engine internals stay corpus-agnostic — the loader resolves corpora by
+name from `repofit.config.json` and custom corpora use only the public SDK.
+The published CLI package declares the default corpus as an npm dependency so
+`npx @esbenwiberg/repofit` has a corpus available in its temporary install.
 
 ## Rationale
 
 A monolithic build would have shipped sooner but the design only works if
-third parties can publish their own corpora. The moment the engine `import`s
-from the default corpus, the SDK becomes implicit ("you're a third party if
-you re-implement everything we do, secretly") rather than a real contract.
+third parties can publish their own corpora. The moment engine code statically
+imports from the default corpus, the SDK becomes implicit ("you're a third
+party if you re-implement everything we do, secretly") rather than a real
+contract.
 
 Splitting forces the SDK to be the *only* path between the two packages.
 That's an unpleasant discipline at first — every gatherer, every type, every
@@ -41,7 +44,8 @@ plugin model credible.
 
 A tuning change to a single probe rev's the corpus version. Engine changes
 that don't touch the SDK don't rev the corpus. Two packages, two release
-cadences, one SDK contract.
+cadences, one SDK contract. The CLI package's dependency on the default
+corpus is a packaging affordance, not an internal import edge.
 
 ## Consequences
 

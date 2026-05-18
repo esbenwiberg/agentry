@@ -1,6 +1,7 @@
 import { defineProbe } from "@esbenwiberg/repofit/sdk";
+import { readGuidanceParts } from "./_shared/guidance-content.js";
 
-const PROBE_VERSION = "1.0.0";
+const PROBE_VERSION = "1.1.0";
 const MAX_INPUT_CHARS = 20_000;
 
 const RUBRIC = {
@@ -58,16 +59,9 @@ export default defineProbe({
       return { kind: "na", reason: "no agent-guidance file present" };
     }
 
-    const parts: string[] = [];
-    let remaining = MAX_INPUT_CHARS;
-    for (const g of guidance) {
-      if (remaining <= 0) break;
-      const text = await ev.files.readText(g.path);
-      if (!text) continue;
-      const slice = text.slice(0, remaining);
-      parts.push(`# ${g.path}\n\n${slice}`);
-      remaining -= slice.length;
-    }
+    const parts = (await readGuidanceParts(guidance, ev.files, MAX_INPUT_CHARS)).map(
+      (part) => `# ${part.path}\n\n${part.text}`,
+    );
 
     if (parts.length === 0) {
       return { kind: "na", reason: "agent-guidance files declared but unreadable" };
