@@ -45,6 +45,7 @@ import editorconfigPresent from "./probes/editorconfig-present.js";
 import errorsActionability from "./probes/errors-actionability.js";
 import formatClean from "./probes/format-clean.js";
 import formatConfigured from "./probes/format-configured.js";
+import generatedCodeMarked from "./probes/generated-code-marked.js";
 import gitBranchProtection from "./probes/git-branch-protection.js";
 import gitignoreComprehensive from "./probes/gitignore-comprehensive.js";
 import hooksGatesLintTestBuild from "./probes/hooks-gates-lint-test-build.js";
@@ -119,6 +120,7 @@ export const probes = [
   errorsActionability,
   formatClean,
   formatConfigured,
+  generatedCodeMarked,
   gitBranchProtection,
   gitignoreComprehensive,
   hooksGatesLintTestBuild,
