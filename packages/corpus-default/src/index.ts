@@ -64,6 +64,7 @@ import sizeLargeFiles from "./probes/size-large-files.js";
 import sizeRepoTokenEstimate from "./probes/size-repo-token-estimate.js";
 import specsPresent from "./probes/specs-present.js";
 import specsQuality from "./probes/specs-quality.js";
+import specsTestTraceability from "./probes/specs-test-traceability.js";
 import testsClean from "./probes/tests-clean.js";
 import testsCoverPublicSurface from "./probes/tests-cover-public-surface.js";
 import testsOracleQuality from "./probes/tests-oracle-quality.js";
@@ -132,6 +133,7 @@ export const probes = [
   sizeRepoTokenEstimate,
   specsPresent,
   specsQuality,
+  specsTestTraceability,
   testsClean,
   testsCoverPublicSurface,
   testsOracleQuality,
