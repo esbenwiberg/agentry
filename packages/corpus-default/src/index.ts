@@ -67,6 +67,7 @@ import specsQuality from "./probes/specs-quality.js";
 import specsTestTraceability from "./probes/specs-test-traceability.js";
 import testsClean from "./probes/tests-clean.js";
 import testsCoverPublicSurface from "./probes/tests-cover-public-surface.js";
+import testsDeterministic from "./probes/tests-deterministic.js";
 import testsFailureActionability from "./probes/tests-failure-actionability.js";
 import testsOracleQuality from "./probes/tests-oracle-quality.js";
 import testsRunnerConfigured from "./probes/tests-runner-configured.js";
@@ -137,6 +138,7 @@ export const probes = [
   specsTestTraceability,
   testsClean,
   testsCoverPublicSurface,
+  testsDeterministic,
   testsFailureActionability,
   testsOracleQuality,
   testsRunnerConfigured,
