@@ -177,15 +177,20 @@ export default defineProbe({
 function extractImports(text: string): string[] {
   const out: string[] = [];
   IMPORT_RE.lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = IMPORT_RE.exec(text)) !== null) {
+  let match = IMPORT_RE.exec(text);
+  while (match !== null) {
     const spec = match[1] ?? match[2] ?? match[3];
     if (spec?.startsWith(".")) out.push(spec);
+    match = IMPORT_RE.exec(text);
   }
   return out;
 }
 
-function resolveRelativeImport(fromPath: string, spec: string, sourceSet: Set<string>): string | null {
+function resolveRelativeImport(
+  fromPath: string,
+  spec: string,
+  sourceSet: Set<string>,
+): string | null {
   const base = path.normalize(path.join(path.dirname(fromPath), spec));
   const candidates = [base, ...EXTENSIONS.map((ext) => `${base}${ext}`)];
   for (const ext of EXTENSIONS) candidates.push(path.join(base, `index${ext}`));

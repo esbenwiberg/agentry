@@ -38,7 +38,9 @@ export default defineProbe({
 
   async detect(ev) {
     const paths = ev.size_stats.files.filter((f) => !f.generated).map((f) => f.path);
-    const contracts = paths.filter((p) => CONTRACT_PATTERNS.some((pattern) => pattern.test(p))).sort();
+    const contracts = paths
+      .filter((p) => CONTRACT_PATTERNS.some((pattern) => pattern.test(p)))
+      .sort();
 
     if (contracts.length === 0) {
       return { kind: "na", reason: "no machine-readable contract files detected" };
@@ -46,7 +48,9 @@ export default defineProbe({
 
     const testPaths = paths.filter((p) => TEST_FILE.test(p));
     const scripts = ev.node_package.present ? Object.values(ev.node_package.scripts ?? {}) : [];
-    const hasContractScript = scripts.some((script) => GENERATION_OR_VALIDATION_SCRIPT.test(script));
+    const hasContractScript = scripts.some((script) =>
+      GENERATION_OR_VALIDATION_SCRIPT.test(script),
+    );
 
     const items: InventoryItem[] = [];
     for (const contract of contracts) {

@@ -19,8 +19,7 @@ const RUBRIC = {
     },
     {
       id: "conventions-align",
-      description:
-        "Do coding, commit, review, testing, and safety conventions agree across files?",
+      description: "Do coding, commit, review, testing, and safety conventions agree across files?",
     },
     {
       id: "audience-fit",

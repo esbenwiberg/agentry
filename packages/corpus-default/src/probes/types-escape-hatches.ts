@@ -6,7 +6,11 @@ const TSCONFIG = /(?:^|\/)tsconfig(?:\.[^/]+)?\.json$/i;
 const SKIP_DIRS = /(?:^|\/)(?:node_modules|dist|build|coverage|\.next|\.nuxt|out|target|bin|obj)\//;
 
 const SOURCE_PATTERNS: { pattern: RegExp; severity: Severity; message: string }[] = [
-  { pattern: /@ts-ignore\b/, severity: "error", message: "suppresses TypeScript errors with @ts-ignore" },
+  {
+    pattern: /@ts-ignore\b/,
+    severity: "error",
+    message: "suppresses TypeScript errors with @ts-ignore",
+  },
   {
     pattern: /@ts-expect-error\b/,
     severity: "warn",
@@ -32,7 +36,11 @@ const SOURCE_PATTERNS: { pattern: RegExp; severity: Severity; message: string }[
 ];
 
 const CONFIG_PATTERNS: { pattern: RegExp; severity: Severity; message: string }[] = [
-  { pattern: /"strict"\s*:\s*false/, severity: "error", message: "disables TypeScript strict mode" },
+  {
+    pattern: /"strict"\s*:\s*false/,
+    severity: "error",
+    message: "disables TypeScript strict mode",
+  },
   {
     pattern: /"noImplicitAny"\s*:\s*false/,
     severity: "error",
@@ -130,7 +138,8 @@ export default defineProbe({
       name: "clean-types",
       evidence: {
         files: {
-          "src/index.ts": "export function parse(value: unknown): string { return String(value); }\n",
+          "src/index.ts":
+            "export function parse(value: unknown): string { return String(value); }\n",
           "tsconfig.json": '{ "compilerOptions": { "strict": true } }\n',
         },
         size_stats: {
@@ -149,7 +158,8 @@ export default defineProbe({
       name: "typescript-escape-hatches",
       evidence: {
         files: {
-          "src/index.ts": "const value: any = load();\n// @ts-ignore\nexport const x = value.nope;\n",
+          "src/index.ts":
+            "const value: any = load();\n// @ts-ignore\nexport const x = value.nope;\n",
           "tsconfig.json": '{ "compilerOptions": { "strict": false } }\n',
         },
         size_stats: {

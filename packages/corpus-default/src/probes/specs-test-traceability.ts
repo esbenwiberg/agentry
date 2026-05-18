@@ -21,8 +21,7 @@ const SPEC_DIRS = [
 const SPEC_FILE = /\.(?:md|markdown)$/i;
 const TEST_FILE = /(?:\.test\.|\.spec\.|__tests__|^tests?\/|^e2e\/)/i;
 const TEST_SOURCE_FILE = /\.(?:ts|tsx|js|jsx|mjs|cjs|py|cs|go|rs|java|kt)$/i;
-const TEST_NAME_LINE =
-  /\b(?:test|it|describe|scenario|context)\s*\(\s*["'`]([^"'`]{4,120})["'`]/i;
+const TEST_NAME_LINE = /\b(?:test|it|describe|scenario|context)\s*\(\s*["'`]([^"'`]{4,120})["'`]/i;
 const PY_TEST_NAME = /^\s*def\s+(test_[a-zA-Z0-9_]+)/;
 const GO_TEST_NAME = /^\s*func\s+(Test[A-Za-z0-9_]+)\s*\(/;
 
