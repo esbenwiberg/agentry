@@ -17,6 +17,7 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "test": "npm run build -w @esbenwiberg/repofit && npm run test --workspaces --if-present",
+    "test:agent": "npm --workspace @esbenwiberg/corpus-default test -- --testTimeout=10000 && npm --workspace @esbenwiberg/repofit test -- --testTimeout=10000",
     "smoke": "npm run build -w @esbenwiberg/repofit && node packages/engine/dist/cli/index.js --version",
     "arch:check": "depcruise --config .dependency-cruiser.cjs packages",
     "knip": "knip",

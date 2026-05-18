@@ -62,6 +62,12 @@ function extractInterestingTestLines(text: string): string[] {
   return out;
 }
 
+function specExcerpt(text: string): string {
+  if (text.length <= MAX_CHARS_PER_SPEC) return text;
+  const half = Math.floor((MAX_CHARS_PER_SPEC - 80) / 2);
+  return `${text.slice(0, half)}\n\n[...middle omitted...]\n\n${text.slice(-half)}`;
+}
+
 export default defineProbe({
   id: "specs.test-traceability",
   version: PROBE_VERSION,
@@ -107,7 +113,7 @@ export default defineProbe({
       if (specs.length >= MAX_SPECS) break;
       const text = await ev.files.readText(p);
       if (!text) continue;
-      const slice = text.slice(0, MAX_CHARS_PER_SPEC);
+      const slice = specExcerpt(text);
       specs.push({ path: p, text: slice });
       chars += slice.length;
       if (chars >= MAX_INPUT_CHARS) break;

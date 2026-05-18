@@ -4,6 +4,8 @@ import { defineProbe } from "@esbenwiberg/repofit/sdk";
 const SOURCE_FILE = /\.(?:ts|tsx|py|cs|java|kt)$/i;
 const TSCONFIG = /(?:^|\/)tsconfig(?:\.[^/]+)?\.json$/i;
 const SKIP_DIRS = /(?:^|\/)(?:node_modules|dist|build|coverage|\.next|\.nuxt|out|target|bin|obj)\//;
+const TEST_OR_FIXTURE_PATH =
+  /(?:\.test\.|\.spec\.|__tests__|^tests?\/|\/tests?\/|^fixtures\/|\/fixtures\/|^examples\/|\/examples\/)/i;
 
 const SOURCE_PATTERNS: { pattern: RegExp; severity: Severity; message: string }[] = [
   {
@@ -82,7 +84,12 @@ export default defineProbe({
     const candidates = ev.size_stats.files
       .filter((f) => !f.generated)
       .map((f) => f.path)
-      .filter((p) => (SOURCE_FILE.test(p) || TSCONFIG.test(p)) && !SKIP_DIRS.test(`/${p}`))
+      .filter(
+        (p) =>
+          (SOURCE_FILE.test(p) || TSCONFIG.test(p)) &&
+          !SKIP_DIRS.test(`/${p}`) &&
+          !TEST_OR_FIXTURE_PATH.test(p),
+      )
       .sort();
 
     if (candidates.length === 0) {
@@ -93,10 +100,11 @@ export default defineProbe({
     for (const path of candidates) {
       const text = await ev.files.readText(path);
       if (!text) continue;
-      const patterns = TSCONFIG.test(path) ? CONFIG_PATTERNS : SOURCE_PATTERNS;
-      const lines = text.split(/\n/);
+      const isConfig = TSCONFIG.test(path);
+      const patterns = isConfig ? CONFIG_PATTERNS : SOURCE_PATTERNS;
+      const lines = (isConfig ? text : stripStringBodies(text)).split(/\n/);
       for (let i = 0; i < lines.length; i += 1) {
-        const line = lines[i] ?? "";
+        const line = isConfig ? (lines[i] ?? "") : lineForMatching(lines[i] ?? "");
         for (const { pattern, severity, message } of patterns) {
           if (pattern.test(line)) {
             items.push({
@@ -198,3 +206,43 @@ export default defineProbe({
     },
   ],
 });
+
+function lineForMatching(line: string): string {
+  if (/^\s*(pattern|message|rationale|remediation):/.test(line)) return "";
+  return line.replace(/(["'`])(?:\\.|(?!\1).)*\1/g, "");
+}
+
+function stripStringBodies(text: string): string {
+  let out = "";
+  let quote: "'" | '"' | "`" | null = null;
+  let escaped = false;
+
+  for (const ch of text) {
+    if (quote) {
+      if (ch === "\n") {
+        out += "\n";
+        if (quote !== "`") quote = null;
+        escaped = false;
+        continue;
+      }
+      out += " ";
+      if (escaped) {
+        escaped = false;
+      } else if (ch === "\\") {
+        escaped = true;
+      } else if (ch === quote) {
+        quote = null;
+      }
+      continue;
+    }
+
+    if (ch === "'" || ch === '"' || ch === "`") {
+      quote = ch;
+      out += " ";
+      continue;
+    }
+    out += ch;
+  }
+
+  return out;
+}

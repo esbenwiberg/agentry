@@ -93,6 +93,18 @@ rationale verbatim. The terminal reporter shows the numeric score.
    the probe surfaces an `"error"` reading, not a crashed run; other
    probes continue.
 
+## Test traceability
+
+| Acceptance criterion | Executable checks |
+| --- | --- |
+| Probe SDK | `packages/engine/test/tiered-runner.test.ts` checks that default tiers exclude `reasoned`; corpus fixture tests validate reasoned probes declare `judge` evidence and emit judge readings. |
+| Reading shape | `packages/engine/test/scorer.test.ts` covers judge score pass-through; `packages/engine/test/judge-subsystem.test.ts` covers `perCriterion`, rationale, and score parsing. |
+| Caching | `packages/engine/test/judge-subsystem.test.ts` covers cache-key stability, input/model/version invalidation, cache hits, and `noCache` bypass. |
+| Opt-in | `packages/engine/test/tiered-runner.test.ts` covers default exclusion and explicit inclusion of reasoned probes. |
+| HTML report | `packages/engine/test/html-reporter.test.ts` covers reasoned probe rendering, scoring ladders, rationale escaping, and collapsed probe details. |
+| Provider flexibility | `packages/engine/test/judge-subsystem.test.ts` covers API-key failure behavior, custom model exposure, and cached operation without a provider call. |
+| Failure behaviour | `packages/engine/test/judge-subsystem.test.ts` covers malformed judge payloads; `packages/engine/test/tiered-runner.test.ts` covers probe errors staying isolated from the rest of the run. |
+
 ## Out of scope
 
 - Scoring large diffs or whole codebases — input size is bounded per
