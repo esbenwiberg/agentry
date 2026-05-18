@@ -35,9 +35,16 @@ describe("agent_config subsystem", () => {
     writeFileSync(join(tmp, "CLAUDE.md"), "a");
     writeFileSync(join(tmp, "AGENTS.md"), "b");
     writeFileSync(join(tmp, ".cursorrules"), "c");
+    mkdirSync(join(tmp, ".github"));
+    writeFileSync(join(tmp, ".github", "copilot-instructions.md"), "d");
     const ev = await agentConfigSubsystem.gather({ cwd: tmp });
     const paths = ev.guidance.map((g) => g.path).sort();
-    expect(paths).toEqual([".cursorrules", "AGENTS.md", "CLAUDE.md"]);
+    expect(paths).toEqual([
+      ".cursorrules",
+      ".github/copilot-instructions.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+    ]);
   });
 
   test("does not descend into subdirectories", async () => {

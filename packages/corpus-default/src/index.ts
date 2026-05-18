@@ -11,6 +11,7 @@ import docsReadmePresentFixer from "./fixers/docs-readme-present.js";
 import docsReadmePresentLlmFixer from "./fixers/docs-readme-present-llm.js";
 import editorconfigPresentFixer from "./fixers/editorconfig-present.js";
 import gitignoreComprehensiveFixer from "./fixers/gitignore-comprehensive.js";
+import agentGuidanceAligned from "./probes/agent-guidance-aligned.js";
 import agentGuidanceFresh from "./probes/agent-guidance-fresh.js";
 import agentGuidanceNested from "./probes/agent-guidance-nested.js";
 import agentGuidancePresent from "./probes/agent-guidance-present.js";
@@ -88,6 +89,7 @@ export const meta = {
 };
 
 export const probes = [
+  agentGuidanceAligned,
   agentGuidanceFresh,
   agentGuidanceNested,
   agentGuidancePresent,
