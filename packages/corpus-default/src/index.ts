@@ -66,6 +66,7 @@ import specsPresent from "./probes/specs-present.js";
 import specsQuality from "./probes/specs-quality.js";
 import testsClean from "./probes/tests-clean.js";
 import testsCoverPublicSurface from "./probes/tests-cover-public-surface.js";
+import testsOracleQuality from "./probes/tests-oracle-quality.js";
 import testsRunnerConfigured from "./probes/tests-runner-configured.js";
 import typesClean from "./probes/types-clean.js";
 import typesConfigured from "./probes/types-configured.js";
@@ -133,6 +134,7 @@ export const probes = [
   specsQuality,
   testsClean,
   testsCoverPublicSurface,
+  testsOracleQuality,
   testsRunnerConfigured,
   typesClean,
   typesConfigured,
