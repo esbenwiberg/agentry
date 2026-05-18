@@ -17,6 +17,7 @@ import agentGuidancePresent from "./probes/agent-guidance-present.js";
 import agentGuidanceQuality from "./probes/agent-guidance-quality.js";
 import agentGuidanceSubstance from "./probes/agent-guidance-substance.js";
 import archBoundariesClear from "./probes/arch-boundaries-clear.js";
+import archCouplingHotspots from "./probes/arch-coupling-hotspots.js";
 import archDocPresent from "./probes/arch-doc-present.js";
 import archDocQuality from "./probes/arch-doc-quality.js";
 import archFitnessTestsConfigured from "./probes/arch-fitness-tests-configured.js";
@@ -89,6 +90,7 @@ export const probes = [
   agentGuidanceQuality,
   agentGuidanceSubstance,
   archBoundariesClear,
+  archCouplingHotspots,
   archDocPresent,
   archDocQuality,
   archFitnessTestsConfigured,
